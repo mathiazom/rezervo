@@ -7,6 +7,7 @@ import requests
 import requests.utils
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.firefox.options import Options
 
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -47,7 +48,9 @@ def transfer_cookies_from_web_driver_to_session(driver, session):
 
 
 def authenticate():
-    with webdriver.Firefox() as driver:
+    firefox_options = Options()
+    firefox_options.add_argument("-headless")
+    with webdriver.Firefox(options=firefox_options) as driver:
         print(f"Authenticating as {SIT_USERNAME}...")
         driver_post(
             driver,
