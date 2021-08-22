@@ -171,13 +171,18 @@ def main():
         book_class(auth_token, _class['id'])
         return
     # Retrieve booking opening, and make sure it's timezone aware
-    opening_time = timezone(BOOKING_TIMEZONE).localize(datetime.fromisoformat(_class['bookingOpensAt']))
-    timedelta = opening_time - datetime.now()
+    tz = timezone(BOOKING_TIMEZONE)
+    opening_time = tz.localize(datetime.fromisoformat(_class['bookingOpensAt']))
+    timedelta = opening_time - datetime.now(tz)
     # TODO: Add a waiting limit (to avoid possibly waiting for multiple days...)
-    wait_time = timedelta.seconds + timedelta.microseconds / (10 ** 6)
-    print(f"Scheduling booking at {datetime.now() + timedelta}")
+    wait_time = timedelta.total_seconds()
+    wait_minutes = int(wait_time / 60)
+    wait_seconds = int(wait_time % 60)
+    print(f"Scheduling booking at {datetime.now(tz) + timedelta} "
+          f"(about {wait_minutes} minute{'s' if wait_minutes > 1 else ''} and "
+          f"{wait_seconds} second{'s' if wait_seconds > 1 else ''} from now)")
     time.sleep(wait_time)
-    print(f"Awoke at {datetime.now()}")
+    print(f"Awoke at {datetime.now(tz)}")
     booked = False
     attempts = 0
     while not booked and attempts < MAX_BOOKING_ATTEMPTS:
