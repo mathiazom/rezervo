@@ -149,7 +149,7 @@ SIT_PASSWORD = os.environ["SIT_PASSWORD"]
 
 load_dotenv("booking.env")
 STUDIO = os.environ['STUDIO']
-ACTIVITY_ID = os.environ['ACTIVITY_ID']
+ACTIVITY_ID = int(os.environ['ACTIVITY_ID'])
 ACTIVITY_WEEKDAY = os.environ['ACTIVITY_WEEKDAY']
 
 BOOKING_TIMEZONE = "Europe/Oslo"
