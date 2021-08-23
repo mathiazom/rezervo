@@ -144,13 +144,13 @@ def find_class(token, activity_id, weekday):
 AUTH_URL = "https://www.sit.no/"
 
 load_dotenv("sit_auth.env")
-SIT_USERNAME = os.environ["SIT_USERNAME"]
-SIT_PASSWORD = os.environ["SIT_PASSWORD"]
+SIT_USERNAME = os.environ["SIT_REZERVO_USERNAME"]
+SIT_PASSWORD = os.environ["SIT_REZERVO_PASSWORD"]
 
 load_dotenv("booking.env")
-STUDIO = os.environ['STUDIO']
-ACTIVITY_ID = int(os.environ['ACTIVITY_ID'])
-ACTIVITY_WEEKDAY = os.environ['ACTIVITY_WEEKDAY']
+STUDIO = os.environ['SIT_REZERVO_STUDIO']
+ACTIVITY_ID = int(os.environ['SIT_REZERVO_ACTIVITY_ID'])
+ACTIVITY_WEEKDAY = os.environ['SIT_REZERVO_ACTIVITY_WEEKDAY']
 
 BOOKING_TIMEZONE = "Europe/Oslo"
 
