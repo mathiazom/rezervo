@@ -143,11 +143,15 @@ def find_class(token, activity_id, weekday):
 
 AUTH_URL = "https://www.sit.no/"
 
-load_dotenv("sit_auth.env")
+# Load Sit credentials from file if present, otherwise assume already loaded
+if os.path.isfile("sit_auth.env"):
+    load_dotenv("sit_auth.env")
 SIT_USERNAME = os.environ["SIT_REZERVO_USERNAME"]
 SIT_PASSWORD = os.environ["SIT_REZERVO_PASSWORD"]
 
-load_dotenv("booking.env")
+# Load booking options from file if present, otherwise assume already loaded
+if os.path.isfile("booking.env"):
+    load_dotenv("booking.env")
 STUDIO = os.environ['SIT_REZERVO_STUDIO']
 ACTIVITY_ID = int(os.environ['SIT_REZERVO_ACTIVITY_ID'])
 ACTIVITY_WEEKDAY = os.environ['SIT_REZERVO_ACTIVITY_WEEKDAY']
