@@ -2,3 +2,5 @@
 *.log
 *.env
 venv/
+__pycache__
+config.yaml
