@@ -162,6 +162,7 @@ MAX_BOOKING_ATTEMPTS = 10
 
 
 def main():
+    print("Initializing reservation...")
     auth_token = authenticate()
     if auth_token is None:
         print("Abort!")
