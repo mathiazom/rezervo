@@ -29,9 +29,8 @@ def generate_cron_job(index, _class, preparation_minutes):
 
     return (
         f"{cron_time.minute} {cron_time.hour} * * {cron_weekday} "
-        ". /sit-rezervo-env.sh && "
-        "(cd /sit-rezervo/ || exit 1; PATH=$PATH:/usr/local/bin "
-        f"/opt/rikardo/bin/python -u rezervo.py {index} >> /var/log/cron.log 2>&1)"
+        "cd /sit-rezervo/ || exit 1; PATH=$PATH:/usr/local/bin "
+        f"/opt/rikardo/bin/python -u rezervo.py {index} >> /var/log/cron.log 2>&1"
         "\n"  # Empty line to please the cron gods ...
     )
 
