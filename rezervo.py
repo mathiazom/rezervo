@@ -154,6 +154,25 @@ BOOKING_TIMEZONE = "Europe/Oslo"
 MAX_BOOKING_ATTEMPTS = 10
 
 
+def try_book_class(token, class_id, max_attempts):
+    if max_attempts < 1:
+        print(f"[WARNING] Max booking attempts should be a positive number")
+        return
+    booked = False
+    attempts = 0
+    while not booked:
+        booked = book_class(token, class_id)
+        attempts += 1
+        if attempts >= max_attempts:
+            break
+        time.sleep(2 ** attempts)
+    if not booked:
+        print(f"[ERROR] Failed to book class after {attempts} attempt" + "s" if attempts > 1 else "")
+        return
+    print(f"Successfully booked class" + (f" after {attempts} attempts!" if attempts > 1 else "!"))
+    return
+
+
 def main():
     try:
         _class_id = int(sys.argv[1])
@@ -179,7 +198,7 @@ def main():
         return
     if _class['bookable']:
         print("Booking is already open, booking now!")
-        book_class(auth_token, _class['id'])
+        try_book_class(auth_token, _class['id'], MAX_BOOKING_ATTEMPTS)
         return
     # Retrieve booking opening, and make sure it's timezone aware
     tz = timezone(BOOKING_TIMEZONE)
@@ -194,13 +213,7 @@ def main():
           f"{wait_seconds} second{'s' if wait_seconds > 1 else ''} from now)")
     time.sleep(wait_time)
     print(f"Awoke at {datetime.now(tz)}")
-    booked = False
-    attempts = 0
-    while not booked and attempts < MAX_BOOKING_ATTEMPTS:
-        booked = book_class(auth_token, _class['id'])
-        attempts += 1
-    if not booked:
-        print(f"[ERROR] Failed to book class after {attempts} attempt" + "s" if MAX_BOOKING_ATTEMPTS > 1 else "")
+    try_book_class(auth_token, _class['id'], MAX_BOOKING_ATTEMPTS)
 
 
 if __name__ == '__main__':
