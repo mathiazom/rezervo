@@ -13,3 +13,4 @@ BOOKING_URL = "https://www.sit.no/trening/gruppe"
 ADD_BOOKING_URL = "https://ibooking.sit.no/webapp/api//Schedule/addBooking"
 CLASSES_SCHEDULE_URL = 'https://ibooking.sit.no/webapp/api/Schedule/getSchedule'
 TOKEN_VALIDATION_URL = "https://ibooking.sit.no/webapp/api/User/validateToken"
+ICAL_URL = "https://ibooking.sit.no/webapp/api/Schedule/calendar"

@@ -17,7 +17,8 @@ from pytz import timezone
 
 from config import Config
 from consts import APP_ROOT, AUTH_URL, WEEKDAYS, CONFIG_PATH, ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, \
-    TOKEN_VALIDATION_URL, BOOKING_URL
+    TOKEN_VALIDATION_URL, BOOKING_URL, ICAL_URL
+from notify import notify_slack
 from utils.driver_utils import driver_post
 from utils.time_utils import readable_seconds
 
@@ -131,14 +132,15 @@ def book_class(token, class_id) -> bool:
     return True
 
 
-def try_book_class(token: str, class_id: int, max_attempts: int) -> None:
+def try_book_class(token: str, _class: Dict[str, Any], max_attempts: int,
+                   slack_config: Optional[Config] = None) -> None:
     if max_attempts < 1:
         print(f"[WARNING] Max booking attempts should be a positive number")
         return
     booked = False
     attempts = 0
     while not booked:
-        booked = book_class(token, class_id)
+        booked = book_class(token, _class['id'])
         attempts += 1
         if attempts >= max_attempts:
             break
@@ -147,6 +149,9 @@ def try_book_class(token: str, class_id: int, max_attempts: int) -> None:
         print(f"[ERROR] Failed to book class after {attempts} attempt" + "s" if attempts > 1 else "")
         return
     print(f"Successfully booked class" + (f" after {attempts} attempts!" if attempts > 1 else "!"))
+    if slack_config:
+        ical_url = f"{ICAL_URL}/?id={_class['id']}&token={token}"
+        notify_slack(slack_config.bot_token, slack_config.channel_id, slack_config.user_id, _class, ical_url)
     return
 
 
@@ -178,7 +183,7 @@ def main() -> None:
         return
     if _class['bookable']:
         print("Booking is already open, booking now!")
-        try_book_class(auth_token, _class['id'], config.booking.max_attempts)
+        try_book_class(auth_token, _class, config.booking.max_attempts, config.slack if "slack" in config else None)
         return
     # Retrieve booking opening, and make sure it's timezone aware
     tz = timezone(config.booking.timezone)
@@ -194,7 +199,7 @@ def main() -> None:
           f"(about {wait_time_string} from now)")
     time.sleep(wait_time)
     print(f"Awoke at {datetime.now(tz)}")
-    try_book_class(auth_token, _class['id'], config.booking.max_attempts)
+    try_book_class(auth_token, _class, config.booking.max_attempts, config.slack if "slack" in config else None)
 
 
 if __name__ == '__main__':

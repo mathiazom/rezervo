@@ -11,6 +11,10 @@ cron:
   sit_rezervo_dir: "/sit-rezervo"
   python_path: "<path to python>"
   log_path: "/var/log/sit-rezervo.log"
+#slack:
+#  bot_token: "<Slack bot token>"
+#  channel_id: "<Slack channel ID>"
+#  user_id: "<Slack user/member ID>"
 classes:
 #  - activity: 331903
 #    weekday: 6
