@@ -39,7 +39,7 @@ def main():
     config = Config.from_config_file(APP_ROOT / "config.yaml")
     cron_spec = ""
     for i, c in enumerate(config.classes):
-        cron_spec += generate_cron_job(i, c, config.preperation_minutes)
+        cron_spec += generate_cron_job(i, c, config.booking.preperation_minutes)
     with open(sys.argv[1], "w+") as cron_file:
         cron_file.write(cron_spec)
 

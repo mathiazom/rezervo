@@ -3,12 +3,13 @@ from pathlib import Path
 # Absolute normalized path to the root directory of the app
 APP_ROOT = Path(__file__).parent.resolve()
 
+CONFIG_PATH = "config.yaml"
+
 WEEKDAYS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
 
 AUTH_URL = "https://www.sit.no/"
+BOOKING_URL = "https://www.sit.no/trening/gruppe"
 
-BOOKING_TIMEZONE = "Europe/Oslo"
-
-MAX_BOOKING_ATTEMPTS = 10
-
-CONFIG_PATH = "config.yaml"
+ADD_BOOKING_URL = "https://ibooking.sit.no/webapp/api//Schedule/addBooking"
+CLASSES_SCHEDULE_URL = 'https://ibooking.sit.no/webapp/api/Schedule/getSchedule'
+TOKEN_VALIDATION_URL = "https://ibooking.sit.no/webapp/api/User/validateToken"

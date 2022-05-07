@@ -14,7 +14,8 @@ from selenium.webdriver.support.wait import WebDriverWait
 from pytz import timezone
 
 from config import Config
-from consts import APP_ROOT, AUTH_URL, WEEKDAYS, CONFIG_PATH, BOOKING_TIMEZONE, MAX_BOOKING_ATTEMPTS
+from consts import APP_ROOT, AUTH_URL, WEEKDAYS, CONFIG_PATH, ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, \
+    TOKEN_VALIDATION_URL, BOOKING_URL
 from driver_utils import driver_post
 from time_utils import readable_seconds
 
@@ -42,11 +43,11 @@ def authenticate(email, password):
             print("[ERROR] Authentication failed")
             return
         # Extract token from booking iframe url
-        driver.get("https://www.sit.no/trening/gruppe")
+        driver.get(BOOKING_URL)
         src = driver.find_element_by_id("ibooking-iframe").get_attribute("src")
         token = re.search(r'token=(.*?)&', src).group(1)
         # Validate token
-        token_validation = requests.post("https://ibooking.sit.no/webapp/api/User/validateToken", {"token": token})
+        token_validation = requests.post(TOKEN_VALIDATION_URL, {"token": token})
         if token_validation.status_code != requests.codes.OK:
             print("[ERROR] Validation of authentication token failed, token probably expired")
             return
@@ -62,7 +63,7 @@ def authenticate(email, password):
 def find_class(token, _class_config):
     print(f"Searching for class matching config: {_class_config}")
     schedule_response = requests.get(
-        f"https://ibooking.sit.no/webapp/api/Schedule/getSchedule?token={token}&studios={_class_config.studio}&lang=no"
+        f"{CLASSES_SCHEDULE_URL}?token={token}&studios={_class_config.studio}&lang=no"
     )
     if schedule_response.status_code != requests.codes.OK:
         print("[ERROR] Schedule get request denied")
@@ -111,7 +112,7 @@ def find_class(token, _class_config):
 def book_class(token, class_id):
     print(f"Booking class {class_id}")
     response = requests.post(
-        "https://ibooking.sit.no/webapp/api//Schedule/addBooking",
+        ADD_BOOKING_URL,
         {
             "classId": class_id,
             "token": token
@@ -166,10 +167,10 @@ def main():
         return
     if _class['bookable']:
         print("Booking is already open, booking now!")
-        try_book_class(auth_token, _class['id'], MAX_BOOKING_ATTEMPTS)
+        try_book_class(auth_token, _class['id'], config.booking.max_attempts)
         return
     # Retrieve booking opening, and make sure it's timezone aware
-    tz = timezone(BOOKING_TIMEZONE)
+    tz = timezone(config.booking.timezone)
     opening_time = tz.localize(datetime.fromisoformat(_class['bookingOpensAt']))
     timedelta = opening_time - datetime.now(tz)
     wait_time = timedelta.total_seconds()
@@ -182,7 +183,7 @@ def main():
           f"(about {wait_time_string} from now)")
     time.sleep(wait_time)
     print(f"Awoke at {datetime.now(tz)}")
-    try_book_class(auth_token, _class['id'], MAX_BOOKING_ATTEMPTS)
+    try_book_class(auth_token, _class['id'], config.booking.max_attempts)
 
 
 if __name__ == '__main__':
