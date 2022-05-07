@@ -5,7 +5,6 @@ import re
 
 import requests
 import requests.utils
-import yaml
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.firefox.options import Options
@@ -42,14 +41,6 @@ def driver_post(driver, path, params):
       document.body.appendChild(form);
       form.submit();
     """, path, params)
-
-
-# Add driver cookies to session cookie jar (overwrite with driver values in case of conflict)
-def transfer_cookies_from_web_driver_to_session(driver, session):
-    session.cookies = requests.utils.cookiejar_from_dict(
-        {c['name']: c['value'] for c in driver.get_cookies()},
-        cookiejar=session.cookies
-    )
 
 
 def authenticate(email, password):
@@ -210,14 +201,6 @@ def main():
         attempts += 1
     if not booked:
         print(f"[ERROR] Failed to book class after {attempts} attempt" + "s" if MAX_BOOKING_ATTEMPTS > 1 else "")
-
-
-def load_config(path):
-    with open(path) as file:
-        try:
-            return yaml.safe_load(file)
-        except yaml.YAMLError as exc:
-            print(f"[FAIL] Error while loading YAML config: {exc}")
 
 
 if __name__ == '__main__':
