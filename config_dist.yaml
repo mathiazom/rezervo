@@ -1,12 +1,16 @@
 ---
 auth:
-  email: "<INSERT SIT USER EMAIL HERE>"
-  password: "<INSERT SIT USER PASSWORD HERE>"
+  email: "<user email for sit.no>"
+  password: "<user password for sit.no>"
 booking:
   timezone: "Europe/Oslo"
-  preperation_minutes: 10
   max_attempts: 10
   max_waiting_minutes: 60
+cron:
+  preparation_minutes: 10
+  sit_rezervo_dir: "/sit-rezervo"
+  python_path: "<path to python>"
+  log_path: "/var/log/sit-rezervo.log"
 classes:
 #  - activity: 331903
 #    weekday: 6
