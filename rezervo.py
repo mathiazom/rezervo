@@ -7,6 +7,7 @@ import requests
 import requests.utils
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
 from selenium.webdriver.support.wait import WebDriverWait
@@ -44,7 +45,7 @@ def authenticate(email, password):
             return
         # Extract token from booking iframe url
         driver.get(BOOKING_URL)
-        src = driver.find_element_by_id("ibooking-iframe").get_attribute("src")
+        src = driver.find_element(By.ID, "ibooking-iframe").get_attribute("src")
         token = re.search(r'token=(.*?)&', src).group(1)
         # Validate token
         token_validation = requests.post(TOKEN_VALIDATION_URL, {"token": token})
