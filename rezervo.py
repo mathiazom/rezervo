@@ -13,34 +13,9 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 from pytz import timezone
 
-# Create dummy form element to execute post request from web driver
-# (assumes that the driver has loaded some page to create the form element on)
 from config import Config
-from definitions import APP_ROOT
-
-WEEKDAYS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
-
-
-def driver_post(driver, path, params):
-    return driver.execute_script("""
-      const form = document.createElement('form');
-      form.method = 'post';
-      form.action = arguments[0];
-
-      let params = arguments[1]
-      for (const key in params) {
-        if (params.hasOwnProperty(key)) {
-          const hiddenField = document.createElement('input');
-          hiddenField.type = 'hidden';
-          hiddenField.name = key;
-          hiddenField.value = params[key];
-          form.appendChild(hiddenField);
-        }
-      }
-
-      document.body.appendChild(form);
-      form.submit();
-    """, path, params)
+from consts import APP_ROOT, AUTH_URL, WEEKDAYS, CONFIG_PATH, BOOKING_TIMEZONE, MAX_BOOKING_ATTEMPTS
+from driver_utils import driver_post
 
 
 def authenticate(email, password):
@@ -64,6 +39,7 @@ def authenticate(email, password):
             )
         except TimeoutException:
             print("[ERROR] Authentication failed")
+            return
         # Extract token from booking iframe url
         driver.get("https://www.sit.no/trening/gruppe")
         src = driver.find_element_by_id("ibooking-iframe").get_attribute("src")
@@ -71,7 +47,7 @@ def authenticate(email, password):
         # Validate token
         token_validation = requests.post("https://ibooking.sit.no/webapp/api/User/validateToken", {"token": token})
         if token_validation.status_code != requests.codes.OK:
-            print("[ERROR] Authentication failed, token probably expired")
+            print("[ERROR] Validation of authentication token failed, token probably expired")
             return
         token_info = token_validation.json()
         if 'info' in token_info and token_info['info'] == "client-readonly":
@@ -79,22 +55,6 @@ def authenticate(email, password):
             return
         print(f"Authentication done.")
         return token
-
-
-def book_class(token, class_id):
-    print(f"Booking class {class_id}")
-    response = requests.post(
-        "https://ibooking.sit.no/webapp/api//Schedule/addBooking",
-        {
-            "classId": class_id,
-            "token": token
-        }
-    )
-    if response.status_code != requests.codes.OK:
-        print("[ERROR] Booking failed: " + response.text)
-        return False
-    print("Successfully booked class!")
-    return True
 
 
 # Search the scheduled classes and return the first class matching the given arguments
@@ -133,7 +93,7 @@ def find_class(token, _class_config):
             print("[INFO] Found class, but start time did not match: " + c)
             continue
         if 'name' not in c:
-            print("[ERROR] Found class, but data was malformed: " + c)
+            print("[WARNING] Found class, but data was malformed: " + c)
             continue
         search_feedback = f"Found class: \"{c['name']}\""
         if 'instructors' in c and len(c['instructors']) > 0 and 'name' in c['instructors'][0]:
@@ -147,11 +107,18 @@ def find_class(token, _class_config):
     print("[ERROR] Could not find class matching criteria")
 
 
-AUTH_URL = "https://www.sit.no/"
-
-BOOKING_TIMEZONE = "Europe/Oslo"
-
-MAX_BOOKING_ATTEMPTS = 10
+def book_class(token, class_id):
+    print(f"Booking class {class_id}")
+    response = requests.post(
+        "https://ibooking.sit.no/webapp/api//Schedule/addBooking",
+        {
+            "classId": class_id,
+            "token": token
+        }
+    )
+    if response.status_code != requests.codes.OK:
+        print("[ERROR] Booking attempt failed: " + response.text)
+        return False
 
 
 def try_book_class(token, class_id, max_attempts):
@@ -174,16 +141,16 @@ def try_book_class(token, class_id, max_attempts):
 
 
 def main():
+    if len(sys.argv) <= 1:
+        print("[ERROR] No class index provided")
+        return
     try:
         _class_id = int(sys.argv[1])
     except ValueError:
         print(f"[ERROR] Invalid class index '{sys.argv[1]}'")
         return
     print("Loading config...")
-    config = Config.from_config_file(APP_ROOT / "config.yaml")
-    if len(sys.argv) <= 1:
-        print("[ERROR] No class index provided")
-        return
+    config = Config.from_config_file(APP_ROOT / CONFIG_PATH)
     if not 0 <= _class_id < len(config.classes):
         print(f"[ERROR] Class index out of bounds")
         return

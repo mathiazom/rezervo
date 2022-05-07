@@ -1,7 +1,7 @@
 import sys
 import datetime
 from config import Config
-from definitions import APP_ROOT
+from consts import APP_ROOT
 
 STARTUP_DAYS_BEFORE_ACTIVITY = 2
 
