@@ -16,6 +16,7 @@ from pytz import timezone
 from config import Config
 from consts import APP_ROOT, AUTH_URL, WEEKDAYS, CONFIG_PATH, BOOKING_TIMEZONE, MAX_BOOKING_ATTEMPTS
 from driver_utils import driver_post
+from time_utils import readable_seconds
 
 
 def authenticate(email, password):
@@ -171,13 +172,14 @@ def main():
     tz = timezone(BOOKING_TIMEZONE)
     opening_time = tz.localize(datetime.fromisoformat(_class['bookingOpensAt']))
     timedelta = opening_time - datetime.now(tz)
-    # TODO: Add a waiting limit (to avoid possibly waiting for multiple days...)
     wait_time = timedelta.total_seconds()
-    wait_minutes = int(wait_time / 60)
-    wait_seconds = int(wait_time % 60)
+    wait_time_string = readable_seconds(wait_time)
+    if wait_time > config.booking.max_waiting_minutes * 60:
+        print(f"[ERROR] Booking waiting time was {wait_time_string}, "
+              f"but max is {config.booking.max_waiting_minutes} minutes. Aborting.")
+        return
     print(f"Scheduling booking at {datetime.now(tz) + timedelta} "
-          f"(about {wait_minutes} minute{'s' if wait_minutes > 1 else ''} and "
-          f"{wait_seconds} second{'s' if wait_seconds > 1 else ''} from now)")
+          f"(about {wait_time_string} from now)")
     time.sleep(wait_time)
     print(f"Awoke at {datetime.now(tz)}")
     try_book_class(auth_token, _class['id'], MAX_BOOKING_ATTEMPTS)
