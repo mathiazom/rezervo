@@ -1,4 +1,4 @@
-def readable_seconds(s):
+def readable_seconds(s: float):
     minutes = int(s / 60)
     seconds = int(s % 60)
     return "".join([

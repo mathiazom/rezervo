@@ -1,6 +1,11 @@
+from typing import Dict, Any
+
+from selenium.webdriver.firefox.webdriver import WebDriver
+
+
 # Create dummy form element to execute post request from web driver
 # (assumes that the driver has loaded some page to create the form element on)
-def driver_post(driver, path, params):
+def driver_post(driver: WebDriver, path: str, params: Dict[str, Any]):
     return driver.execute_script("""
       const form = document.createElement('form');
       form.method = 'post';

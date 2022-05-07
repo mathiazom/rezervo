@@ -1,12 +1,13 @@
 import sys
 import datetime
+
 from config import Config
 from consts import APP_ROOT
 
 STARTUP_DAYS_BEFORE_ACTIVITY = 2
 
 
-def generate_cron_job(index, _class, preparation_minutes):
+def generate_cron_job(index: int, _class: Config, preparation_minutes: int) -> str:
     # Using current datetime simply as a starting point
     # We really only care about the "wall clock" part, which is replaced by input values
     activity_time = datetime.datetime.now().replace(
@@ -23,10 +24,6 @@ def generate_cron_job(index, _class, preparation_minutes):
 
     print(f"Creating booking cron job at '{cron_time.minute} {cron_time.hour} * * {cron_weekday}'")
 
-    if len(sys.argv) < 1:
-        print("[ERROR] No output file path provided")
-        return
-
     return (
         f"{cron_time.minute} {cron_time.hour} * * {cron_weekday} "
         "cd /sit-rezervo/ || exit 1; PATH=$PATH:/usr/local/bin "
@@ -36,6 +33,9 @@ def generate_cron_job(index, _class, preparation_minutes):
 
 
 def main():
+    if len(sys.argv) < 1:
+        print("[ERROR] No output file path provided")
+        return
     config = Config.from_config_file(APP_ROOT / "config.yaml")
     cron_spec = ""
     for i, c in enumerate(config.classes):

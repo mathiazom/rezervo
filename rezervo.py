@@ -2,6 +2,7 @@ import sys
 import time
 from datetime import datetime
 import re
+from typing import Optional, Dict, Any
 
 import requests
 import requests.utils
@@ -21,7 +22,7 @@ from driver_utils import driver_post
 from time_utils import readable_seconds
 
 
-def authenticate(email, password):
+def authenticate(email: str, password: str) -> Optional[str]:
     firefox_options = Options()
     firefox_options.add_argument("-headless")
     with webdriver.Firefox(options=firefox_options) as driver:
@@ -42,42 +43,46 @@ def authenticate(email, password):
             )
         except TimeoutException:
             print("[ERROR] Authentication failed")
-            return
+            return None
         # Extract token from booking iframe url
         driver.get(BOOKING_URL)
         src = driver.find_element(By.ID, "ibooking-iframe").get_attribute("src")
-        token = re.search(r'token=(.*?)&', src).group(1)
+        token_match = re.search(r'token=(.*?)&', src)
+        if token_match is None:
+            print("[ERROR] Could not extract authentication token, aborted.")
+            return None
+        token = token_match.group(1)
         # Validate token
         token_validation = requests.post(TOKEN_VALIDATION_URL, {"token": token})
         if token_validation.status_code != requests.codes.OK:
             print("[ERROR] Validation of authentication token failed, token probably expired")
-            return
+            return None
         token_info = token_validation.json()
         if 'info' in token_info and token_info['info'] == "client-readonly":
             print("[ERROR] Authentication failed")
-            return
+            return None
         print(f"Authentication done.")
         return token
 
 
 # Search the scheduled classes and return the first class matching the given arguments
-def find_class(token, _class_config):
+def find_class(token: str, _class_config: Config) -> Optional[Dict[str, Any]]:
     print(f"Searching for class matching config: {_class_config}")
     schedule_response = requests.get(
         f"{CLASSES_SCHEDULE_URL}?token={token}&studios={_class_config.studio}&lang=no"
     )
     if schedule_response.status_code != requests.codes.OK:
         print("[ERROR] Schedule get request denied")
-        return
+        return None
     schedule = schedule_response.json()
     if 'days' not in schedule:
         print("[ERROR] Malformed schedule, contains no days")
-        return
+        return None
     days = schedule['days']
     target_day = None
     if not 0 <= _class_config.weekday < len(WEEKDAYS):
         print(f"[ERROR] Invalid weekday number ({_class_config.weekday=})")
-        return
+        return None
     weekday_str = WEEKDAYS[_class_config.weekday]
     for day in days:
         if 'dayName' in day and day['dayName'] == weekday_str:
@@ -85,7 +90,7 @@ def find_class(token, _class_config):
             break
     if target_day is None:
         print(f"[ERROR] Could not find requested day '{weekday_str}'")
-        return
+        return None
     classes = target_day['classes']
     for c in classes:
         if 'activityId' not in c or c['activityId'] != _class_config.activity:
@@ -108,9 +113,10 @@ def find_class(token, _class_config):
         print(search_feedback)
         return c
     print("[ERROR] Could not find class matching criteria")
+    return None
 
 
-def book_class(token, class_id):
+def book_class(token, class_id) -> bool:
     print(f"Booking class {class_id}")
     response = requests.post(
         ADD_BOOKING_URL,
@@ -122,9 +128,10 @@ def book_class(token, class_id):
     if response.status_code != requests.codes.OK:
         print("[ERROR] Booking attempt failed: " + response.text)
         return False
+    return True
 
 
-def try_book_class(token, class_id, max_attempts):
+def try_book_class(token: str, class_id: int, max_attempts: int) -> None:
     if max_attempts < 1:
         print(f"[WARNING] Max booking attempts should be a positive number")
         return
@@ -143,7 +150,7 @@ def try_book_class(token, class_id, max_attempts):
     return
 
 
-def main():
+def main() -> None:
     if len(sys.argv) <= 1:
         print("[ERROR] No class index provided")
         return
@@ -154,6 +161,9 @@ def main():
         return
     print("Loading config...")
     config = Config.from_config_file(APP_ROOT / CONFIG_PATH)
+    if config is None:
+        print("[ERROR] Failed to load config, aborted.")
+        return
     if not 0 <= _class_id < len(config.classes):
         print(f"[ERROR] Class index out of bounds")
         return
