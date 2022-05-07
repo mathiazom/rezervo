@@ -1,0 +1,17 @@
+---
+auth:
+  email: "<INSERT SIT USER EMAIL HERE>"
+  password: "<INSERT SIT USER PASSWORD HERE>"
+booking:
+  timezone: "Europe/Oslo"
+  preperation_minutes: 10
+  max_attempts: 10
+  max_waiting_minutes: 60
+classes:
+#  - activity: 331903
+#    weekday: 6
+#    studio: 306
+#    time:
+#      hour: 12
+#      minute: 00
+...
