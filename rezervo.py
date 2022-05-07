@@ -18,8 +18,8 @@ from pytz import timezone
 from config import Config
 from consts import APP_ROOT, AUTH_URL, WEEKDAYS, CONFIG_PATH, ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, \
     TOKEN_VALIDATION_URL, BOOKING_URL
-from driver_utils import driver_post
-from time_utils import readable_seconds
+from utils.driver_utils import driver_post
+from utils.time_utils import readable_seconds
 
 
 def authenticate(email: str, password: str) -> Optional[str]:
