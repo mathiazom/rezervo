@@ -1,69 +1,18 @@
 import sys
 import time
 from datetime import datetime
-import re
 from typing import Optional, Dict, Any
 
 import requests
 import requests.utils
-from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
-
-from selenium.webdriver.support.wait import WebDriverWait
 
 from pytz import timezone
 
+from auth import authenticate
 from config import Config
-from consts import APP_ROOT, AUTH_URL, WEEKDAYS, CONFIG_PATH, ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, \
-    TOKEN_VALIDATION_URL, BOOKING_URL, ICAL_URL
+from consts import APP_ROOT, WEEKDAYS, CONFIG_PATH, ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, ICAL_URL
 from notify import notify_slack
-from utils.driver_utils import driver_post
 from utils.time_utils import readable_seconds
-
-
-def authenticate(email: str, password: str) -> Optional[str]:
-    firefox_options = Options()
-    firefox_options.add_argument("-headless")
-    with webdriver.Firefox(options=firefox_options) as driver:
-        print(f"Authenticating as {email}...")
-        driver_post(
-            driver,
-            AUTH_URL,
-            {
-                "name": email,
-                "pass": password,
-                "form_id": "user_login"
-            }
-        )
-        # Wait until logged in
-        try:
-            WebDriverWait(driver, timeout=20).until(
-                lambda d: str(d.current_url).find(AUTH_URL) != -1
-            )
-        except TimeoutException:
-            print("[ERROR] Authentication failed")
-            return None
-        # Extract token from booking iframe url
-        driver.get(BOOKING_URL)
-        src = driver.find_element(By.ID, "ibooking-iframe").get_attribute("src")
-        token_match = re.search(r'token=(.*?)&', src)
-        if token_match is None:
-            print("[ERROR] Could not extract authentication token, aborted.")
-            return None
-        token = token_match.group(1)
-        # Validate token
-        token_validation = requests.post(TOKEN_VALIDATION_URL, {"token": token})
-        if token_validation.status_code != requests.codes.OK:
-            print("[ERROR] Validation of authentication token failed, token probably expired")
-            return None
-        token_info = token_validation.json()
-        if 'info' in token_info and token_info['info'] == "client-readonly":
-            print("[ERROR] Authentication failed")
-            return None
-        print(f"Authentication done.")
-        return token
 
 
 # Search the scheduled classes and return the first class matching the given arguments
