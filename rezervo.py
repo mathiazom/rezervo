@@ -3,106 +3,69 @@ import time
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-import requests
-import requests.utils
-
 from pytz import timezone
 
-from auth import authenticate
+from auth import authenticate, AuthenticationError
+from booking import book_class, find_class
 from config import Config
-from consts import APP_ROOT, WEEKDAYS, CONFIG_PATH, ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, ICAL_URL
-from notify import notify_slack
+from consts import APP_ROOT, CONFIG_PATH, ICAL_URL
+from errors import BookingError
+from notify import notify_auth_failure_slack, notify_booking_failure, notify_booking, notify_auth_failure
 from utils.time_utils import readable_seconds
 
 
-# Search the scheduled classes and return the first class matching the given arguments
-def find_class(token: str, _class_config: Config) -> Optional[Dict[str, Any]]:
-    print(f"Searching for class matching config: {_class_config}")
-    schedule_response = requests.get(
-        f"{CLASSES_SCHEDULE_URL}?token={token}&studios={_class_config.studio}&lang=no"
-    )
-    if schedule_response.status_code != requests.codes.OK:
-        print("[ERROR] Schedule get request denied")
-        return None
-    schedule = schedule_response.json()
-    if 'days' not in schedule:
-        print("[ERROR] Malformed schedule, contains no days")
-        return None
-    days = schedule['days']
-    target_day = None
-    if not 0 <= _class_config.weekday < len(WEEKDAYS):
-        print(f"[ERROR] Invalid weekday number ({_class_config.weekday=})")
-        return None
-    weekday_str = WEEKDAYS[_class_config.weekday]
-    for day in days:
-        if 'dayName' in day and day['dayName'] == weekday_str:
-            target_day = day
-            break
-    if target_day is None:
-        print(f"[ERROR] Could not find requested day '{weekday_str}'")
-        return None
-    classes = target_day['classes']
-    for c in classes:
-        if 'activityId' not in c or c['activityId'] != _class_config.activity:
-            continue
-        start_time = datetime.strptime(c['from'], '%Y-%m-%d %H:%M:%S')
-        time_matches = start_time.hour == _class_config.time.hour and start_time.minute == _class_config.time.minute
-        if not time_matches:
-            print("[INFO] Found class, but start time did not match: " + c)
-            continue
-        if 'name' not in c:
-            print("[WARNING] Found class, but data was malformed: " + c)
-            continue
-        search_feedback = f"Found class: \"{c['name']}\""
-        if 'instructors' in c and len(c['instructors']) > 0 and 'name' in c['instructors'][0]:
-            search_feedback += f" with {c['instructors'][0]['name']}"
-        else:
-            search_feedback += " (missing instructor)"
-        if 'from' in c:
-            search_feedback += f" at {c['from']}"
-        print(search_feedback)
-        return c
-    print("[ERROR] Could not find class matching criteria")
-    return None
-
-
-def book_class(token, class_id) -> bool:
-    print(f"Booking class {class_id}")
-    response = requests.post(
-        ADD_BOOKING_URL,
-        {
-            "classId": class_id,
-            "token": token
-        }
-    )
-    if response.status_code != requests.codes.OK:
-        print("[ERROR] Booking attempt failed: " + response.text)
-        return False
-    return True
-
-
 def try_book_class(token: str, _class: Dict[str, Any], max_attempts: int,
-                   slack_config: Optional[Config] = None, transfersh_config: Optional[Config] = None) -> None:
+                   notifications_config: Optional[Config] = None) -> Optional[BookingError]:
     if max_attempts < 1:
-        print(f"[WARNING] Max booking attempts should be a positive number")
-        return
+        print(f"[ERROR] Max booking attempts should be a positive number")
+        return BookingError.INVALID_CONFIG
     booked = False
     attempts = 0
     while not booked:
         booked = book_class(token, _class['id'])
         attempts += 1
+        if booked:
+            break
         if attempts >= max_attempts:
             break
-        time.sleep(2 ** attempts)
+        sleep_seconds = 2 ** attempts
+        print(f"[INFO] Exponential backoff, retrying in {sleep_seconds} seconds...")
+        time.sleep(sleep_seconds)
     if not booked:
-        print(f"[ERROR] Failed to book class after {attempts} attempt" + "s" if attempts > 1 else "")
-        return
-    print(f"Successfully booked class" + (f" after {attempts} attempts!" if attempts > 1 else "!"))
-    if slack_config:
+        print(f"[ERROR] Booking failed after {attempts} attempt" + ("s" if attempts != 1 else ""))
+        return BookingError.ERROR
+    print(f"[INFO] Successfully booked class" + (f" after {attempts} attempts!" if attempts != 1 else "!"))
+    if notifications_config:
         ical_url = f"{ICAL_URL}/?id={_class['id']}&token={token}"
-        tsh_url = transfersh_config.url if transfersh_config else None
-        notify_slack(slack_config.bot_token, slack_config.channel_id, slack_config.user_id, _class, ical_url, tsh_url)
-    return
+        notify_booking(notifications_config, _class, ical_url)
+
+
+def try_authenticate(email: str, password: str, max_attempts: int) -> Optional[str]:
+    if max_attempts < 1:
+        return None
+    success = False
+    attempts = 0
+    result = None
+    while not success:
+        result = authenticate(email, password)
+        success = not isinstance(result, AuthenticationError)
+        attempts += 1
+        if success:
+            break
+        if result == AuthenticationError.INVALID_CREDENTIALS:
+            print("[ERROR] Invalid credentials, aborting authentication to avoid lockout")
+            break
+        if result == AuthenticationError.AUTH_TEMPORARILY_BLOCKED:
+            print("[ERROR] Authentication temporarily blocked, aborting")
+            break
+        if attempts >= max_attempts:
+            break
+        sleep_seconds = 2 ** attempts
+        print(f"[INFO] Exponential backoff, retrying in {sleep_seconds} seconds...")
+        time.sleep(sleep_seconds)
+    if not success:
+        print(f"[ERROR] Authentication failed after {attempts} attempt" + ("s" if attempts != 1 else ""))
+    return result
 
 
 def main() -> None:
@@ -114,7 +77,9 @@ def main() -> None:
     except ValueError:
         print(f"[ERROR] Invalid class index '{sys.argv[1]}'")
         return
-    print("Loading config...")
+    options = sys.argv[2:]
+    check_run = "--check" in options
+    print("[INFO] Loading config...")
     config = Config.from_config_file(APP_ROOT / CONFIG_PATH)
     if config is None:
         print("[ERROR] Failed to load config, aborted.")
@@ -123,16 +88,29 @@ def main() -> None:
         print(f"[ERROR] Class index out of bounds")
         return
     _class_config = config.classes[_class_id]
-    auth_token = authenticate(config.auth.email, config.auth.password)
-    if auth_token is None:
-        print("Abort!")
+    if config.booking.max_attempts < 1:
+        print(f"[ERROR] Max booking attempts should be a positive number")
+        if "notifications" in config:
+            notify_booking_failure(config.notifications, _class_config, BookingError.INVALID_CONFIG, check_run)
         return
-    _class = find_class(auth_token, _class_config)
-    if _class is None:
-        print("Abort!")
+    auth_result = try_authenticate(config.auth.email, config.auth.password, config.auth.max_attempts)
+    if isinstance(auth_result, AuthenticationError):
+        print("[ERROR] Abort!")
+        if "notifications" in config:
+            notify_auth_failure(config.notifications, auth_result, check_run)
         return
+    class_search_result = find_class(auth_result, _class_config)
+    if isinstance(class_search_result, BookingError):
+        print("[ERROR] Abort!")
+        if "notifications" in config:
+            notify_booking_failure(config.notifications, _class_config, class_search_result, check_run)
+        return
+    if check_run:
+        print("[INFO] Check complete, all seems fine.")
+        return
+    _class = class_search_result
     if _class['bookable']:
-        print("Booking is already open, booking now!")
+        print("[INFO] Booking is already open, booking now!")
     else:
         # Retrieve booking opening, and make sure it's timezone aware
         tz = timezone(config.booking.timezone)
@@ -143,14 +121,17 @@ def main() -> None:
         if wait_time > config.booking.max_waiting_minutes * 60:
             print(f"[ERROR] Booking waiting time was {wait_time_string}, "
                   f"but max is {config.booking.max_waiting_minutes} minutes. Aborting.")
-            return
-        print(f"Scheduling booking at {datetime.now(tz) + timedelta} "
+            if "notifications" in config:
+                return notify_booking_failure(config.notifications, _class_config, BookingError.TOO_LONG_WAITING_TIME)
+        print(f"[INFO] Scheduling booking at {datetime.now(tz) + timedelta} "
               f"(about {wait_time_string} from now)")
         time.sleep(wait_time)
-        print(f"Awoke at {datetime.now(tz)}")
-    try_book_class(auth_token, _class, config.booking.max_attempts,
-                   config.slack if "slack" in config else None,
-                   config.transfersh if "transfersh" in config else None)
+        print(f"[INFO] Awoke at {datetime.now(tz)}")
+    booking_result = try_book_class(auth_result, _class, config.booking.max_attempts,
+                                    config.notifications if "notifications" in config else None)
+    if isinstance(booking_result, BookingError) and "notifications" in config:
+        notify_booking_failure(config.notifications, _class_config, booking_result, check_run)
+        return
 
 
 if __name__ == '__main__':
