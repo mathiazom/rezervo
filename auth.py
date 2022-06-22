@@ -1,6 +1,6 @@
 import re
 from enum import Enum, auto
-from typing import Optional, Union, Tuple
+from typing import Union
 
 import requests
 from requests import Session

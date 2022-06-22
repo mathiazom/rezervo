@@ -1,7 +1,7 @@
 import sys
 import time
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Union
 
 from pytz import timezone
 
@@ -10,7 +10,7 @@ from booking import book_class, find_class
 from config import Config
 from consts import APP_ROOT, CONFIG_PATH, ICAL_URL
 from errors import BookingError
-from notify import notify_auth_failure_slack, notify_booking_failure, notify_booking, notify_auth_failure
+from notify import notify_booking_failure, notify_booking, notify_auth_failure
 from utils.time_utils import readable_seconds
 
 
@@ -38,11 +38,12 @@ def try_book_class(token: str, _class: Dict[str, Any], max_attempts: int,
     if notifications_config:
         ical_url = f"{ICAL_URL}/?id={_class['id']}&token={token}"
         notify_booking(notifications_config, _class, ical_url)
+    return None
 
 
-def try_authenticate(email: str, password: str, max_attempts: int) -> Optional[str]:
+def try_authenticate(email: str, password: str, max_attempts: int) -> Union[str, AuthenticationError]:
     if max_attempts < 1:
-        return None
+        return AuthenticationError.ERROR
     success = False
     attempts = 0
     result = None
@@ -65,7 +66,7 @@ def try_authenticate(email: str, password: str, max_attempts: int) -> Optional[s
         time.sleep(sleep_seconds)
     if not success:
         print(f"[ERROR] Authentication failed after {attempts} attempt" + ("s" if attempts != 1 else ""))
-    return result
+    return result if result is not None else AuthenticationError.ERROR
 
 
 def main() -> None:
