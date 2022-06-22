@@ -1,3 +1,4 @@
+import json
 from typing import Dict, Any, Optional, List
 
 from requests import RequestException
@@ -5,7 +6,7 @@ from slack_sdk import WebClient as SlackClient
 from slack_sdk.errors import SlackApiError
 
 from auth import AuthenticationError
-from consts import WEEKDAYS
+from consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
 from errors import BookingError
 from notify.utils import upload_ical_to_transfersh
 
@@ -92,8 +93,13 @@ def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url
     buttons = [
         {
             "type": "button",
-            "action_id": "cancel_booking",
-            "value": f"{booked_class['id']}",
+            "action_id": SLACK_ACTION_CANCEL_BOOKING,
+            "value": json.dumps(
+                {
+                    "userId": user,
+                    "classId": str(booked_class['id'])
+                }
+            ),
             "text": {
                 "type": "plain_text",
                 "text": ":no_entry: Avbestill"
@@ -123,7 +129,7 @@ def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url
     if ical_tsh_url:
         buttons.insert(0, {
             "type": "button",
-            "action_id": "add_booking_to_calendar",
+            "action_id": SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
             "text": {
                 "type": "plain_text",
                 "text": ":calendar: Legg i kalender"
