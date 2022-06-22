@@ -2,6 +2,8 @@ from typing import Dict, Any, Optional
 
 import requests
 from requests import RequestException
+from slack_sdk import WebClient as SlackClient
+from slack_sdk.errors import SlackApiError
 
 from auth import AuthenticationError
 from config import Config
@@ -10,16 +12,13 @@ from errors import BookingError
 
 
 def notify_slack(slack_token: str, channel: str, message: str):
-    res = requests.post(
-        "https://slack.com/api/chat.postMessage",
-        headers={'Authorization': f'Bearer {slack_token}'},
-        json={
-            "channel": channel,
-            "text": message
-        }
-    )
-    if not (res.ok and res.json()['ok']):
-        print(f"[FAILED] Could not post notification to Slack: {res.text}")
+    try:
+        SlackClient(token=slack_token).chat_postMessage(
+            channel=channel,
+            text=message
+        )
+    except SlackApiError as e:
+        print(f"[FAILED] Could not post notification to Slack: {e.response['error']}")
         return False
     return True
 
