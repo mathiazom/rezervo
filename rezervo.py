@@ -10,7 +10,7 @@ from booking import book_class, find_class
 from config import Config
 from consts import APP_ROOT, CONFIG_PATH, ICAL_URL
 from errors import BookingError
-from notify import notify_booking_failure, notify_booking, notify_auth_failure
+from notify.notify import notify_booking_failure, notify_booking, notify_auth_failure
 from utils.time_utils import readable_seconds
 
 

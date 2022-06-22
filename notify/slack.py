@@ -1,35 +1,26 @@
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
-import requests
 from requests import RequestException
 from slack_sdk import WebClient as SlackClient
 from slack_sdk.errors import SlackApiError
 
 from auth import AuthenticationError
-from config import Config
 from consts import WEEKDAYS
 from errors import BookingError
+from notify.utils import upload_ical_to_transfersh
 
 
-def notify_slack(slack_token: str, channel: str, message: str):
+def notify_slack(slack_token: str, channel: str, message: str, message_blocks: Optional[List[Dict[str, Any]]] = None):
     try:
         SlackClient(token=slack_token).chat_postMessage(
             channel=channel,
-            text=message
+            text=message,
+            blocks=message_blocks
         )
     except SlackApiError as e:
         print(f"[FAILED] Could not post notification to Slack: {e.response['error']}")
         return False
     return True
-
-
-def notify_auth_failure(notifications_config: Config, error: AuthenticationError = None,
-                        check_run: bool = False) -> None:
-    if 'slack' in notifications_config:
-        slack_config = notifications_config.slack
-        return notify_auth_failure_slack(slack_config.bot_token, slack_config.channel_id, slack_config.user_id, error,
-                                         check_run)
-    print("[WARNING] No notification targets, auth failure notification will not be sent!")
 
 
 AUTH_FAILURE_REASONS_SLACK = {
@@ -50,15 +41,6 @@ def notify_auth_failure_slack(slack_token: str, channel: str, user: str, error: 
         return
     print(f"[INFO] Auth {'check ' if check_run else ''}failure notification posted successfully to Slack.")
     return
-
-
-def notify_booking_failure(notifications_config: Config, _class_config: Dict[str, Any], error: BookingError = None,
-                           check_run: bool = False) -> None:
-    if 'slack' in notifications_config:
-        slack_config = notifications_config.slack
-        return notify_booking_failure_slack(slack_config.bot_token, slack_config.channel_id,
-                                            slack_config.user_id, _class_config, error, check_run)
-    print("[WARNING] No notification targets, booking failure notification will not be sent!")
 
 
 BOOKING_FAILURE_REASONS_SLACK = {
@@ -87,40 +69,81 @@ def notify_booking_failure_slack(slack_token: str, channel: str, user: str,
     return
 
 
-def notify_booking(notifications_config: Config, booked_class: Dict[str, Any], ical_url: str) -> None:
-    if 'slack' in notifications_config:
-        slack_config = notifications_config.slack
-        transfersh_url = notifications_config.transfersh.url if notifications_config.transfersh else None
-        return notify_booking_slack(slack_config.bot_token, slack_config.channel_id, slack_config.user_id, booked_class,
-                                    ical_url, transfersh_url)
-    print("[WARNING] No notification targets, booking notification will not be sent!")
-
-
-def transfersh_direct_url(transfersh_url: str):
-    url_parts = transfersh_url.split("/")
-    return "/".join(url_parts[:3]) + "/get/" + "/".join(url_parts[3:])
-
-
-def upload_ical_to_transfersh(transfersh_url: str, ical_url: str, filename: str) -> str:
-    return transfersh_direct_url(
-        requests.post(transfersh_url, files={filename: requests.get(ical_url).text}).text
-    )
-
-
 def notify_booking_slack(slack_token: str, channel: str, user: str, booked_class: Dict[str, Any], ical_url: str,
                          transfersh_url: Optional[str]) -> None:
-    message = f"🤖 *{booked_class['name']}* ({booked_class['from']}) er booket for <@{user}>"
+    message_blocks = booking_message_blocks(booked_class, user)
     if transfersh_url:
         filename = f"{booked_class['id']}.ics"
         print(f"[INFO] Uploading {filename} to {transfersh_url}")
         try:
             ical_tsh_url = upload_ical_to_transfersh(transfersh_url, ical_url, filename)
-            message = f"🤖 <{ical_tsh_url}|*{booked_class['name']}* ({booked_class['from']})> er booket for <@{user}>"
+            message_blocks = booking_message_blocks(booked_class, user, ical_tsh_url)
         except RequestException:
             print(f"[WARNING] Could not upload ical event to transfer.sh instance, skipping ical link in notification.")
     print(f"[INFO] Posting booking notification to Slack")
-    if not notify_slack(slack_token, channel, message):
+    if not notify_slack(slack_token, channel, message_blocks['message'], message_blocks['blocks']):
         print(f"[FAILED] Could not post booking notification to Slack")
         return
     print(f"[INFO] Booking notification posted successfully to Slack.")
     return
+
+
+def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url: Optional[str] = None):
+    buttons = [
+        {
+            "type": "button",
+            "action_id": "cancel_booking",
+            "value": f"{booked_class['id']}",
+            "text": {
+                "type": "plain_text",
+                "text": ":no_entry: Avbestill"
+            },
+            "confirm": {
+                "title": {
+                    "type": "plain_text",
+                    "text": "Er du sikker?"
+                },
+                "text": {
+                    "type": "plain_text",
+                    "text": f"Du er i ferd med å avbestille {booked_class['name']} ({booked_class['from']}). "
+                            f"Dette kan ikke angres!"
+                },
+                "confirm": {
+                    "type": "plain_text",
+                    "text": "Avbestill"
+                },
+                "deny": {
+                    "type": "plain_text",
+                    "text": "Avbryt"
+                },
+                "style": "danger"
+            }
+        }
+    ]
+    if ical_tsh_url:
+        buttons.insert(0, {
+            "type": "button",
+            "action_id": "add_booking_to_calendar",
+            "text": {
+                "type": "plain_text",
+                "text": ":calendar: Legg i kalender"
+            },
+            "url": ical_tsh_url
+        })
+    message = f"🤖 *{booked_class['name']}* ({booked_class['from']}) er booket for <@{user}>"
+    return {
+        "message": message,
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": message
+                }
+            },
+            {
+                "type": "actions",
+                "elements": buttons
+            }
+        ]
+    }
