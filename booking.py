@@ -57,14 +57,14 @@ def find_class(token: str, _class_config: Config) -> Union[Dict[str, Any], Booki
         start_time = datetime.strptime(c['from'], '%Y-%m-%d %H:%M:%S')
         time_matches = start_time.hour == _class_config.time.hour and start_time.minute == _class_config.time.minute
         if not time_matches:
-            print("[INFO] Found class, but start time did not match: " + c)
+            print(f"[INFO] Found class, but start time did not match: {c}")
             result = BookingError.INCORRECT_START_TIME
             continue
         if 'name' not in c:
-            print("[WARNING] Found class, but the name is missing: " + c)
+            print(f"[WARNING] Found class, but the name is missing: {c}")
             result = BookingError.MALFORMED_CLASS
             continue
-        search_feedback = f"Found class: \"{c['name']}\""
+        search_feedback = f"[INFO] Found class: \"{c['name']}\""
         if 'instructors' in c and len(c['instructors']) > 0 and 'name' in c['instructors'][0]:
             search_feedback += f" with {c['instructors'][0]['name']}"
         else:
