@@ -1,4 +1,5 @@
 import json
+from datetime import time
 from typing import Dict, Any, Optional, List
 
 from requests import RequestException
@@ -58,7 +59,7 @@ def notify_booking_failure_slack(slack_token: str, channel: str, user: str,
                                  check_run: bool = False) -> None:
     class_name = f"{_class_config['display_name'] if 'display_name' in _class_config else _class_config['activity']}"
     class_time = f"{WEEKDAYS[_class_config['weekday']].lower()} " \
-                 f"{_class_config['time']['hour']}:{_class_config['time']['minute']}"
+                 f"{time(_class_config['time']['hour'], _class_config['time']['minute']).strftime('%H:%M')}"
     msg = f"{':warning: Forhåndssjekk feilet! Kan ikke booke' if check_run else ':dizzy_face: Klarte ikke å booke'} " \
           f"*{class_name}* ({class_time}) for <@{user}>" \
           f"{f'. *{BOOKING_FAILURE_REASONS_SLACK[error]}*' if error in BOOKING_FAILURE_REASONS_SLACK else ''}"
