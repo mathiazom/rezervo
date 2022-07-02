@@ -1,5 +1,6 @@
+import datetime
 import json
-from datetime import time
+import time
 from typing import Dict, Any, Optional, List
 
 from requests import RequestException
@@ -23,6 +24,22 @@ def notify_slack(slack_token: str, channel: str, message: str, message_blocks: O
         print(f"[FAILED] Could not post notification to Slack: {e.response['error']}")
         return False
     return True
+
+
+def schedule_im_slack(slack_token: str, user_id: str, post_at: int, message: str,
+                      message_blocks: Optional[List[Dict[str, Any]]] = None) -> Optional[str]:
+    try:
+        res = SlackClient(token=slack_token).chat_scheduleMessage(
+            channel=user_id,
+            text=message,
+            blocks=message_blocks,
+            post_at=post_at
+        )
+        print(f"[INFO] Schedule notification to Slack: {res}")
+        return res.data['scheduled_message_id']
+    except SlackApiError as e:
+        print(f"[FAILED] Could not schedule notification to Slack: {e.response['error']}")
+        return None
 
 
 AUTH_FAILURE_REASONS_SLACK = {
@@ -59,7 +76,7 @@ def notify_booking_failure_slack(slack_token: str, channel: str, user: str,
                                  check_run: bool = False) -> None:
     class_name = f"{_class_config['display_name'] if 'display_name' in _class_config else _class_config['activity']}"
     class_time = f"{WEEKDAYS[_class_config['weekday']].lower()} " \
-                 f"{time(_class_config['time']['hour'], _class_config['time']['minute']).strftime('%H:%M')}"
+                 f"{datetime.time(_class_config['time']['hour'], _class_config['time']['minute']).strftime('%H:%M')}"
     msg = f"{':warning: Forhåndssjekk feilet! Kan ikke booke' if check_run else ':dizzy_face: Klarte ikke å booke'} " \
           f"*{class_name}* ({class_time}) for <@{user}>" \
           f"{f'. *{BOOKING_FAILURE_REASONS_SLACK[error]}*' if error in BOOKING_FAILURE_REASONS_SLACK else ''}"
@@ -72,14 +89,14 @@ def notify_booking_failure_slack(slack_token: str, channel: str, user: str,
 
 
 def notify_booking_slack(slack_token: str, channel: str, user: str, booked_class: Dict[str, Any], ical_url: str,
-                         transfersh_url: Optional[str]) -> None:
-    message_blocks = booking_message_blocks(booked_class, user)
+                         transfersh_url: Optional[str], scheduled_reminder_id: Optional[str]) -> None:
+    message_blocks = booking_message_blocks(booked_class, user, scheduled_reminder_id)
     if transfersh_url:
         filename = f"{booked_class['id']}.ics"
         print(f"[INFO] Uploading {filename} to {transfersh_url}")
         try:
             ical_tsh_url = upload_ical_to_transfersh(transfersh_url, ical_url, filename)
-            message_blocks = booking_message_blocks(booked_class, user, ical_tsh_url)
+            message_blocks = booking_message_blocks(booked_class, user, ical_tsh_url, scheduled_reminder_id)
         except RequestException:
             print(f"[WARNING] Could not upload ical event to transfer.sh instance, skipping ical link in notification.")
     print(f"[INFO] Posting booking notification to Slack")
@@ -90,7 +107,8 @@ def notify_booking_slack(slack_token: str, channel: str, user: str, booked_class
     return
 
 
-def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url: Optional[str] = None):
+def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url: Optional[str] = None,
+                           scheduled_reminder_id: Optional[str] = None):
     buttons = [
         {
             "type": "button",
@@ -98,7 +116,8 @@ def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url
             "value": json.dumps(
                 {
                     "userId": user,
-                    "classId": str(booked_class['id'])
+                    "classId": str(booked_class['id']),
+                    "scheduledReminderMessageId": scheduled_reminder_id
                 }
             ),
             "text": {
@@ -154,3 +173,12 @@ def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url
             }
         ]
     }
+
+
+def schedule_class_reminder_slack(slack_token: str, user: str, _class: Dict[str, Any], hours_before: int) \
+        -> Optional[str]:
+    start_time = datetime.datetime.fromisoformat(_class['from'])
+    reminder_time = start_time - datetime.timedelta(hours=hours_before)
+    reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
+    message = f"Husk *{_class['name']}* ({_class['from']}) om {hours_before} timer!"
+    return schedule_im_slack(slack_token, user, reminder_timestamp, message)
