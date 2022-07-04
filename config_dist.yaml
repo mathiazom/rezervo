@@ -14,6 +14,7 @@ cron:
   python_path: "<path to python>"
   log_path: "/var/log/sit-rezervo.log"
 # notifications:
+#   reminder_hours_before: 4
 #   transfersh:
 #    url: "<transfer.sh instance url>"
 #   slack:
