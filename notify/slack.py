@@ -110,41 +110,41 @@ def notify_booking_slack(slack_token: str, channel: str, user: str, booked_class
 def booking_message_blocks(booked_class: Dict[str, Any], user: str, ical_tsh_url: Optional[str] = None,
                            scheduled_reminder_id: Optional[str] = None):
     buttons = [
-        {
-            "type": "button",
-            "action_id": SLACK_ACTION_CANCEL_BOOKING,
-            "value": json.dumps(
-                {
-                    "userId": user,
-                    "classId": str(booked_class['id']),
-                    "scheduledReminderMessageId": scheduled_reminder_id
-                }
-            ),
-            "text": {
-                "type": "plain_text",
-                "text": ":no_entry: Avbestill"
-            },
-            "confirm": {
-                "title": {
-                    "type": "plain_text",
-                    "text": "Er du sikker?"
-                },
-                "text": {
-                    "type": "plain_text",
-                    "text": f"Du er i ferd med å avbestille {booked_class['name']} ({booked_class['from']}). "
-                            f"Dette kan ikke angres!"
-                },
-                "confirm": {
-                    "type": "plain_text",
-                    "text": "Avbestill"
-                },
-                "deny": {
-                    "type": "plain_text",
-                    "text": "Avbryt"
-                },
-                "style": "danger"
-            }
-        }
+        # {
+        #     "type": "button",
+        #     "action_id": SLACK_ACTION_CANCEL_BOOKING,
+        #     "value": json.dumps(
+        #         {
+        #             "userId": user,
+        #             "classId": str(booked_class['id']),
+        #             "scheduledReminderMessageId": scheduled_reminder_id
+        #         }
+        #     ),
+        #     "text": {
+        #         "type": "plain_text",
+        #         "text": ":no_entry: Avbestill"
+        #     },
+        #     "confirm": {
+        #         "title": {
+        #             "type": "plain_text",
+        #             "text": "Er du sikker?"
+        #         },
+        #         "text": {
+        #             "type": "plain_text",
+        #             "text": f"Du er i ferd med å avbestille {booked_class['name']} ({booked_class['from']}). "
+        #                     f"Dette kan ikke angres!"
+        #         },
+        #         "confirm": {
+        #             "type": "plain_text",
+        #             "text": "Avbestill"
+        #         },
+        #         "deny": {
+        #             "type": "plain_text",
+        #             "text": "Avbryt"
+        #         },
+        #         "style": "danger"
+        #     }
+        # }
     ]
     if ical_tsh_url:
         buttons.insert(0, {
