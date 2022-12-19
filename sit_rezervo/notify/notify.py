@@ -1,9 +1,9 @@
 from typing import Dict, Any, Optional
 
-from auth import AuthenticationError
-from config import Config
-from errors import BookingError
-from notify.slack import notify_auth_failure_slack, notify_booking_failure_slack, notify_booking_slack, \
+from ..auth import AuthenticationError
+from ..config import Config
+from ..errors import BookingError
+from .slack import notify_auth_failure_slack, notify_booking_failure_slack, notify_booking_slack, \
     schedule_class_reminder_slack
 
 

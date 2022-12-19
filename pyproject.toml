@@ -1,0 +1,40 @@
+[tool.poetry]
+name = "sit-rezervo"
+version = "0.1.0"
+description = "Automatic booking of Sit Trening group classes"
+authors = ["Mathias Oterhals Myklebust <mathias@oterbust.no>"]
+readme = "README.md"
+packages = [{include = "sit_rezervo"}]
+repository = "https://github.com/mathiazom/sit-rezervo"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.10",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.urls]
+"Bug Tracker" = "https://github.com/mathiazom/sit-rezervo/issues"
+
+[tool.poetry.scripts]
+sit-rezervo = "sit_rezervo.main:app"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pydantic = "^1.10.2"
+fastapi = "^0.88.0"
+requests = "^2.28.1"
+pyyaml = "^6.0"
+munch = "^2.5.0"
+pytz = "^2022.7"
+typer = "^0.7.0"
+slack-sdk = "^3.19.5"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

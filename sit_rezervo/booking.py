@@ -3,9 +3,9 @@ from typing import Union, Dict, Any
 
 import requests
 
-from config import Config
-from consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS
-from errors import BookingError
+from .config import Config
+from .consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS
+from .errors import BookingError
 
 
 def book_class(token, class_id) -> bool:

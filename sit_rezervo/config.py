@@ -14,7 +14,7 @@ class Config(Munch):
     @classmethod
     def from_config_file(cls, path: str | bytes | PathLike[str] | PathLike[bytes] | int) -> Optional[Config]:
         """Create config object from YAML config file"""
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             try:
                 config = yaml.safe_load(file)
                 return typing.cast(Config, cls.fromDict(config))

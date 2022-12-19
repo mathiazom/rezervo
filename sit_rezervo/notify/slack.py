@@ -1,5 +1,4 @@
 import datetime
-import json
 import time
 from typing import Dict, Any, Optional, List
 
@@ -7,10 +6,10 @@ from requests import RequestException
 from slack_sdk import WebClient as SlackClient
 from slack_sdk.errors import SlackApiError
 
-from auth import AuthenticationError
-from consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
-from errors import BookingError
-from notify.utils import upload_ical_to_transfersh
+from ..auth import AuthenticationError
+from ..consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR
+from ..errors import BookingError
+from .utils import upload_ical_to_transfersh
 
 
 def notify_slack(slack_token: str, channel: str, message: str, message_blocks: Optional[List[Dict[str, Any]]] = None):

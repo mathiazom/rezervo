@@ -5,7 +5,7 @@ import pydantic
 from fastapi import FastAPI, status, Response, Form
 from pydantic import BaseModel
 
-from consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
+from .consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
 
 app = FastAPI()
 
