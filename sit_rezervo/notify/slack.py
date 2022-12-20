@@ -7,6 +7,7 @@ from slack_sdk import WebClient as SlackClient
 from slack_sdk.errors import SlackApiError
 
 from ..auth import AuthenticationError
+from ..config import Class
 from ..consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR
 from ..errors import BookingError
 from .utils import upload_ical_to_transfersh
@@ -71,11 +72,11 @@ BOOKING_FAILURE_REASONS_SLACK = {
 
 
 def notify_booking_failure_slack(slack_token: str, channel: str, user: str,
-                                 _class_config: Dict[str, Any], error: BookingError = None,
+                                 _class_config: Class, error: BookingError = None,
                                  check_run: bool = False) -> None:
-    class_name = f"{_class_config['display_name'] if 'display_name' in _class_config else _class_config['activity']}"
-    class_time = f"{WEEKDAYS[_class_config['weekday']].lower()} " \
-                 f"{datetime.time(_class_config['time']['hour'], _class_config['time']['minute']).strftime('%H:%M')}"
+    class_name = f"{_class_config.display_name if _class_config.display_name is not None else _class_config.activity}"
+    class_time = f"{WEEKDAYS[_class_config.weekday].lower()} " \
+                 f"{datetime.time(_class_config.time.hour, _class_config.time.minute).strftime('%H:%M')}"
     msg = f"{':warning: Forhåndssjekk feilet! Kan ikke booke' if check_run else ':dizzy_face: Klarte ikke å booke'} " \
           f"*{class_name}* ({class_time}) for <@{user}>" \
           f"{f'. *{BOOKING_FAILURE_REASONS_SLACK[error]}*' if error in BOOKING_FAILURE_REASONS_SLACK else ''}"

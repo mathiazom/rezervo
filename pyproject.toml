@@ -30,6 +30,7 @@ munch = "^2.5.0"
 pytz = "^2022.7"
 typer = "^0.7.0"
 slack-sdk = "^3.19.5"
+dataclass-wizard = "^0.22.2"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -7,8 +7,8 @@ from pytz import timezone
 
 from .auth import authenticate, AuthenticationError
 from .booking import book_class, find_class
-from .config import Config
-from .consts import CONFIG_PATH, ICAL_URL
+from .config import Config, config_from_stream, Notifications
+from .consts import ICAL_URL
 from .cron_generator import generate_booking_cron_job
 from .errors import BookingError
 from .notify.notify import notify_booking_failure, notify_booking, notify_auth_failure
@@ -18,7 +18,7 @@ app = typer.Typer()
 
 
 def try_book_class(token: str, _class: Dict[str, Any], max_attempts: int,
-                   notifications_config: Optional[Config] = None) -> Optional[BookingError]:
+                   notifications_config: Optional[Notifications] = None) -> Optional[BookingError]:
     if max_attempts < 1:
         print(f"[ERROR] Max booking attempts should be a positive number")
         return BookingError.INVALID_CONFIG
@@ -75,10 +75,16 @@ def try_authenticate(email: str, password: str, max_attempts: int) -> Union[str,
 @app.command()
 def book(
         class_id: int,
-        check_run: bool = typer.Option(False, "--check", help="Perform a dry-run to verify that booking is possible")
+        check_run: bool = typer.Option(False, "--check", help="Perform a dry-run to verify that booking is possible"),
+        config_stream: typer.FileText = typer.Option(
+            "config.yaml",
+            "--config-file", "-c",
+            encoding="utf-8",
+            help="Configurations file"
+        ),
 ) -> None:
     print("[INFO] Loading config...")
-    config = Config.from_config_file(CONFIG_PATH)
+    config = config_from_stream(config_stream)
     if config is None:
         print("[ERROR] Failed to load config, aborted.")
         return
@@ -88,19 +94,20 @@ def book(
     _class_config = config.classes[class_id]
     if config.booking.max_attempts < 1:
         print(f"[ERROR] Max booking attempts should be a positive number")
-        if "notifications" in config:
+        if config.notifications is not None:
             notify_booking_failure(config.notifications, _class_config, BookingError.INVALID_CONFIG, check_run)
         return
+    print("[INFO] Authenticating...")
     auth_result = try_authenticate(config.auth.email, config.auth.password, config.auth.max_attempts)
     if isinstance(auth_result, AuthenticationError):
         print("[ERROR] Abort!")
-        if "notifications" in config:
+        if config.notifications is not None:
             notify_auth_failure(config.notifications, auth_result, check_run)
         return
     class_search_result = find_class(auth_result, _class_config)
     if isinstance(class_search_result, BookingError):
         print("[ERROR] Abort!")
-        if "notifications" in config:
+        if config.notifications is not None:
             notify_booking_failure(config.notifications, _class_config, class_search_result, check_run)
         return
     if check_run:
@@ -119,30 +126,37 @@ def book(
         if wait_time > config.booking.max_waiting_minutes * 60:
             print(f"[ERROR] Booking waiting time was {wait_time_string}, "
                   f"but max is {config.booking.max_waiting_minutes} minutes. Aborting.")
-            if "notifications" in config:
+            if config.notifications is not None:
                 notify_booking_failure(config.notifications, _class_config, BookingError.TOO_LONG_WAITING_TIME)
             raise typer.Exit(1)
         print(f"[INFO] Scheduling booking at {datetime.now(tz) + timedelta} "
               f"(about {wait_time_string} from now)")
         time.sleep(wait_time)
         print(f"[INFO] Awoke at {datetime.now(tz)}")
-    booking_result = try_book_class(auth_result, _class, config.booking.max_attempts,
-                                    config.notifications if "notifications" in config else None)
+    booking_result = try_book_class(auth_result, _class, config.booking.max_attempts, config.notifications)
     if isinstance(booking_result, BookingError):
-        if "notifications" in config:
+        if config.notifications is not None:
             notify_booking_failure(config.notifications, _class_config, booking_result, check_run)
         raise typer.Exit(1)
 
 
 @app.command()
-def cron(output_file: Optional[typer.FileTextWrite] = typer.Option(None, "--output-file", "-o", encoding="utf-8")):
+def cron(
+        output_file: Optional[typer.FileTextWrite] = typer.Option(None, "--output-file", "-o", encoding="utf-8"),
+        config_stream: typer.FileText = typer.Option(
+            "config.yaml",
+            "--config-file", "-c",
+            encoding="utf-8",
+            help="Configurations file"
+        ),
+):
     """
     Generate cron jobs for class booking
     """
-    config = Config.from_config_file(CONFIG_PATH)
+    config = config_from_stream(config_stream)
     cron_spec = ""
     for i, c in enumerate(config.classes):
-        cron_spec += generate_booking_cron_job(i, c, config.cron)
+        cron_spec += generate_booking_cron_job(i, c, config.cron, config_stream.name)
     if output_file is not None:
         output_file.write(cron_spec + "\n")
         raise typer.Exit()

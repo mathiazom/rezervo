@@ -76,6 +76,22 @@ files = [
 ]
 
 [[package]]
+name = "dataclass-wizard"
+version = "0.22.2"
+description = "Marshal dataclasses to/from JSON. Use field properties with initial values. Construct a dataclass schema with JSON input."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "dataclass-wizard-0.22.2.tar.gz", hash = "sha256:211f842e5e9a8ace50ba891ef428cd78c82579fb98024f80f3e630ca8d1946f6"},
+    {file = "dataclass_wizard-0.22.2-py2.py3-none-any.whl", hash = "sha256:49be36ecc64bc5a1e9a35a6bad1d71d33b6b9b06877404931a17c6a3a6dfbb10"},
+]
+
+[package.extras]
+timedelta = ["pytimeparse (>=1.1.7)"]
+yaml = ["PyYAML (>=5.3)"]
+
+[[package]]
 name = "fastapi"
 version = "0.88.0"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
@@ -451,4 +467,4 @@ socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "aed997afa03284d2f1264ce8c343eac521e806242106ca6413d30ac60f2c449f"
+content-hash = "8904c222a6a8ae2e9cac0687cb68ac623f8816617798f355f56041de25f6f30a"

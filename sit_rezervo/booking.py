@@ -3,7 +3,7 @@ from typing import Union, Dict, Any
 
 import requests
 
-from .config import Config
+from .config import Class
 from .consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS
 from .errors import BookingError
 
@@ -24,7 +24,7 @@ def book_class(token, class_id) -> bool:
 
 
 # Search the scheduled classes and return the first class matching the given arguments
-def find_class(token: str, _class_config: Config) -> Union[Dict[str, Any], BookingError]:
+def find_class(token: str, _class_config: Class) -> Union[Dict[str, Any], BookingError]:
     print(f"[INFO] Searching for class matching config: {_class_config}")
     schedule_response = requests.get(
         f"{CLASSES_SCHEDULE_URL}?token={token}&studios={_class_config.studio}&lang=no"

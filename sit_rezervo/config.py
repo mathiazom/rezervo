@@ -1,23 +1,75 @@
-from __future__ import annotations
-
-from os import PathLike
+from dataclasses import dataclass
+from io import TextIOWrapper
 from typing import Optional
 
-import typing
-from munch import Munch
-import yaml
+from dataclass_wizard import YAMLWizard
 
 
-class Config(Munch):
-    """Glorified Munch object for handling harvesting configurations"""
+@dataclass
+class Auth:
+    email: str
+    password: str
+    max_attempts: int = 3
 
-    @classmethod
-    def from_config_file(cls, path: str | bytes | PathLike[str] | PathLike[bytes] | int) -> Optional[Config]:
-        """Create config object from YAML config file"""
-        with open(path, encoding="utf-8") as file:
-            try:
-                config = yaml.safe_load(file)
-                return typing.cast(Config, cls.fromDict(config))
-            except yaml.YAMLError as exc:
-                print(f"[FAIL] Error while loading YAML config: {exc}")
-        return None
+
+@dataclass
+class Booking:
+    timezone: str
+    max_attempts: int = 10
+    max_waiting_minutes: int = 60
+
+
+@dataclass
+class Cron:
+    sit_rezervo_dir: str
+    python_path: str
+    log_path: str
+    preparation_minutes: int = 10
+    precheck_hours: Optional[int] = None
+
+
+@dataclass
+class Transfersh:
+    url: str
+
+
+@dataclass
+class Slack:
+    bot_token: str
+    channel_id: str
+    user_id: str
+
+
+@dataclass
+class Notifications:
+    transfersh: Optional[Transfersh] = None
+    slack: Optional[Slack] = None
+    reminder_hours_before: Optional[int] = None
+
+
+@dataclass
+class ClassTime:
+    hour: int
+    minute: int
+
+
+@dataclass
+class Class:
+    activity: int
+    weekday: int
+    studio: int
+    time: ClassTime
+    display_name: Optional[str] = None
+
+
+@dataclass
+class Config(YAMLWizard):
+    auth: Auth
+    booking: Booking
+    cron: Cron
+    classes: list[Class]
+    notifications: Optional[Notifications] = None
+
+
+def config_from_stream(stream: TextIOWrapper) -> Optional[Config]:
+    return Config.from_yaml(stream)
