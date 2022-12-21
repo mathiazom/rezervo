@@ -12,7 +12,7 @@ def notify_auth_failure(notifications_config: Notifications, error: Authenticati
     slack_config = notifications_config.slack
     if slack_config is not None:
         return notify_auth_failure_slack(slack_config.bot_token, slack_config.channel_id, slack_config.user_id, error,
-                                         check_run)
+                                         check_run=check_run)
     print("[WARNING] No notification targets, auth failure notification will not be sent!")
 
 

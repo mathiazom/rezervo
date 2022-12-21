@@ -11,3 +11,4 @@ class BookingError(Enum):
     MALFORMED_CLASS = auto()
     TOO_LONG_WAITING_TIME = auto()
     INVALID_CONFIG = auto()
+    CANCELLING_WITHOUT_BOOKING = auto()

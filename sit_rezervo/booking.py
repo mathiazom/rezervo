@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import Union, Dict, Any
+from typing import Union, Dict, Any, Optional
 
 import requests
 
 from .config import Class
-from .consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS
+from .consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS, CANCEL_BOOKING_URL, CLASS_URL
 from .errors import BookingError
 
 
@@ -19,6 +19,28 @@ def book_class(token, class_id) -> bool:
     )
     if response.status_code != requests.codes.OK:
         print("[ERROR] Booking attempt failed: " + response.text)
+        return False
+    return True
+
+
+def cancel_booking(token, class_id) -> bool:
+    print(f"[INFO] Cancelling booking of class {class_id}")
+    res = requests.post(
+        CANCEL_BOOKING_URL,
+        {
+            "classId": class_id,
+            "token": token
+        }
+    )
+    if res.status_code != requests.codes.OK:
+        print("[ERROR] Booking cancellation attempt failed: " + res.text)
+        return False
+    body = res.json()
+    if body["success"] is False:
+        print("[ERROR] Booking cancellation attempt failed: " + body.errorMessage)
+        return False
+    if "class" not in body or "userStatus" not in body["class"] or body["class"]["userStatus"] != "available":
+        print("[ERROR] Booking cancellation attempt failed, class is still booked!")
         return False
     return True
 
@@ -77,3 +99,14 @@ def find_class(token: str, _class_config: Class) -> Union[Dict[str, Any], Bookin
     if result is None:
         result = BookingError.CLASS_MISSING
     return result
+
+
+def find_class_by_id(token: str, class_id: str) -> Optional[Dict[str, Any]]:
+    print(f"[INFO] Searching for class by id: {class_id}")
+    class_response = requests.get(
+        f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
+    )
+    if class_response.status_code != requests.codes.OK:
+        print("[ERROR] Class get request failed")
+        return None
+    return class_response.json()["class"]

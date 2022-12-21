@@ -18,7 +18,7 @@ classifiers = [
 "Bug Tracker" = "https://github.com/mathiazom/sit-rezervo/issues"
 
 [tool.poetry.scripts]
-sit-rezervo = "sit_rezervo.main:app"
+sit-rezervo = "sit_rezervo.cli:cli"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -31,6 +31,8 @@ pytz = "^2022.7"
 typer = "^0.7.0"
 slack-sdk = "^3.19.5"
 dataclass-wizard = "^0.22.2"
+uvicorn = "^0.20.0"
+python-multipart = "^0.0.5"
 
 
 [tool.poetry.group.dev.dependencies]
