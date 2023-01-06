@@ -1,0 +1,14 @@
+services:
+  sit-rezervo:
+    build:
+      context: ..
+      dockerfile: ./docker/Dockerfile
+    container_name: sit-rezervo
+    restart: unless-stopped
+    command: --port 18000
+    volumes:
+      - ../dev.config.yaml:/app/dev.config.yaml:ro
+      # additional configs can be provided with pattern *.config.yaml
+#      - ./peter.config.yaml:/app/peter.config.yaml:ro
+#      - ./paul.config.yaml:/app/paul.config.yaml:ro
+#      - ./mary.config.yaml:/app/mary.config.yaml:ro

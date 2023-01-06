@@ -1,0 +1,14 @@
+version: "3"
+
+services:
+  sit-rezervo:
+    container_name: sit-rezervo
+    image: ghcr.io/mathiazom/sit-rezervo:main
+    restart: unless-stopped
+    #command: --host 0.0.0.0 --port 8000  # customize flags for 'api' startup command
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      # additional configs can be provided with pattern *.config.yaml
+      #- ./peter.config.yaml:/app/peter.config.yaml:ro
+      #- ./paul.config.yaml:/app/paul.config.yaml:ro
+      #- ./mary.config.yaml:/app/mary.config.yaml:ro
