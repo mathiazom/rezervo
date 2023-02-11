@@ -16,6 +16,7 @@ from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.notify import notify_auth_failure, notify_booking_failure
+from rezervo.recurrence.recurrence import is_date_within_recurrence_str
 from rezervo.schemas.config.user import (
     ChainIdentifier,
 )
@@ -178,6 +179,11 @@ def purge_slack_receipts_cli():
             )
         else:
             rprint("No expired Slack notification receipts")
+
+
+@cli.command()
+def recurrent(rule_str: str):
+    is_date_within_recurrence_str(datetime.now(), rule_str)
 
 
 @cli.callback()
