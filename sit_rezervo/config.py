@@ -36,6 +36,7 @@ class Transfersh:
 @dataclass
 class Slack:
     bot_token: str
+    signing_secret: str
     channel_id: str
     user_id: str
 

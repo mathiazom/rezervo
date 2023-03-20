@@ -2,8 +2,10 @@ import json
 from typing import List, Optional
 
 import pydantic
-from fastapi import FastAPI, status, Response, Form, BackgroundTasks, Depends
+from fastapi import FastAPI, status, Response, Request, BackgroundTasks, Depends
+from starlette.datastructures import Headers
 from pydantic import BaseModel
+from slack_sdk.signature import SignatureVerifier
 
 from .auth import AuthenticationError
 from .booking import find_class_by_id
@@ -103,13 +105,23 @@ def handle_cancel_booking_slack_action(config: Config, action_value: CancelBooki
         notify_cancellation_slack(slack_config.bot_token, slack_config.channel_id, message_ts, response_url)
 
 
+def verify_slack_request(body: bytes, headers: Headers, signing_secret: str):
+    # see https://api.slack.com/authentication/verifying-requests-from-slack
+    return SignatureVerifier(signing_secret=signing_secret).is_valid(
+        body,
+        headers.get("x-slack-request-timestamp"),
+        headers.get("x-slack-signature")
+    )
+
+
 @api.post("/")
-def slack_action(background_tasks: BackgroundTasks, payload: str = Form(),
-                 configs: Optional[list[Config]] = Depends(get_configs)):
+async def slack_action(request: Request, background_tasks: BackgroundTasks,
+                       configs: Optional[list[Config]] = Depends(get_configs)):
     if configs is None:
         print("[ERROR] No configs available, abort!")
         return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    # TODO: Verify that request is from Slack (https://api.slack.com/authentication/verifying-requests-from-slack)
+    raw_body = await request.body()  # must read body before retrieving form data
+    payload = (await request.form())["payload"]
     interaction: Interaction = pydantic.parse_raw_as(type_=Interaction, b=payload)
     if interaction.type != "block_actions":
         return Response(f"Unsupported interaction type '{interaction.type}'", status_code=status.HTTP_400_BAD_REQUEST)
@@ -125,6 +137,10 @@ def slack_action(background_tasks: BackgroundTasks, payload: str = Form(),
         if config is None:
             print("[ERROR] Could not find config for Slack user, abort!")
             return Response(status_code=status.HTTP_400_BAD_REQUEST)
+        if config.notifications is None \
+                or config.notifications.slack is None \
+                or not verify_slack_request(raw_body, request.headers, config.notifications.slack.signing_secret):
+            return Response(f"Authentication failed", status_code=status.HTTP_401_UNAUTHORIZED)
         # This check should be performed before retrieving config, but then we wouldn't be able to display a funny modal
         if action_value.user_id != interaction.user.id:
             print("[WARNING] Detected cancellation attempt by an unauthorized user")
