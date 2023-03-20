@@ -1,16 +1,16 @@
 import time
 from typing import Dict, Any, Optional, Union
 
-from .auth import AuthenticationError, authenticate
-from .booking import book_class, cancel_booking
-from .config import Notifications
-from .consts import ICAL_URL
-from .errors import BookingError
-from .notify.notify import notify_booking
+from sit_rezervo.auth.sit import AuthenticationError, authenticate
+from sit_rezervo.booking import book_class, cancel_booking
+from sit_rezervo.consts import ICAL_URL
+from sit_rezervo.errors import BookingError
+from sit_rezervo.notify.notify import notify_booking
+from sit_rezervo.schemas.config import config
 
 
 def try_book_class(token: str, _class: Dict[str, Any], max_attempts: int,
-                   notifications_config: Optional[Notifications] = None) -> Optional[BookingError]:
+                   notifications_config: Optional[config.Notifications] = None) -> Optional[BookingError]:
     if max_attempts < 1:
         print(f"[ERROR] Max booking attempts should be a positive number")
         return BookingError.INVALID_CONFIG

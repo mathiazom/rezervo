@@ -1,14 +1,45 @@
 services:
+  db:
+    container_name: sit-rezervo-db
+    image: postgres:14.5
+    restart: unless-stopped
+    volumes:
+      - sit-rezervo-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+#  db-admin:
+#    container_name: sit-rezervo-db-admin
+#    image: dpage/pgadmin4
+#    restart: always
+#    ports:
+#      - 18000:80
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: dev@example.org
+#      PGADMIN_DEFAULT_PASSWORD: password
   sit-rezervo:
     build:
       context: ..
       dockerfile: ./docker/Dockerfile
     container_name: sit-rezervo
+    command: ["--host", "0.0.0.0", "--port", "8000", "--reload"]
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
-    command: --port 18000
+    ports:
+      - 8000:8000
+    env_file:
+      - .env
     volumes:
-      - ../dev.config.yaml:/app/dev.config.yaml:ro
-      # additional configs can be provided with pattern *.config.yaml
-#      - ./peter.config.yaml:/app/peter.config.yaml:ro
-#      - ./paul.config.yaml:/app/paul.config.yaml:ro
-#      - ./mary.config.yaml:/app/mary.config.yaml:ro
+      - "../sit_rezervo:/app/sit_rezervo"
+      - "./config.json:/app/config.json:ro"
+
+volumes:
+  sit-rezervo-data:

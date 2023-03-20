@@ -15,7 +15,7 @@ COPY pyproject.toml poetry.lock README.md ./
 
 COPY sit_rezervo sit_rezervo
 
-RUN /root/.local/bin/poetry install --no-dev
+RUN /root/.local/bin/poetry install --only main
 
 COPY docker/entrypoint.sh .
 RUN chmod +x ./entrypoint.sh

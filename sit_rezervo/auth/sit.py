@@ -5,7 +5,7 @@ from typing import Union
 import requests
 from requests import Session
 
-from .consts import AUTH_URL, BOOKING_URL, TOKEN_VALIDATION_URL
+from sit_rezervo.consts import AUTH_URL, BOOKING_URL, TOKEN_VALIDATION_URL
 
 USER_AGENT = "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0"
 

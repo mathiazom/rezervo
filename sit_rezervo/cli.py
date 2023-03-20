@@ -1,45 +1,49 @@
 import time
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 import typer
 import uvicorn
 from pytz import timezone
+from rich import print as rprint
 
-from . import api
-from .auth import AuthenticationError
-from .booking import find_class
-from .config import config_from_stream
-from .cron_generator import generate_booking_cron_job
-from .errors import BookingError
-from .main import try_book_class, try_authenticate
-from .notify.notify import notify_booking_failure, notify_auth_failure
-from .utils.time_utils import readable_seconds
-from .api import api as api_app, get_configs
+from sit_rezervo import api, models
+from sit_rezervo.api import delete_booking_crontab, upsert_booking_crontab
+from sit_rezervo.auth.sit import AuthenticationError
+from sit_rezervo.booking import find_class
+from sit_rezervo.database import crud
+from sit_rezervo.database.database import SessionLocal
+from sit_rezervo.errors import BookingError
+from sit_rezervo.main import try_book_class, try_authenticate
+from sit_rezervo.notify.notify import notify_booking_failure, notify_auth_failure
+from sit_rezervo.schemas.config.config import config_from_stored
+from sit_rezervo.schemas.config.stored import StoredConfig
+from sit_rezervo.utils.time_utils import readable_seconds
 
 cli = typer.Typer()
 
 
 @cli.command()
 def book(
+        user_id: UUID,
         class_id: int,
-        check_run: bool = typer.Option(False, "--check", help="Perform a dry-run to verify that booking is possible"),
-        config_stream: typer.FileText = typer.Option(
-            "config.yaml",
-            "--config-file", "-c",
-            encoding="utf-8",
-            help="Configurations file"
-        ),
+        check_run: bool = typer.Option(False, "--check", help="Perform a dry-run to verify that booking is possible")
 ) -> None:
     """
     Book the class with config index matching the given class id
     """
     print("[INFO] Loading config...")
-    config = config_from_stream(config_stream)
+    with SessionLocal() as db:
+        db_config = db.query(models.Config).filter_by(user_id=user_id).one_or_none()
+        if db_config is None:
+            print("[ERROR] Failed to load config from database, aborted.")
+            return
+        config = config_from_stored(StoredConfig.from_orm(db_config)).config
     if config is None:
         print("[ERROR] Failed to load config, aborted.")
         return
-    if not 0 <= class_id < len(config.classes):
+    if config.classes is None or not 0 <= class_id < len(config.classes):
         print(f"[ERROR] Class index out of bounds")
         return
     _class_config = config.classes[class_id]
@@ -91,42 +95,12 @@ def book(
         raise typer.Exit(1)
 
 
-@cli.command()
-def cron(
-        config_streams: list[typer.FileText] = typer.Option(
-            ["config.yaml"],
-            "--config-file", "-c",
-            encoding="utf-8",
-            help="Configurations file (multiple allowed)"
-        ),
-        output_file: Optional[typer.FileTextWrite] = typer.Option(None, "--output-file", "-o", encoding="utf-8"),
-):
-    """
-    Generate cron jobs for class booking
-    """
-    cron_spec = ""
-    for config_stream in config_streams:
-        config = config_from_stream(config_stream)
-        for i, c in enumerate(config.classes):
-            cron_spec += generate_booking_cron_job(i, c, config.cron, config_stream.name)
-    if output_file is not None:
-        output_file.write(cron_spec + "\n")
-        raise typer.Exit()
-    print(cron_spec)
-
-
 @cli.command(
     name="api",
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True}  # Enabled to support uvicorn options
 )
 def serve_api(
-        ctx: typer.Context,
-        config_streams: list[typer.FileText] = typer.Option(
-            ["config.yaml"],
-            "--config-file", "-c",
-            encoding="utf-8",
-            help="Configurations file (multiple allowed)"
-        ),
+        ctx: typer.Context
 ):
     """
     Start a web server to handle Slack message interactions
@@ -134,9 +108,45 @@ def serve_api(
     Actually a wrapper around uvicorn, and supports passing additional options to the underlying uvicorn.run() command.
     """
     ctx.args.insert(0, f"{api.__name__}:api")
-    configs = [config_from_stream(cs) for cs in config_streams]
-    api_app.dependency_overrides[get_configs] = lambda: configs
     uvicorn.main.main(args=ctx.args)
+
+@cli.command(name="refreshcron")
+def refresh_cron():
+    with SessionLocal() as db:
+        for c in db.query(models.Config).all():
+            config = config_from_stored(StoredConfig.from_orm(c))
+            db_user = db.get(models.User, config.user_id)
+            upsert_booking_crontab(config, db_user)
+
+@cli.command(name="createuser")
+def create_user(
+        name: str,
+        jwt_sub: str,
+        sit_email: str,
+        sit_password: str,
+        slack_id: Optional[str] = typer.Option(None)
+):
+    with SessionLocal() as db:
+        db_user = crud.create_user(db, name, jwt_sub)
+        crud.create_config(
+            db,
+            db_user.id,
+            sit_email,
+            sit_password,
+            slack_id
+        )
+        rprint(f"User '{db_user.name}' created")
+
+
+@cli.command(name="deleteuser")
+def delete_user(
+        user_id: UUID
+):
+    with SessionLocal() as db:
+        config: models.Config = db.query(models.Config).filter_by(user_id=user_id).first()
+        if config is not None:
+            delete_booking_crontab(config.id)
+        crud.delete_user(db, user_id)
 
 
 @cli.callback()

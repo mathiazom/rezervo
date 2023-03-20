@@ -3,9 +3,9 @@ from typing import Union, Dict, Any, Optional
 
 import requests
 
-from .config import Class
-from .consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS, CANCEL_BOOKING_URL, CLASS_URL
-from .errors import BookingError
+from sit_rezervo.schemas.config import config
+from sit_rezervo.consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS, CANCEL_BOOKING_URL, CLASS_URL
+from sit_rezervo.errors import BookingError
 
 
 def book_class(token, class_id) -> bool:
@@ -46,7 +46,7 @@ def cancel_booking(token, class_id) -> bool:
 
 
 # Search the scheduled classes and return the first class matching the given arguments
-def find_class(token: str, _class_config: Class) -> Union[Dict[str, Any], BookingError]:
+def find_class(token: str, _class_config: config.Class) -> Union[Dict[str, Any], BookingError]:
     print(f"[INFO] Searching for class matching config: {_class_config}")
     schedule_response = requests.get(
         f"{CLASSES_SCHEDULE_URL}?token={token}&studios={_class_config.studio}&lang=no"

@@ -1,14 +1,17 @@
 import datetime
 import time
 from typing import Dict, Any, Optional, List
+
 from requests import RequestException
 from slack_sdk import WebClient as SlackClient
-from slack_sdk.webhook import WebhookClient as SlackWebhookClient
 from slack_sdk.errors import SlackApiError
+from slack_sdk.signature import SignatureVerifier
+from slack_sdk.webhook import WebhookClient as SlackWebhookClient
+from starlette.datastructures import Headers
 
+from ..schemas.config import config
 from ..types import CancelBookingActionValue
-from ..auth import AuthenticationError
-from ..config import Class
+from ..auth.sit import AuthenticationError
 from ..consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
 from ..errors import BookingError
 from .utils import upload_ical_to_transfersh, activity_url
@@ -124,7 +127,7 @@ BOOKING_FAILURE_REASONS = {
 
 
 def notify_booking_failure_slack(slack_token: str, channel: str, user_id: str,
-                                 _class_config: Class, error: BookingError = None,
+                                 _class_config: config.Class, error: BookingError = None,
                                  check_run: bool = False) -> None:
     class_name = f"{_class_config.display_name if _class_config.display_name is not None else _class_config.activity}"
     class_time = f"{WEEKDAYS[_class_config.weekday].lower()} " \
@@ -351,3 +354,12 @@ def build_booking_message_blocks(booked_class: Dict[str, Any], user_id: str, hos
         "message": message,
         "blocks": blocks
     }
+
+
+def verify_slack_request(body: bytes, headers: Headers, signing_secret: str):
+    # see https://api.slack.com/authentication/verifying-requests-from-slack
+    return SignatureVerifier(signing_secret=signing_secret).is_valid(
+        body,
+        headers.get("x-slack-request-timestamp"),
+        headers.get("x-slack-signature")
+    )

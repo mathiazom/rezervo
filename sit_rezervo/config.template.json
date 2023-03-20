@@ -1,0 +1,27 @@
+{
+  "auth": {
+    "max_attempts": 3
+  },
+  "booking": {
+    "timezone": "Europe/Oslo",
+    "max_attempts": 10,
+    "max_waiting_minutes": 45
+  },
+  "cron": {
+    "precheck_hours": 4,
+    "sit_rezervo_dir": "/app",
+    "python_path": "/usr/local/bin",
+    "log_path": "/var/log/sit-rezervo.log",
+    "preparation_minutes": 10
+  },
+  "notifications": {
+    "transfersh": {
+      "url": "https://tsh.example.org/"
+    },
+    "slack": {
+      "bot_token": "xoxb-SOMETHING",
+      "signing_secret": "SOMETHING-SECRET",
+      "channel_id": "SOME-CHANNEL-ID"
+    }
+  }
+}

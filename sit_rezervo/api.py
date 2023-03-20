@@ -1,48 +1,58 @@
 import json
+import re
 from typing import Optional
+from uuid import UUID
 
 import pydantic
-from fastapi import FastAPI, status, Response, Request, BackgroundTasks, Depends
-from starlette.datastructures import Headers
-from slack_sdk.signature import SignatureVerifier
+import rich
+from crontab import CronTab
+from fastapi import FastAPI, status, Response, Request, BackgroundTasks, Depends, HTTPException
+from fastapi.security import HTTPBearer
+from sqlalchemy.orm import Session
 
-from .auth import AuthenticationError
-from .booking import find_class_by_id
-from .config import Config
-from .consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
-from .errors import BookingError
-from .main import try_cancel_booking, try_authenticate
-from .notify.slack import notify_cancellation_slack, notify_working_slack, \
-    notify_cancellation_failure_slack, show_unauthorized_action_modal_slack, delete_scheduled_dm_slack
-from .types import CancelBookingActionValue, Interaction
+from sit_rezervo import models
+from sit_rezervo.schemas.config.config import Config, config_from_stored, ConfigValue
+from sit_rezervo.schemas.config.user import UserConfig
+from sit_rezervo.auth.sit import AuthenticationError
+from sit_rezervo.booking import find_class_by_id
+from sit_rezervo.consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
+from sit_rezervo.database.database import SessionLocal
+from sit_rezervo.errors import BookingError
+from sit_rezervo.main import try_cancel_booking, try_authenticate
+from sit_rezervo.notify.slack import notify_cancellation_slack, notify_working_slack, \
+    notify_cancellation_failure_slack, show_unauthorized_action_modal_slack
+from sit_rezervo.settings import Settings, get_settings
+from sit_rezervo.database import crud
+from sit_rezervo.notify.slack import delete_scheduled_dm_slack, verify_slack_request
+from sit_rezervo.schemas.config.stored import StoredConfig
+from sit_rezervo.types import CancelBookingActionValue, Interaction
+from sit_rezervo.utils.cron_utils import build_cron_comment_prefix_for_config, build_cron_jobs_from_config, \
+    upsert_jobs_by_comment
 
 api = FastAPI()
 
+# Scheme for the Authorization header
+token_auth_scheme = HTTPBearer()
 
-def get_configs() -> Optional[list[Config]]:
-    return None  # will be overriden somewhere...
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 
-def find_config_by_slack_id(configs: list[Config], user_id: str) -> Optional[Config]:
+def find_config_by_slack_id(configs: list[ConfigValue], user_id: str) -> Optional[ConfigValue]:
     for config in configs:
-        if config.notifications is None:
-            continue
-        if config.notifications.slack is None:
+        if config.notifications is None or config.notifications.slack is None:
             continue
         if config.notifications.slack.user_id == user_id:
             return config
     return None
 
 
-def deserialize_cancel_booking_action_value(val: str) -> CancelBookingActionValue:
-    as_dict = json.loads(val)
-    return CancelBookingActionValue(
-        user_id=as_dict['userId'],
-        class_id=as_dict['classId']
-    )
-
-
-def handle_cancel_booking_slack_action(config: Config, action_value: CancelBookingActionValue, message_ts: str,
+def handle_cancel_booking_slack_action(config: ConfigValue, action_value: CancelBookingActionValue, message_ts: str,
                                        response_url: str):
     if config.notifications is None:
         print("[WARNING] Notifications config not specified, no notifications will be sent!")
@@ -54,7 +64,8 @@ def handle_cancel_booking_slack_action(config: Config, action_value: CancelBooki
         else:
             notify_working_slack(slack_config.bot_token, slack_config.channel_id, message_ts)
     print("[INFO] Authenticating...")
-    auth_result = try_authenticate(config.auth.email, config.auth.password, config.auth.max_attempts)
+    auth_result = try_authenticate(config.auth.email, config.auth.password,
+                                   config.auth.max_attempts)
     if isinstance(auth_result, AuthenticationError):
         print("[ERROR] Authentication failed, abort!")
         if slack_config is not None:
@@ -79,18 +90,8 @@ def handle_cancel_booking_slack_action(config: Config, action_value: CancelBooki
         notify_cancellation_slack(slack_config.bot_token, slack_config.channel_id, message_ts, response_url)
 
 
-def verify_slack_request(body: bytes, headers: Headers, signing_secret: str):
-    # see https://api.slack.com/authentication/verifying-requests-from-slack
-    return SignatureVerifier(signing_secret=signing_secret).is_valid(
-        body,
-        headers.get("x-slack-request-timestamp"),
-        headers.get("x-slack-signature")
-    )
-
-
-@api.post("/")
-async def slack_action(request: Request, background_tasks: BackgroundTasks,
-                       configs: Optional[list[Config]] = Depends(get_configs)):
+@api.post("/slackinteraction")
+async def slack_action(request: Request, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     raw_body = await request.body()  # must read body before retrieving form data
     payload = (await request.form())["payload"]
     interaction: Interaction = pydantic.parse_raw_as(type_=Interaction, b=payload)
@@ -102,6 +103,7 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks,
     if action.action_id == SLACK_ACTION_ADD_BOOKING_TO_CALENDAR:
         return Response(status_code=status.HTTP_200_OK)
     if action.action_id == SLACK_ACTION_CANCEL_BOOKING:
+        configs: list[ConfigValue] = [config_from_stored(StoredConfig.from_orm(c)).config for c in db.query(models.Config).all()]
         if configs is None:
             print("[ERROR] No configs available, abort!")
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -112,13 +114,15 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks,
             return Response(status_code=status.HTTP_400_BAD_REQUEST)
         if config.notifications is None \
                 or config.notifications.slack is None \
-                or not verify_slack_request(raw_body, request.headers, config.notifications.slack.signing_secret):
+                or not verify_slack_request(raw_body, request.headers,
+                                            config.notifications.slack.signing_secret):
             return Response(f"Authentication failed", status_code=status.HTTP_401_UNAUTHORIZED)
         # This check should be performed before retrieving config, but then we wouldn't be able to display a funny modal
         if action_value.user_id != interaction.user.id:
             print("[WARNING] Detected cancellation attempt by an unauthorized user")
             if config.notifications is not None and config.notifications.slack is not None:
-                background_tasks.add_task(show_unauthorized_action_modal_slack, config.notifications.slack.bot_token,
+                background_tasks.add_task(show_unauthorized_action_modal_slack,
+                                          config.notifications.slack.bot_token,
                                           interaction.trigger_id)
             return Response("Nice try 👏", status_code=status.HTTP_403_FORBIDDEN)
         message_ts = interaction.container.message_ts
@@ -126,3 +130,45 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks,
                                   interaction.response_url)
         return Response(status_code=status.HTTP_200_OK)
     return Response(f"Unsupported interaction action", status_code=status.HTTP_400_BAD_REQUEST)
+
+
+def upsert_booking_crontab(config: Config, user: models.User):
+    with CronTab(user=True) as crontab:
+        upsert_jobs_by_comment(
+            crontab,
+            re.compile(f'^{build_cron_comment_prefix_for_config(config.id)}.*$'),
+            build_cron_jobs_from_config(config, user)
+        )
+
+def delete_booking_crontab(config_id: UUID):
+    with CronTab(user=True) as crontab:
+        upsert_jobs_by_comment(
+            crontab,
+            re.compile(f'^{build_cron_comment_prefix_for_config(config_id)}.*$'),
+            []
+        )
+
+@api.get("/config", response_model=UserConfig)
+def get_user_config(token=Depends(token_auth_scheme), db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    db_config = crud.get_user_config(db, db_user.id)
+    if db_config is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return db_config.config
+
+
+@api.put("/config", response_model=UserConfig)
+def upsert_user_config(user_config: UserConfig, background_tasks: BackgroundTasks, token=Depends(token_auth_scheme),
+                       db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    db_config = crud.update_user_config(db, db_user.id, user_config)
+    if db_config is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    stored_config = StoredConfig.from_orm(db_config)
+    config = config_from_stored(stored_config)
+    background_tasks.add_task(upsert_booking_crontab, config, db_user)
+    return db_config.config
