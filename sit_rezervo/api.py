@@ -1,10 +1,9 @@
 import json
-from typing import List, Optional
+from typing import Optional
 
 import pydantic
 from fastapi import FastAPI, status, Response, Request, BackgroundTasks, Depends
 from starlette.datastructures import Headers
-from pydantic import BaseModel
 from slack_sdk.signature import SignatureVerifier
 
 from .auth import AuthenticationError
@@ -14,41 +13,14 @@ from .consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BO
 from .errors import BookingError
 from .main import try_cancel_booking, try_authenticate
 from .notify.slack import notify_cancellation_slack, notify_working_slack, \
-    notify_cancellation_failure_slack, show_unauthorized_action_modal_slack
+    notify_cancellation_failure_slack, show_unauthorized_action_modal_slack, delete_scheduled_dm_slack
+from .types import CancelBookingActionValue, Interaction
 
 api = FastAPI()
 
 
 def get_configs() -> Optional[list[Config]]:
     return None  # will be overriden somewhere...
-
-
-class User(BaseModel):
-    id: str
-
-
-class Action(BaseModel):
-    action_id: str
-    value: Optional[str]
-
-
-class CancelBookingActionValue(BaseModel):
-    class_id: str
-    user_id: str
-
-
-class InteractionContainer(BaseModel):
-    type: str
-    message_ts: str
-
-
-class Interaction(BaseModel):
-    type: str
-    trigger_id: str
-    user: User
-    actions: List[Action]
-    response_url: str
-    container: InteractionContainer
 
 
 def find_config_by_slack_id(configs: list[Config], user_id: str) -> Optional[Config]:
@@ -102,6 +74,8 @@ def handle_cancel_booking_slack_action(config: Config, action_value: CancelBooki
                                               cancellation_error)
         return
     if slack_config is not None:
+        if action_value.scheduled_reminder_id is not None:
+            delete_scheduled_dm_slack(slack_config.bot_token, slack_config.user_id, action_value.scheduled_reminder_id)
         notify_cancellation_slack(slack_config.bot_token, slack_config.channel_id, message_ts, response_url)
 
 
@@ -128,7 +102,7 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks,
     if len(interaction.actions) != 1:
         return Response(f"Unsupported number of interaction actions", status_code=status.HTTP_400_BAD_REQUEST)
     action = interaction.actions[0]
-    action_value = deserialize_cancel_booking_action_value(action.value)
+    action_value = CancelBookingActionValue(**json.loads(action.value))
     if action.action_id == SLACK_ACTION_ADD_BOOKING_TO_CALENDAR:
         return Response(status_code=status.HTTP_200_OK)
     if action.action_id == SLACK_ACTION_CANCEL_BOOKING:

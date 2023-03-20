@@ -1,5 +1,4 @@
 import datetime
-import json
 import time
 from typing import Dict, Any, Optional, List
 from requests import RequestException
@@ -7,6 +6,7 @@ from slack_sdk import WebClient as SlackClient
 from slack_sdk.webhook import WebhookClient as SlackWebhookClient
 from slack_sdk.errors import SlackApiError
 
+from ..types import CancelBookingActionValue
 from ..auth import AuthenticationError
 from ..config import Class
 from ..consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
@@ -29,6 +29,38 @@ def notify_slack(slack_token: str, channel: str, message: str, message_blocks: O
     return True
 
 
+def delete_scheduled_message_slack(slack_token: str, channel_id: str, scheduled_message_id: str) -> bool:
+    try:
+        res = SlackClient(token=slack_token).chat_deleteScheduledMessage(
+            channel=channel_id,
+            scheduled_message_id=scheduled_message_id,
+        )
+        if not res.get("ok", False):
+            print(f"[FAILED] Could not delete scheduled message from Slack: {res.get('error')}")
+            return False
+        print(f"[INFO] Deleted scheduled message ({scheduled_message_id}) from Slack")
+    except SlackApiError as e:
+        print(f"[FAILED] Could not delete scheduled message from Slack: {e.response['error']}")
+        return False
+    return True
+
+
+def find_user_dm_channel_id(slack_token: str, user_id: str) -> Optional[str]:
+    try:
+        res = SlackClient(token=slack_token).conversations_open(
+            users=user_id
+        )
+        if not res.get("ok", False):
+            print(f"[FAILED] Could not find user direct message channel id on Slack: {res.get('error')}")
+            return None
+        channel_id = res.get("channel").get("id")
+        print(f"[INFO] Located channel id of user direct message: {channel_id}")
+        return channel_id
+    except SlackApiError as e:
+        print(f"[FAILED] Could not find user direct message channel id on Slack: {e.response['error']}")
+        return None
+
+
 def schedule_dm_slack(slack_token: str, user_id: str, post_at: int, message: str,
                       message_blocks: Optional[List[Dict[str, Any]]] = None) -> Optional[str]:
     try:
@@ -43,6 +75,23 @@ def schedule_dm_slack(slack_token: str, user_id: str, post_at: int, message: str
     except SlackApiError as e:
         print(f"[FAILED] Could not schedule direct message to Slack: {e.response['error']}")
         return None
+
+
+def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
+    channel_id = find_user_dm_channel_id(slack_token, user_id)
+    if channel_id is None:
+        print(f"[FAILED] Could not find correct channel to delete scheduled direct message from Slack")
+        return
+    delete_scheduled_message_slack(slack_token, channel_id, reminder_id)
+
+
+def schedule_class_reminder_slack(slack_token: str, user_id: str, _class: Dict[str, Any], hours_before: int) \
+        -> Optional[str]:
+    start_time = datetime.datetime.fromisoformat(_class['from'])
+    reminder_time = start_time - datetime.timedelta(hours=hours_before)
+    reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
+    message = f"Husk *{_class['name']}* ({_class['from']}) om {hours_before} timer!"
+    return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
 
 
 AUTH_FAILURE_REASONS = {
@@ -212,14 +261,14 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
 
 
 def notify_booking_slack(slack_token: str, channel: str, user_id: str, booked_class: Dict[str, Any], ical_url: str,
-                         transfersh_url: Optional[str], scheduled_reminder_id: Optional[str]) -> None:
-    message_blocks = booking_message_blocks(booked_class, user_id, scheduled_reminder_id)
+                         transfersh_url: Optional[str], scheduled_reminder_id: Optional[str] = None) -> None:
+    message_blocks = build_booking_message_blocks(booked_class, user_id, scheduled_reminder_id)
     if transfersh_url:
         filename = f"{booked_class['id']}.ics"
         print(f"[INFO] Uploading {filename} to {transfersh_url}")
         try:
             ical_tsh_url = upload_ical_to_transfersh(transfersh_url, ical_url, filename)
-            message_blocks = booking_message_blocks(booked_class, user_id, ical_tsh_url, scheduled_reminder_id)
+            message_blocks = build_booking_message_blocks(booked_class, user_id, ical_tsh_url, scheduled_reminder_id)
         except RequestException:
             print(f"[WARNING] Could not upload ical event to transfer.sh instance, skipping ical link in notification.")
     print(f"[INFO] Posting booking notification to Slack")
@@ -234,18 +283,18 @@ BOOKING_EMOJI = ":robot_face:"
 CANCELLATION_EMOJI = ":no_entry:"
 
 
-def booking_message_blocks(booked_class: Dict[str, Any], user_id: str, ical_tsh_url: Optional[str] = None,
-                           scheduled_reminder_id: Optional[str] = None):
+def build_booking_message_blocks(booked_class: Dict[str, Any], user_id: str, ical_tsh_url: Optional[str] = None,
+                                 scheduled_reminder_id: Optional[str] = None):
     buttons = [
         {
             "type": "button",
             "action_id": SLACK_ACTION_CANCEL_BOOKING,
-            "value": json.dumps(
-                {
-                    "userId": user_id,
-                    "classId": str(booked_class['id']),
-                    "scheduledReminderMessageId": scheduled_reminder_id
-                }
+            "value": (
+                CancelBookingActionValue(
+                    user_id=user_id,
+                    class_id=str(booked_class['id']),
+                    scheduled_reminder_id=scheduled_reminder_id
+                ).json()
             ),
             "text": {
                 "type": "plain_text",
@@ -302,12 +351,3 @@ def booking_message_blocks(booked_class: Dict[str, Any], user_id: str, ical_tsh_
         "message": message,
         "blocks": blocks
     }
-
-
-def schedule_class_reminder_slack(slack_token: str, user_id: str, _class: Dict[str, Any], hours_before: int) \
-        -> Optional[str]:
-    start_time = datetime.datetime.fromisoformat(_class['from'])
-    reminder_time = start_time - datetime.timedelta(hours=hours_before)
-    reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
-    message = f"Husk *{_class['name']}* ({_class['from']}) om {hours_before} timer!"
-    return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
