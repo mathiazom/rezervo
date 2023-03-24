@@ -262,7 +262,7 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
 
 def notify_booking_slack(slack_token: str, channel: str, user_id: str, booked_class: Dict[str, Any], ical_url: str,
                          transfersh_url: Optional[str], scheduled_reminder_id: Optional[str] = None) -> None:
-    message_blocks = build_booking_message_blocks(booked_class, user_id, scheduled_reminder_id)
+    message_blocks = build_booking_message_blocks(booked_class, user_id, None, scheduled_reminder_id)
     if transfersh_url:
         filename = f"{booked_class['id']}.ics"
         print(f"[INFO] Uploading {filename} to {transfersh_url}")
