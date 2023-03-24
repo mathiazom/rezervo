@@ -91,9 +91,6 @@ def verify_slack_request(body: bytes, headers: Headers, signing_secret: str):
 @api.post("/")
 async def slack_action(request: Request, background_tasks: BackgroundTasks,
                        configs: Optional[list[Config]] = Depends(get_configs)):
-    if configs is None:
-        print("[ERROR] No configs available, abort!")
-        return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     raw_body = await request.body()  # must read body before retrieving form data
     payload = (await request.form())["payload"]
     interaction: Interaction = pydantic.parse_raw_as(type_=Interaction, b=payload)
@@ -102,11 +99,13 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks,
     if len(interaction.actions) != 1:
         return Response(f"Unsupported number of interaction actions", status_code=status.HTTP_400_BAD_REQUEST)
     action = interaction.actions[0]
-    action_value = CancelBookingActionValue(**json.loads(action.value))
     if action.action_id == SLACK_ACTION_ADD_BOOKING_TO_CALENDAR:
         return Response(status_code=status.HTTP_200_OK)
     if action.action_id == SLACK_ACTION_CANCEL_BOOKING:
-        message_ts = interaction.container.message_ts
+        if configs is None:
+            print("[ERROR] No configs available, abort!")
+            return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        action_value = CancelBookingActionValue(**json.loads(action.value))
         config = find_config_by_slack_id(configs, action_value.user_id)
         if config is None:
             print("[ERROR] Could not find config for Slack user, abort!")
@@ -122,6 +121,7 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks,
                 background_tasks.add_task(show_unauthorized_action_modal_slack, config.notifications.slack.bot_token,
                                           interaction.trigger_id)
             return Response("Nice try 👏", status_code=status.HTTP_403_FORBIDDEN)
+        message_ts = interaction.container.message_ts
         background_tasks.add_task(handle_cancel_booking_slack_action, config, action_value, message_ts,
                                   interaction.response_url)
         return Response(status_code=status.HTTP_200_OK)
