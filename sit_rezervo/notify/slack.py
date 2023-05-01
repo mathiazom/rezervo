@@ -11,7 +11,7 @@ from ..auth import AuthenticationError
 from ..config import Class
 from ..consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
 from ..errors import BookingError
-from .utils import upload_ical_to_transfersh
+from .utils import upload_ical_to_transfersh, activity_url
 
 
 def notify_slack(slack_token: str, channel: str, message: str, message_blocks: Optional[List[Dict[str, Any]]] = None,
@@ -90,7 +90,7 @@ def schedule_class_reminder_slack(slack_token: str, user_id: str, _class: Dict[s
     start_time = datetime.datetime.fromisoformat(_class['from'])
     reminder_time = start_time - datetime.timedelta(hours=hours_before)
     reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
-    message = f"Husk *{_class['name']}* ({_class['from']}) om {hours_before} timer!"
+    message = f"Husk *{activity_url(_class)}* ({_class['from']}) om {hours_before} timer!"
     return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
 
 
@@ -307,7 +307,7 @@ def build_booking_message_blocks(booked_class: Dict[str, Any], user_id: str, ica
                 },
                 "text": {
                     "type": "plain_text",
-                    "text": f"Du er i ferd med å avbestille {booked_class['name']} ({booked_class['from']}). "
+                    "text": f"Du er i ferd med å avbestille {activity_url(booked_class)} ({booked_class['from']}). "
                             f"Dette kan ikke angres!"
                 },
                 "confirm": {
@@ -332,7 +332,7 @@ def build_booking_message_blocks(booked_class: Dict[str, Any], user_id: str, ica
             },
             "url": ical_tsh_url
         })
-    message = f"{BOOKING_EMOJI} *{booked_class['name']}* ({booked_class['from']}) er booket for <@{user_id}>"
+    message = f"{BOOKING_EMOJI} {activity_url(booked_class)} ({booked_class['from']}) er booket for <@{user_id}>"
     blocks = [
         {
             "type": "section",
