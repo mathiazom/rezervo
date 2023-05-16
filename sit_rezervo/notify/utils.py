@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from urllib.parse import urlparse
 
@@ -14,5 +14,9 @@ def transfersh_direct_url(url: str):
     u = urlparse(url.strip())
     return u._replace(path=f"/get{u.path}").geturl()
 
-def activity_url(_class: Dict[str, Any]):
-    return f"<https://sit.biku.be/?activityId={_class['activityId']}|*{_class['name']}*>"
+
+def activity_url(host: Optional[str], _class: Dict[str, Any]):
+    if host:
+        return f"<{host}/?classId={_class['id']}|*{_class['name']}*>"
+
+    return f"*{_class['name']}*"

@@ -35,14 +35,15 @@ def notify_booking(notifications_config: Notifications, booked_class: Dict[str, 
             transfersh_url = notifications_config.transfersh.url
         else:
             transfersh_url = None
-        return notify_booking_slack(slack_config.bot_token, slack_config.channel_id, slack_config.user_id, booked_class,
-                                    ical_url, transfersh_url, scheduled_reminder_id)
+        return notify_booking_slack(slack_config.bot_token, slack_config.channel_id, slack_config.user_id,
+                                    notifications_config.host, booked_class, ical_url, transfersh_url,
+                                    scheduled_reminder_id)
     print("[WARNING] No notification targets, booking notification will not be sent!")
 
 
 def schedule_class_reminder(notifications_config: Notifications, booked_class: Dict[str, Any]) -> Optional[str]:
     slack_config = notifications_config.slack
     if slack_config is not None:
-        return schedule_class_reminder_slack(slack_config.bot_token, slack_config.user_id,
+        return schedule_class_reminder_slack(slack_config.bot_token, slack_config.user_id, notifications_config.host,
                                              booked_class, notifications_config.reminder_hours_before)
     print("[WARNING] No notification targets, class reminder will not be sent!")
