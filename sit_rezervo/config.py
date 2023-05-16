@@ -43,6 +43,7 @@ class Slack:
 
 @dataclass
 class Notifications:
+    host: Optional[str] = None
     transfersh: Optional[Transfersh] = None
     slack: Optional[Slack] = None
     reminder_hours_before: Optional[int] = None

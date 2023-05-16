@@ -14,6 +14,7 @@ cron:
   python_path: "<path to python>" # e.g. "venv/bin"
   log_path: "/var/log/sit_rezervo.log"
 # notifications:
+#   host: "https://sit-rezervo.example.org"
 #   reminder_hours_before: 4
 #   transfersh:
 #    url: "<transfer.sh instance url>"

@@ -11,7 +11,7 @@ from ..auth import AuthenticationError
 from ..config import Class
 from ..consts import WEEKDAYS, SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
 from ..errors import BookingError
-from .utils import upload_ical_to_transfersh
+from .utils import upload_ical_to_transfersh, activity_url
 
 
 def notify_slack(slack_token: str, channel: str, message: str, message_blocks: Optional[List[Dict[str, Any]]] = None,
@@ -85,12 +85,12 @@ def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
     delete_scheduled_message_slack(slack_token, channel_id, reminder_id)
 
 
-def schedule_class_reminder_slack(slack_token: str, user_id: str, _class: Dict[str, Any], hours_before: int) \
+def schedule_class_reminder_slack(slack_token: str, user_id: str, host: Optional[str], _class: Dict[str, Any], hours_before: int) \
         -> Optional[str]:
     start_time = datetime.datetime.fromisoformat(_class['from'])
     reminder_time = start_time - datetime.timedelta(hours=hours_before)
     reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
-    message = f"Husk *{_class['name']}* ({_class['from']}) om {hours_before} timer!"
+    message = f"Husk *{activity_url(host, _class)}* ({_class['from']}) om {hours_before} timer!"
     return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
 
 
@@ -260,15 +260,15 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
     print(f"[INFO] Unauthorized action modal displayed successfully in Slack.")
 
 
-def notify_booking_slack(slack_token: str, channel: str, user_id: str, booked_class: Dict[str, Any], ical_url: str,
+def notify_booking_slack(slack_token: str, channel: str, user_id: str, host: Optional[str], booked_class: Dict[str, Any], ical_url: str,
                          transfersh_url: Optional[str], scheduled_reminder_id: Optional[str] = None) -> None:
-    message_blocks = build_booking_message_blocks(booked_class, user_id, None, scheduled_reminder_id)
+    message_blocks = build_booking_message_blocks(booked_class, user_id, host, None, scheduled_reminder_id)
     if transfersh_url:
         filename = f"{booked_class['id']}.ics"
         print(f"[INFO] Uploading {filename} to {transfersh_url}")
         try:
             ical_tsh_url = upload_ical_to_transfersh(transfersh_url, ical_url, filename)
-            message_blocks = build_booking_message_blocks(booked_class, user_id, ical_tsh_url, scheduled_reminder_id)
+            message_blocks = build_booking_message_blocks(booked_class, user_id, host, ical_tsh_url, scheduled_reminder_id)
         except RequestException:
             print(f"[WARNING] Could not upload ical event to transfer.sh instance, skipping ical link in notification.")
     print(f"[INFO] Posting booking notification to Slack")
@@ -283,7 +283,7 @@ BOOKING_EMOJI = ":robot_face:"
 CANCELLATION_EMOJI = ":no_entry:"
 
 
-def build_booking_message_blocks(booked_class: Dict[str, Any], user_id: str, ical_tsh_url: Optional[str] = None,
+def build_booking_message_blocks(booked_class: Dict[str, Any], user_id: str, host: Optional[str], ical_tsh_url: Optional[str] = None,
                                  scheduled_reminder_id: Optional[str] = None):
     buttons = [
         {
@@ -332,7 +332,7 @@ def build_booking_message_blocks(booked_class: Dict[str, Any], user_id: str, ica
             },
             "url": ical_tsh_url
         })
-    message = f"{BOOKING_EMOJI} *{booked_class['name']}* ({booked_class['from']}) er booket for <@{user_id}>"
+    message = f"{BOOKING_EMOJI} {activity_url(host, booked_class)} ({booked_class['from']}) er booket for <@{user_id}>"
     blocks = [
         {
             "type": "section",
