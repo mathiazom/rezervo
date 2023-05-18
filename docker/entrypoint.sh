@@ -9,5 +9,8 @@ tail -f /var/log/sit-rezervo.log &
 echo "Migrating database to most recent alembic version"
 (cd sit_rezervo && alembic upgrade head)
 
+echo "Updating crontab according to user configurations"
+sit-rezervo refreshcron
+
 echo "Starting server..."
 sit-rezervo api "$@"
