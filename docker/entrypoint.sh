@@ -12,5 +12,8 @@ echo "Migrating database to most recent alembic version"
 echo "Updating crontab according to user configurations"
 sit-rezervo refreshcron
 
+echo "Starting cron service..."
+cron
+
 echo "Starting server..."
 sit-rezervo api "$@"

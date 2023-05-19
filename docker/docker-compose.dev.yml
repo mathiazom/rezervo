@@ -28,6 +28,7 @@ services:
       context: ..
       dockerfile: ./docker/Dockerfile
     container_name: sit-rezervo
+    # modified run server command with hot reloading
     command: ["--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       db:
@@ -38,8 +39,12 @@ services:
     env_file:
       - .env
     volumes:
+      # mount source code as volume to allow hot reloading
       - "../sit_rezervo:/app/sit_rezervo"
+      # app-wide configuration applied to all users
       - "./config.json:/app/config.json:ro"
+      # supply env variables as file to allow access from cron
+      - "./.env:/app/.env:ro"
 
 volumes:
   sit-rezervo-data:
