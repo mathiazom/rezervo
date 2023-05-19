@@ -14,15 +14,15 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-#  db-admin:
-#    container_name: sit-rezervo-db-admin
-#    image: dpage/pgadmin4
-#    restart: always
-#    ports:
-#      - 18000:80
-#    environment:
-#      PGADMIN_DEFAULT_EMAIL: dev@example.org
-#      PGADMIN_DEFAULT_PASSWORD: password
+  db-admin:
+    container_name: sit-rezervo-db-admin
+    image: dpage/pgadmin4
+    restart: always
+    ports:
+      - 18000:80
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dev@example.org
+      PGADMIN_DEFAULT_PASSWORD: password
   sit-rezervo:
     build:
       context: ..
