@@ -4,7 +4,7 @@ from sit_rezervo.schemas.base import OrmBase
 
 
 class Notifications(OrmBase):
-    reminder_hours_before: Optional[int] = None
+    reminder_hours_before: Optional[float] = None
 
 
 class ClassTime(OrmBase):

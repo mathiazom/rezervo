@@ -88,7 +88,7 @@ def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
     delete_scheduled_message_slack(slack_token, channel_id, reminder_id)
 
 
-def schedule_class_reminder_slack(slack_token: str, user_id: str, host: Optional[str], _class: Dict[str, Any], hours_before: int) \
+def schedule_class_reminder_slack(slack_token: str, user_id: str, host: Optional[str], _class: Dict[str, Any], hours_before: float) \
         -> Optional[str]:
     start_time = datetime.datetime.fromisoformat(_class['from'])
     reminder_time = start_time - datetime.timedelta(hours=hours_before)
