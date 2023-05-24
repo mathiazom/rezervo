@@ -24,3 +24,7 @@ class UserConfig(OrmBase):
     active: bool = True
     classes: Optional[list[Class]]
     notifications: Optional[Notifications] = None
+
+class PeerConfig(OrmBase):
+    peer_name: str
+    classes: Optional[list[Class]]

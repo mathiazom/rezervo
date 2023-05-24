@@ -39,6 +39,7 @@ rich = "^13.3.1"
 orjson = "^3.8.6"
 python-crontab = "^2.7.1"
 deepmerge = "^1.1.0"
+auth0-python = "^4.2.0"
 
 
 [tool.poetry.group.dev.dependencies]

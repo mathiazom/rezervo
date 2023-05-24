@@ -4,15 +4,16 @@ from typing import Optional
 from uuid import UUID
 
 import pydantic
-import rich
+from auth0.management import Auth0
 from crontab import CronTab
 from fastapi import FastAPI, status, Response, Request, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPBearer
 from sqlalchemy.orm import Session
 
 from sit_rezervo import models
+from sit_rezervo.auth.auth0 import get_auth0_management_client
 from sit_rezervo.schemas.config.config import Config, config_from_stored, ConfigValue
-from sit_rezervo.schemas.config.user import UserConfig
+from sit_rezervo.schemas.config.user import UserConfig, PeerConfig
 from sit_rezervo.auth.sit import AuthenticationError
 from sit_rezervo.booking import find_class_by_id
 from sit_rezervo.consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
@@ -103,7 +104,8 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks, db: 
     if action.action_id == SLACK_ACTION_ADD_BOOKING_TO_CALENDAR:
         return Response(status_code=status.HTTP_200_OK)
     if action.action_id == SLACK_ACTION_CANCEL_BOOKING:
-        configs: list[ConfigValue] = [config_from_stored(StoredConfig.from_orm(c)).config for c in db.query(models.Config).all()]
+        configs: list[ConfigValue] = [config_from_stored(StoredConfig.from_orm(c)).config for c in
+                                      db.query(models.Config).all()]
         if configs is None:
             print("[ERROR] No configs available, abort!")
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -140,6 +142,7 @@ def upsert_booking_crontab(config: Config, user: models.User):
             build_cron_jobs_from_config(config, user)
         )
 
+
 def delete_booking_crontab(config_id: UUID):
     with CronTab(user=True) as crontab:
         upsert_jobs_by_comment(
@@ -148,8 +151,10 @@ def delete_booking_crontab(config_id: UUID):
             []
         )
 
+
 @api.get("/config", response_model=UserConfig)
-def get_user_config(token=Depends(token_auth_scheme), db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+def get_user_config(token=Depends(token_auth_scheme), db: Session = Depends(get_db),
+                    settings: Settings = Depends(get_settings)):
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
@@ -172,3 +177,24 @@ def upsert_user_config(user_config: UserConfig, background_tasks: BackgroundTask
     config = config_from_stored(stored_config)
     background_tasks.add_task(upsert_booking_crontab, config, db_user)
     return db_config.config
+
+
+@api.get("/peer_configs", response_model=list[PeerConfig])
+def get_peer_configs(token=Depends(token_auth_scheme), db: Session = Depends(get_db),
+                     settings: Settings = Depends(get_settings),
+                     auth0_mgmt_client: Auth0 = Depends(get_auth0_management_client)):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    db_users: list[models.User] = db.query(models.User).filter(models.User.id != db_user.id).all()
+    peer_configs = []
+    for db_user in db_users:
+        db_user_config: Optional[models.Config] = db.query(models.Config).filter_by(user_id=db_user.id).one_or_none()
+        if db_user_config is not None:
+            user_config = StoredConfig.from_orm(db_user_config).config
+            if user_config.active:
+                peer_configs.append(PeerConfig(
+                    peer_name=auth0_mgmt_client.users.get(db_user.jwt_sub)["name"],
+                    classes=user_config.classes
+                ))
+    return peer_configs

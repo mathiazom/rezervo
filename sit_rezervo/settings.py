@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 
     CRON_JOB_COMMENT_PREFIX: str = "sr"
 
+    AUTH0_MANAGEMENT_API_CLIENT_ID: str | None = None
+    AUTH0_MANAGEMENT_API_CLIENT_SECRET: str | None = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
