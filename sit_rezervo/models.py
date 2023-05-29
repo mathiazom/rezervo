@@ -1,9 +1,11 @@
 import uuid
+import enum
 
-from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy import Enum, Column, String, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
 from sit_rezervo.database.base_class import Base
+
 
 class User(Base):
     __tablename__ = "users"
@@ -23,3 +25,21 @@ class Config(Base):
 
     def __repr__(self):
         return f"<Config (id='{self.id}' user_id='{self.user_id}' config={self.config} admin_config={self.admin_config})>"
+
+
+class SessionState(enum.Enum):
+    CONFIRMED = "CONFIRMED"
+    BOOKED = "BOOKED"
+    WAITLIST = "WAITLIST"
+    UNKNOWN = "UNKNOWN"
+
+
+class Session(Base):
+    __tablename__ = "sessions"
+
+    class_id = Column(String, primary_key=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True)
+    status = Column(Enum(SessionState))
+
+    def __repr__(self):
+        return f"<Session (class_id='{self.class_id}' user_id='{self.user_id}' status='{self.status}')>"

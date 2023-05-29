@@ -22,6 +22,7 @@ from sit_rezervo.errors import BookingError
 from sit_rezervo.main import try_cancel_booking, try_authenticate
 from sit_rezervo.notify.slack import notify_cancellation_slack, notify_working_slack, \
     notify_cancellation_failure_slack, show_unauthorized_action_modal_slack
+from sit_rezervo.schemas.session import UserNameSessionStatus
 from sit_rezervo.settings import Settings, get_settings
 from sit_rezervo.database import crud
 from sit_rezervo.notify.slack import delete_scheduled_dm_slack, verify_slack_request
@@ -198,3 +199,26 @@ def get_peer_configs(token=Depends(token_auth_scheme), db: Session = Depends(get
                     classes=user_config.classes
                 ))
     return peer_configs
+
+
+@api.get("/sessions", response_model=dict[str, list[UserNameSessionStatus]])
+def get_all_sessions(
+        token=Depends(token_auth_scheme),
+        db: Session = Depends(get_db),
+        settings: Settings = Depends(get_settings),
+        auth0_mgmt_client: Auth0 = Depends(get_auth0_management_client)):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    user_name_lookup = {u.id: auth0_mgmt_client.users.get(u.jwt_sub)["name"] for u in db.query(models.User).all()}
+    session_dict = {}
+    for session in db.query(models.Session).all():
+        class_id = session.class_id
+        if class_id not in session_dict:
+            session_dict[class_id] = []
+        session_dict[class_id].append(UserNameSessionStatus(
+            is_self=session.user_id == db_user.id,
+            user_name=user_name_lookup[session.user_id],
+            status=session.status
+        ))
+    return session_dict

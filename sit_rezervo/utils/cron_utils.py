@@ -38,7 +38,7 @@ def build_cron_comment_prefix_for_config(config_id: UUID):
 def build_cron_job_for_class(index: int, _class: config.Class, cron_config: config.Cron, config_id: UUID,
                              user: models.User, precheck: bool = False):
     j = CronItem(
-        command=generate_booking_command(index, _class, cron_config, user.id, precheck),
+        command=generate_booking_command(index, cron_config, user.id, precheck),
         comment=f"{build_cron_comment_prefix_for_config(config_id)} --- {user.name} --- "
                 f"{_class.display_name}{' --- [precheck]' if precheck else ''}",
         pre_comment=True
@@ -67,7 +67,7 @@ def generate_booking_schedule(_class: config.Class, cron_config: config.Cron, pr
     return booking_time.minute, booking_time.hour, "*", "*", booking_cron_weekday
 
 
-def generate_booking_command(index: int, _class: config.Class, cron_config: config.Cron, user_id: UUID,
+def generate_booking_command(index: int, cron_config: config.Cron, user_id: UUID,
                              precheck: bool) -> str:
     program_command = f"cd {cron_config.sit_rezervo_dir} || exit 1; " \
                       f"{cron_config.python_path}/sit-rezervo book \"{user_id}\""
@@ -75,3 +75,8 @@ def generate_booking_command(index: int, _class: config.Class, cron_config: conf
     if precheck:
         return f"{program_command} {index} --check {output_redirection}"
     return f"{program_command} {index} {output_redirection}"
+
+
+def generate_pull_sessions_command(cron_config: config.Cron) -> str:
+    return f"cd {cron_config.sit_rezervo_dir} || exit 1; " \
+           f"{cron_config.python_path}/sit-rezervo sessions pull >> {cron_config.log_path} 2>&1"

@@ -3,25 +3,41 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+import pydantic
+import requests
 import typer
 import uvicorn
+from crontab import CronTab, CronItem
 from pytz import timezone
 from rich import print as rprint
 
 from sit_rezervo import api, models
 from sit_rezervo.api import delete_booking_crontab, upsert_booking_crontab
-from sit_rezervo.auth.sit import AuthenticationError
+from sit_rezervo.auth.sit import AuthenticationError, authenticate_session, USER_AGENT
 from sit_rezervo.booking import find_class
+from sit_rezervo.consts import MY_SESSIONS_URL, CRON_PULL_SESSIONS_JOB_COMMENT, CRON_PULL_SESSIONS_SCHEDULE
 from sit_rezervo.database import crud
+from sit_rezervo.database.crud import upsert_user_sessions
 from sit_rezervo.database.database import SessionLocal
 from sit_rezervo.errors import BookingError
 from sit_rezervo.main import try_book_class, try_authenticate
 from sit_rezervo.notify.notify import notify_booking_failure, notify_auth_failure
-from sit_rezervo.schemas.config.config import config_from_stored
+from sit_rezervo.schemas.config.admin import AdminConfig
+from sit_rezervo.schemas.config.config import config_from_stored, Config, read_app_config
 from sit_rezervo.schemas.config.stored import StoredConfig
+from sit_rezervo.schemas.config.user import UserConfig
+from sit_rezervo.schemas.session import SitSession, UserSession, session_state_from_sit
+from sit_rezervo.settings import get_settings
+from sit_rezervo.utils.cron_utils import generate_pull_sessions_command
 from sit_rezervo.utils.time_utils import readable_seconds
 
 cli = typer.Typer()
+users_cli = typer.Typer()
+cli.add_typer(users_cli, name="users")
+cron_cli = typer.Typer()
+cli.add_typer(cron_cli, name="cron")
+sessions_cli = typer.Typer()
+cli.add_typer(sessions_cli, name="sessions")
 
 
 @cli.command()
@@ -93,6 +109,7 @@ def book(
         if config.notifications is not None:
             notify_booking_failure(config.notifications, _class_config, booking_result, check_run)
         raise typer.Exit(1)
+    pull_sessions()
 
 
 @cli.command(
@@ -110,7 +127,22 @@ def serve_api(
     ctx.args.insert(0, f"{api.__name__}:api")
     uvicorn.main.main(args=ctx.args)
 
-@cli.command(name="refreshcron")
+
+@cron_cli.command(name="sessionsjob")
+def create_cron_sessions_job():
+    comment = f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{CRON_PULL_SESSIONS_JOB_COMMENT}]"
+    j = CronItem(
+        command=generate_pull_sessions_command(read_app_config().cron),
+        comment=comment,
+        pre_comment=True
+    )
+    j.setall(CRON_PULL_SESSIONS_SCHEDULE)
+    with CronTab(user=True) as crontab:
+        crontab.remove_all(comment=comment)
+        crontab.append(j)
+
+
+@cron_cli.command(name="refresh")
 def refresh_cron():
     with SessionLocal() as db:
         for c in db.query(models.Config).all():
@@ -118,7 +150,8 @@ def refresh_cron():
             db_user = db.get(models.User, config.user_id)
             upsert_booking_crontab(config, db_user)
 
-@cli.command(name="createuser")
+
+@users_cli.command(name="create")
 def create_user(
         name: str,
         jwt_sub: str,
@@ -138,7 +171,7 @@ def create_user(
         rprint(f"User '{db_user.name}' created")
 
 
-@cli.command(name="deleteuser")
+@users_cli.command(name="delete")
 def delete_user(
         user_id: UUID
 ):
@@ -147,6 +180,29 @@ def delete_user(
         if config is not None:
             delete_booking_crontab(config.id)
         crud.delete_user(db, user_id)
+
+
+@sessions_cli.command(name="pull")
+def pull_sessions():
+    with SessionLocal() as db:
+        db_configs: list[models.Config] = db.query(models.Config).all()
+        for db_user_config in db_configs:
+            user_id = db_user_config.user_id
+            admin_config: AdminConfig = StoredConfig.from_orm(db_user_config).admin_config
+            auth_session = authenticate_session(admin_config.auth.email, admin_config.auth.password)
+            try:
+                res = auth_session.get(MY_SESSIONS_URL, headers={'User-Agent': USER_AGENT})
+            except requests.exceptions.RequestException as e:  # This is the correct syntax
+                print(f"[ERROR] Failed to retrieve sessions for user {user_id}", e)
+                continue
+            sessions_json = res.json()
+            sit_sessions = pydantic.parse_obj_as(list[SitSession], sessions_json)
+            user_sessions = [UserSession(
+                class_id=s.timeid,
+                user_id=user_id,
+                status=session_state_from_sit(s.status)
+            ) for s in sit_sessions]
+            upsert_user_sessions(db, user_id, user_sessions)
 
 
 @cli.callback()

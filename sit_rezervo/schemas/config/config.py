@@ -7,6 +7,7 @@ from pydantic import parse_file_as
 
 from sit_rezervo.schemas.base import OrmBase
 from sit_rezervo.schemas.config import admin, app, user, stored
+from sit_rezervo.schemas.config.app import AppConfig
 
 
 class Auth(admin.Auth, app.Auth):
@@ -71,7 +72,7 @@ def config_from_stored(s: stored.StoredConfig) -> Config:
     for c in [
         s.config.dict(),
         s.admin_config.dict(),
-        parse_file_as(app.AppConfig, app.CONFIG_FILE).dict()
+        read_app_config().dict()
     ]:
         CONFIG_MERGER.merge(merged_config, c)
     return Config(
@@ -79,3 +80,7 @@ def config_from_stored(s: stored.StoredConfig) -> Config:
         user_id=s.user_id,
         config=ConfigValue(**merged_config)
     )
+
+
+def read_app_config() -> AppConfig:
+    return parse_file_as(app.AppConfig, app.CONFIG_FILE)

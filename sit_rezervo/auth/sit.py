@@ -18,7 +18,7 @@ class AuthenticationError(Enum):
     INVALID_CREDENTIALS = auto()
 
 
-def authenticate(email: str, password: str) -> Union[str, AuthenticationError]:
+def authenticate(email: str, password: str) -> Union[tuple[str, Session], AuthenticationError]:
     session = Session()
     user_agent_header = {'User-Agent': USER_AGENT}
     auth_res = session.post(AUTH_URL, {
@@ -57,4 +57,18 @@ def authenticate(email: str, password: str) -> Union[str, AuthenticationError]:
         return AuthenticationError.ERROR
     user = token_info['user']
     print(f"[INFO] Authenticated as {user['firstname']} {user['lastname']} ({user['email']})")
-    return token
+    return token, session
+
+
+def authenticate_token(email: str, password: str) -> Union[str, AuthenticationError]:
+    result = authenticate(email, password)
+    if isinstance(result, AuthenticationError):
+        return result
+    return result[0]
+
+
+def authenticate_session(email: str, password: str) -> Union[Session, AuthenticationError]:
+    result = authenticate(email, password)
+    if isinstance(result, AuthenticationError):
+        return result
+    return result[1]

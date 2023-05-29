@@ -1,7 +1,7 @@
 import time
 from typing import Dict, Any, Optional, Union
 
-from sit_rezervo.auth.sit import AuthenticationError, authenticate
+from sit_rezervo.auth.sit import AuthenticationError, authenticate_token
 from sit_rezervo.booking import book_class, cancel_booking
 from sit_rezervo.consts import ICAL_URL
 from sit_rezervo.errors import BookingError
@@ -69,7 +69,7 @@ def try_authenticate(email: str, password: str, max_attempts: int) -> Union[str,
     attempts = 0
     result = None
     while not success:
-        result = authenticate(email, password)
+        result = authenticate_token(email, password)
         success = not isinstance(result, AuthenticationError)
         attempts += 1
         if success:
