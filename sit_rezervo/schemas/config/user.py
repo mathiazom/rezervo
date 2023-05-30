@@ -1,5 +1,7 @@
 from typing import Optional
 
+from pydantic import BaseModel
+
 from sit_rezervo.schemas.base import OrmBase
 
 
@@ -25,6 +27,6 @@ class UserConfig(OrmBase):
     classes: Optional[list[Class]]
     notifications: Optional[Notifications] = None
 
-class PeerConfig(OrmBase):
-    peer_name: str
-    classes: Optional[list[Class]]
+class UserNameWithIsSelf(BaseModel):
+    is_self: bool
+    user_name: str

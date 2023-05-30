@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from sit_rezervo import models
 from sit_rezervo.auth.auth0 import get_auth0_management_client
 from sit_rezervo.schemas.config.config import Config, config_from_stored, ConfigValue
-from sit_rezervo.schemas.config.user import UserConfig, PeerConfig
+from sit_rezervo.schemas.config.user import UserConfig, UserNameWithIsSelf
 from sit_rezervo.auth.sit import AuthenticationError
 from sit_rezervo.booking import find_class_by_id
 from sit_rezervo.consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
@@ -28,6 +28,7 @@ from sit_rezervo.database import crud
 from sit_rezervo.notify.slack import delete_scheduled_dm_slack, verify_slack_request
 from sit_rezervo.schemas.config.stored import StoredConfig
 from sit_rezervo.types import CancelBookingActionValue, Interaction
+from sit_rezervo.utils.config_utils import class_config_recurrent_id
 from sit_rezervo.utils.cron_utils import build_cron_comment_prefix_for_config, build_cron_jobs_from_config, \
     upsert_jobs_by_comment
 
@@ -180,29 +181,36 @@ def upsert_user_config(user_config: UserConfig, background_tasks: BackgroundTask
     return db_config.config
 
 
-@api.get("/peer_configs", response_model=list[PeerConfig])
-def get_peer_configs(token=Depends(token_auth_scheme), db: Session = Depends(get_db),
-                     settings: Settings = Depends(get_settings),
-                     auth0_mgmt_client: Auth0 = Depends(get_auth0_management_client)):
+@api.get("/all_configs", response_model=dict[str, list[UserNameWithIsSelf]])
+def get_all_configs_index(token=Depends(token_auth_scheme), db: Session = Depends(get_db),
+                          settings: Settings = Depends(get_settings),
+                          auth0_mgmt_client: Auth0 = Depends(get_auth0_management_client)):
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    db_users: list[models.User] = db.query(models.User).filter(models.User.id != db_user.id).all()
-    peer_configs = []
-    for db_user in db_users:
-        db_user_config: Optional[models.Config] = db.query(models.Config).filter_by(user_id=db_user.id).one_or_none()
-        if db_user_config is not None:
-            user_config = StoredConfig.from_orm(db_user_config).config
-            if user_config.active:
-                peer_configs.append(PeerConfig(
-                    peer_name=auth0_mgmt_client.users.get(db_user.jwt_sub)["name"],
-                    classes=user_config.classes
-                ))
-    return peer_configs
+    db_users: list[models.User] = db.query(models.User).all()
+    user_name_lookup = {u.id: auth0_mgmt_client.users.get(u.jwt_sub)["name"] for u in db_users}
+    user_configs_dict = {}
+    for dbu in db_users:
+        db_user_config: Optional[models.Config] = db.query(models.Config).filter_by(user_id=dbu.id).one_or_none()
+        if db_user_config is None:
+            continue
+        user_config = StoredConfig.from_orm(db_user_config).config
+        if not user_config.active:
+            continue
+        for c in user_config.classes:
+            class_id = class_config_recurrent_id(c)
+            if class_id not in user_configs_dict:
+                user_configs_dict[class_id] = []
+            user_configs_dict[class_id].append(UserNameWithIsSelf(
+                is_self=dbu.id == db_user.id,
+                user_name=user_name_lookup[dbu.id]
+            ))
+    return user_configs_dict
 
 
 @api.get("/sessions", response_model=dict[str, list[UserNameSessionStatus]])
-def get_all_sessions(
+def get_sessions_index(
         token=Depends(token_auth_scheme),
         db: Session = Depends(get_db),
         settings: Settings = Depends(get_settings),
