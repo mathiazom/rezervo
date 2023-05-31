@@ -1,5 +1,6 @@
 import time
 from typing import Dict, Any, Optional, Union
+from uuid import UUID
 
 import pydantic
 import requests
@@ -99,9 +100,12 @@ def try_authenticate(email: str, password: str, max_attempts: int) -> Union[str,
     return result if result is not None else AuthenticationError.ERROR
 
 
-def pull_sessions():
+def pull_sessions(user_id: UUID = None):
     with SessionLocal() as db:
-        db_configs: list[models.Config] = db.query(models.Config).all()
+        db_configs_query = db.query(models.Config)
+        if user_id is not None:
+            db_configs_query = db_configs_query.filter(models.Config.user_id == user_id)
+        db_configs: list[models.Config] = db_configs_query.all()
         for db_user_config in db_configs:
             user_id = db_user_config.user_id
             admin_config: AdminConfig = StoredConfig.from_orm(db_user_config).admin_config
@@ -111,7 +115,7 @@ def pull_sessions():
                 continue
             try:
                 res = auth_session.get(MY_SESSIONS_URL, headers={'User-Agent': USER_AGENT})
-            except requests.exceptions.RequestException as e:  # This is the correct syntax
+            except requests.exceptions.RequestException as e:
                 print(f"[ERROR] Failed to retrieve sessions for '{admin_config.auth.email}'", e)
                 continue
             sessions_json = res.json()

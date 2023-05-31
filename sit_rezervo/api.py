@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from sit_rezervo import models
 from sit_rezervo.auth.auth0 import get_auth0_management_client
+from sit_rezervo.schemas.booking import BookingPayload
 from sit_rezervo.schemas.config.config import Config, config_from_stored, ConfigValue
 from sit_rezervo.schemas.config.user import UserConfig, UserNameWithIsSelf
 from sit_rezervo.auth.sit import AuthenticationError
@@ -19,7 +20,7 @@ from sit_rezervo.booking import find_class_by_id
 from sit_rezervo.consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
 from sit_rezervo.database.database import SessionLocal
 from sit_rezervo.errors import BookingError
-from sit_rezervo.main import try_cancel_booking, try_authenticate, pull_sessions
+from sit_rezervo.main import try_cancel_booking, try_authenticate, pull_sessions, try_book_class
 from sit_rezervo.notify.slack import notify_cancellation_slack, notify_working_slack, \
     notify_cancellation_failure_slack, show_unauthorized_action_modal_slack
 from sit_rezervo.schemas.session import UserNameSessionStatus
@@ -135,6 +136,54 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks, db: 
                                   interaction.response_url)
         return Response(status_code=status.HTTP_200_OK)
     return Response(f"Unsupported interaction action", status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@api.post("/book")
+async def book_class(payload: BookingPayload, token=Depends(token_auth_scheme), db: Session = Depends(get_db),
+                     settings: Settings = Depends(get_settings)):
+    # TODO: add Slack notifications
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    config = config_from_stored(StoredConfig.from_orm(crud.get_user_config(db, db_user.id))).config
+    print("[INFO] Authenticating...")
+    booking_token = try_authenticate(config.auth.email, config.auth.password,
+                                     config.auth.max_attempts)
+    if isinstance(booking_token, AuthenticationError):
+        print("[ERROR] Authentication failed, abort!")
+        return Response(status_code=status.HTTP_401_UNAUTHORIZED, content="Authentication failed for sit.no")
+    _class = find_class_by_id(booking_token, payload.class_id)
+    if _class is None:
+        print("[ERROR] Class retrieval by id failed, abort!")
+        return Response(status_code=status.HTTP_404_NOT_FOUND, content="Class not found for given class id")
+    booking_result = try_book_class(booking_token, _class, config.booking.max_attempts)
+    if booking_result is not None:
+        return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    pull_sessions(db_user.id)
+
+
+@api.post("/cancelBooking")
+def cancel_booking(payload: BookingPayload, token=Depends(token_auth_scheme), db: Session = Depends(get_db),
+                   settings: Settings = Depends(get_settings)):
+    # TODO: add Slack notifications
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    config = config_from_stored(StoredConfig.from_orm(crud.get_user_config(db, db_user.id))).config
+    print("[INFO] Authenticating...")
+    cancellation_token = try_authenticate(config.auth.email, config.auth.password,
+                                          config.auth.max_attempts)
+    if isinstance(cancellation_token, AuthenticationError):
+        print("[ERROR] Authentication failed, abort!")
+        return Response(status_code=status.HTTP_401_UNAUTHORIZED, content="Authentication failed for sit.no")
+    _class = find_class_by_id(cancellation_token, payload.class_id)
+    if _class is None:
+        print("[ERROR] Class retrieval by id failed, abort!")
+        return Response(status_code=status.HTTP_404_NOT_FOUND, content="Class not found for given class id")
+    cancellation_error = try_cancel_booking(cancellation_token, _class, config.booking.max_attempts)
+    if cancellation_error is not None:
+        return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    pull_sessions(db_user.id)
 
 
 def upsert_booking_crontab(config: Config, user: models.User):
