@@ -93,7 +93,7 @@ def schedule_class_reminder_slack(slack_token: str, user_id: str, host: Optional
     start_time = datetime.datetime.fromisoformat(_class['from'])
     reminder_time = start_time - datetime.timedelta(hours=hours_before)
     reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
-    message = f"Husk *{activity_url(host, _class)}* ({_class['from']}) om {hours_before} timer!"
+    message = f"Husk *{activity_url(host, _class)}* ({_class['from']}) om {hours_before:g} timer!"
     return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
 
 
