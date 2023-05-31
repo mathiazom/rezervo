@@ -46,7 +46,7 @@ def try_book_class(token: str, _class: Dict[str, Any], max_attempts: int,
 
 
 def try_cancel_booking(token: str, _class: Dict[str, Any], max_attempts: int) -> Optional[BookingError]:
-    if _class["userStatus"] != "booked":
+    if _class["userStatus"] not in ["booked", "waitlist"]:
         print(f"[ERROR] Class is not booked, cancellation is not possible")
         return BookingError.CANCELLING_WITHOUT_BOOKING
     if max_attempts < 1:
