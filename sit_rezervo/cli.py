@@ -3,8 +3,6 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
-import pydantic
-import requests
 import typer
 import uvicorn
 from crontab import CronTab, CronItem
@@ -13,20 +11,16 @@ from rich import print as rprint
 
 from sit_rezervo import api, models
 from sit_rezervo.api import delete_booking_crontab, upsert_booking_crontab
-from sit_rezervo.auth.sit import AuthenticationError, authenticate_session, USER_AGENT
+from sit_rezervo.auth.sit import AuthenticationError
 from sit_rezervo.booking import find_class
-from sit_rezervo.consts import MY_SESSIONS_URL, CRON_PULL_SESSIONS_JOB_COMMENT, CRON_PULL_SESSIONS_SCHEDULE
+from sit_rezervo.consts import CRON_PULL_SESSIONS_JOB_COMMENT, CRON_PULL_SESSIONS_SCHEDULE
 from sit_rezervo.database import crud
-from sit_rezervo.database.crud import upsert_user_sessions
 from sit_rezervo.database.database import SessionLocal
 from sit_rezervo.errors import BookingError
-from sit_rezervo.main import try_book_class, try_authenticate
+from sit_rezervo.main import try_book_class, try_authenticate, pull_sessions
 from sit_rezervo.notify.notify import notify_booking_failure, notify_auth_failure
-from sit_rezervo.schemas.config.admin import AdminConfig
-from sit_rezervo.schemas.config.config import config_from_stored, Config, read_app_config
+from sit_rezervo.schemas.config.config import config_from_stored, read_app_config
 from sit_rezervo.schemas.config.stored import StoredConfig
-from sit_rezervo.schemas.config.user import UserConfig
-from sit_rezervo.schemas.session import SitSession, UserSession, session_state_from_sit
 from sit_rezervo.settings import get_settings
 from sit_rezervo.utils.cron_utils import generate_pull_sessions_command
 from sit_rezervo.utils.time_utils import readable_seconds
@@ -182,27 +176,10 @@ def delete_user(
         crud.delete_user(db, user_id)
 
 
+
 @sessions_cli.command(name="pull")
-def pull_sessions():
-    with SessionLocal() as db:
-        db_configs: list[models.Config] = db.query(models.Config).all()
-        for db_user_config in db_configs:
-            user_id = db_user_config.user_id
-            admin_config: AdminConfig = StoredConfig.from_orm(db_user_config).admin_config
-            auth_session = authenticate_session(admin_config.auth.email, admin_config.auth.password)
-            try:
-                res = auth_session.get(MY_SESSIONS_URL, headers={'User-Agent': USER_AGENT})
-            except requests.exceptions.RequestException as e:  # This is the correct syntax
-                print(f"[ERROR] Failed to retrieve sessions for user {user_id}", e)
-                continue
-            sessions_json = res.json()
-            sit_sessions = pydantic.parse_obj_as(list[SitSession], sessions_json)
-            user_sessions = [UserSession(
-                class_id=s.timeid,
-                user_id=user_id,
-                status=session_state_from_sit(s.status)
-            ) for s in sit_sessions]
-            upsert_user_sessions(db, user_id, user_sessions)
+def pull_sessions_cli():
+    pull_sessions()
 
 
 @cli.callback()

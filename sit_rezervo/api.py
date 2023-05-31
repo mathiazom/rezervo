@@ -19,7 +19,7 @@ from sit_rezervo.booking import find_class_by_id
 from sit_rezervo.consts import SLACK_ACTION_ADD_BOOKING_TO_CALENDAR, SLACK_ACTION_CANCEL_BOOKING
 from sit_rezervo.database.database import SessionLocal
 from sit_rezervo.errors import BookingError
-from sit_rezervo.main import try_cancel_booking, try_authenticate
+from sit_rezervo.main import try_cancel_booking, try_authenticate, pull_sessions
 from sit_rezervo.notify.slack import notify_cancellation_slack, notify_working_slack, \
     notify_cancellation_failure_slack, show_unauthorized_action_modal_slack
 from sit_rezervo.schemas.session import UserNameSessionStatus
@@ -91,6 +91,7 @@ def handle_cancel_booking_slack_action(config: ConfigValue, action_value: Cancel
         if action_value.scheduled_reminder_id is not None:
             delete_scheduled_dm_slack(slack_config.bot_token, slack_config.user_id, action_value.scheduled_reminder_id)
         notify_cancellation_slack(slack_config.bot_token, slack_config.channel_id, message_ts, response_url)
+    pull_sessions()
 
 
 @api.post("/slackinteraction")
