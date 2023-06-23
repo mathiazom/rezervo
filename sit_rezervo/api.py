@@ -141,7 +141,6 @@ async def slack_action(request: Request, background_tasks: BackgroundTasks, db: 
 @api.post("/book")
 async def book_class(payload: BookingPayload, token=Depends(token_auth_scheme), db: Session = Depends(get_db),
                      settings: Settings = Depends(get_settings)):
-    # TODO: add Slack notifications
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
@@ -156,7 +155,7 @@ async def book_class(payload: BookingPayload, token=Depends(token_auth_scheme), 
     if _class is None:
         print("[ERROR] Class retrieval by id failed, abort!")
         return Response(status_code=status.HTTP_404_NOT_FOUND, content="Class not found for given class id")
-    booking_result = try_book_class(booking_token, _class, config.booking.max_attempts)
+    booking_result = try_book_class(booking_token, _class, config.booking.max_attempts, config.notifications)
     if booking_result is not None:
         return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     pull_sessions(db_user.id)
