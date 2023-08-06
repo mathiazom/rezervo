@@ -24,7 +24,7 @@ class Class(OrmBase):
 
 class UserConfig(OrmBase):
     active: bool = True
-    classes: Optional[list[Class]]
+    classes: list[Class]
     notifications: Optional[Notifications] = None
 
 class UserNameWithIsSelf(BaseModel):

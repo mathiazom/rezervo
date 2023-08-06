@@ -60,7 +60,9 @@ def create_config(db: Session, user_id: UUID, sit_email: str, sit_password: str,
                 )
             ) if slack_id is not None else None
         ).dict(),
-        config=user.UserConfig().dict()
+        config=user.UserConfig(
+            classes=[]
+        ).dict()
     )
     db.add(db_config)
     db.commit()
