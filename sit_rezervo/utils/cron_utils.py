@@ -6,10 +6,9 @@ from uuid import UUID
 from crontab import CronItem, CronTab
 
 from sit_rezervo import models
+from sit_rezervo.consts import BOOKING_OPEN_DAYS_BEFORE_CLASS
 from sit_rezervo.schemas.config import config
 from sit_rezervo.settings import get_settings
-
-STARTUP_DAYS_BEFORE_ACTIVITY = 2  # from https://www.sit.no/content/trening-slik-booker-du
 
 
 def upsert_jobs_by_comment(crontab: CronTab, comment: str | Pattern[AnyStr], jobs: list[CronItem]):
@@ -59,7 +58,7 @@ def generate_booking_schedule(_class: config.Class, cron_config: config.Cron, pr
     booking_time = activity_time - datetime.timedelta(minutes=cron_config.preparation_minutes)
     # Handle case where backing up time changes the weekday (weekday 0 is Monday in datetime and Sunday in cron...)
     booking_weekday_delta = activity_time.weekday() - booking_time.weekday()
-    booking_cron_weekday = (_class.weekday + 1 - STARTUP_DAYS_BEFORE_ACTIVITY - booking_weekday_delta) % 7
+    booking_cron_weekday = (_class.weekday + 1 - BOOKING_OPEN_DAYS_BEFORE_CLASS - booking_weekday_delta) % 7
     if precheck:
         precheck_time = booking_time - datetime.timedelta(hours=cron_config.precheck_hours)
         precheck_cron_weekday = (booking_cron_weekday - (booking_time.weekday() - precheck_time.weekday())) % 7

@@ -79,12 +79,12 @@ def book(
         print("[INFO] Check complete, all seems fine.")
         raise typer.Exit()
     _class = class_search_result
-    if _class['bookable']:
+    if _class.bookable:
         print("[INFO] Booking is already open, booking now!")
     else:
         # Retrieve booking opening, and make sure it's timezone aware
         tz = timezone(config.booking.timezone)
-        opening_time = tz.localize(datetime.fromisoformat(_class['bookingOpensAt']))
+        opening_time = tz.localize(datetime.fromisoformat(_class.bookingOpensAt))
         timedelta = opening_time - datetime.now(tz)
         wait_time = timedelta.total_seconds()
         wait_time_string = readable_seconds(wait_time)
@@ -174,7 +174,6 @@ def delete_user(
         if config is not None:
             delete_booking_crontab(config.id)
         crud.delete_user(db, user_id)
-
 
 
 @sessions_cli.command(name="pull")

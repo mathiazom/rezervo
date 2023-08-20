@@ -40,6 +40,7 @@ orjson = "^3.8.6"
 python-crontab = "^2.7.1"
 deepmerge = "^1.1.0"
 auth0-python = "^4.2.0"
+icalendar = "^5.0.7"
 
 
 [tool.poetry.group.dev.dependencies]

@@ -18,14 +18,31 @@ class AuthenticationError(Enum):
     INVALID_CREDENTIALS = auto()
 
 
+def extract_token(session: Session = None) -> str:
+    if session is None:
+        session = Session()
+    booking_res = session.get(BOOKING_URL, headers={'User-Agent': USER_AGENT})
+    booking_soup = re.sub(" +", " ", booking_res.text.replace("\n", ""))
+    cdata_token_matches = re.search(r"<!\[CDATA\[.*?iBookingPreload\(.*?token:.*?\"(.+?)\".*?]]>", booking_soup)
+    if cdata_token_matches is None:
+        return None
+    try:
+        return cdata_token_matches.group(1)
+    except IndexError:
+        return None
+
+
+def fetch_public_token():
+    return extract_token()
+
+
 def authenticate(email: str, password: str) -> Union[tuple[str, Session], AuthenticationError]:
     session = Session()
-    user_agent_header = {'User-Agent': USER_AGENT}
     auth_res = session.post(AUTH_URL, {
         "name": email,
         "pass": password,
         "form_id": "user_login"
-    }, headers=user_agent_header)
+    }, headers={'User-Agent': USER_AGENT})
     auth_soup = re.sub(" +", " ", auth_res.text.replace("\n", ""))
     login_blocked_matches = re.search(r"Feilmelding.*?midlertidig blokkert", auth_soup)
     if login_blocked_matches is not None:
@@ -35,15 +52,8 @@ def authenticate(email: str, password: str) -> Union[tuple[str, Session], Authen
     if invalid_credentials_matches is not None:
         print("[ERROR] Authentication failed, invalid credentials")
         return AuthenticationError.INVALID_CREDENTIALS
-    booking_res = session.get(BOOKING_URL, headers=user_agent_header)
-    booking_soup = re.sub(" +", " ", booking_res.text.replace("\n", ""))
-    cdata_token_matches = re.search(r"<!\[CDATA\[.*?iBookingPreload\(.*?token:.*?\"(.+?)\".*?]]>", booking_soup)
-    if cdata_token_matches is None:
-        print("[ERROR] Failed to extract authentication token!")
-        return AuthenticationError.TOKEN_EXTRACTION_FAILED
-    try:
-        token = cdata_token_matches.group(1)
-    except IndexError:
+    token = extract_token(session)
+    if token is None:
         print("[ERROR] Failed to extract authentication token!")
         return AuthenticationError.TOKEN_EXTRACTION_FAILED
     # Validate token

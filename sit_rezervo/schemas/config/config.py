@@ -1,7 +1,6 @@
 from typing import Optional
 from uuid import UUID
 
-import rich
 from deepmerge import Merger
 from pydantic import parse_file_as
 

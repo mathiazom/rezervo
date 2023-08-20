@@ -1,15 +1,17 @@
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sit_rezervo.models import SessionState
 from sit_rezervo.schemas.base import OrmBase
+from sit_rezervo.schemas.schedule import SitClass
 
 
 class UserSession(OrmBase):
     class_id: str
     user_id: UUID
     status: SessionState
+    class_data: SitClass
 
 
 class UserNameSessionStatus(BaseModel):
@@ -30,5 +32,8 @@ def session_state_from_sit(status: str) -> SessionState:
 
 
 class SitSession(BaseModel):
-    timeid: str
+    class_field: SitClass = Field(..., alias='class')
     status: str
+
+    class Config:
+        allow_population_by_field_name = True

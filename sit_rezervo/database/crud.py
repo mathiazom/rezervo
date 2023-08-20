@@ -10,6 +10,7 @@ from sit_rezervo.models import SessionState
 from sit_rezervo.schemas.config import user, admin
 from sit_rezervo.schemas.config.user import UserConfig as UserConfig
 from sit_rezervo.schemas.session import UserSession
+from sit_rezervo.utils.ical_utils import generate_calendar_token
 
 
 def user_from_token(db: Session, settings, token) -> Optional[models.User]:
@@ -32,7 +33,7 @@ def get_config_by_id(db: Session, config_id: UUID) -> Optional[models.Config]:
 
 
 def create_user(db: Session, name: str, jwt_sub: str):
-    db_user = models.User(name=name, jwt_sub=jwt_sub)
+    db_user = models.User(name=name, jwt_sub=jwt_sub, cal_token=generate_calendar_token())
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -85,11 +86,11 @@ def update_user_config(db: Session, user_id: UUID, config: UserConfig) -> Option
 
 
 def upsert_user_sessions(db: Session, user_id: UUID, user_sessions: list[UserSession]):
-    delete_unconfirmed_stmt = delete(models.Session).where(
+    # delete unconfirmed sessions
+    db.execute(delete(models.Session).where(
         models.Session.user_id == user_id,
         models.Session.status != SessionState.CONFIRMED
-    )
-    db.execute(delete_unconfirmed_stmt)
+    ))
     for s in user_sessions:
         db.merge(models.Session(**s.dict()))
     db.commit()

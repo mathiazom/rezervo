@@ -1,11 +1,14 @@
 from datetime import datetime
-from typing import Union, Dict, Any, Optional
+from typing import Union, Optional
 
 import requests
 
-from sit_rezervo.schemas.config import config
-from sit_rezervo.consts import ADD_BOOKING_URL, CLASSES_SCHEDULE_URL, WEEKDAYS, CANCEL_BOOKING_URL, CLASS_URL
+from sit_rezervo.consts import ADD_BOOKING_URL, WEEKDAYS, CANCEL_BOOKING_URL, CLASS_URL
 from sit_rezervo.errors import BookingError
+from sit_rezervo.schemas.config import config
+from sit_rezervo.schemas.schedule import SitClass
+from sit_rezervo.utils.sit_utils import fetch_sit_schedule
+from sit_rezervo.utils.str_utils import format_name_list_to_natural
 
 
 def book_class(token, class_id) -> bool:
@@ -46,53 +49,42 @@ def cancel_booking(token, class_id) -> bool:
 
 
 # Search the scheduled classes and return the first class matching the given arguments
-def find_class(token: str, _class_config: config.Class) -> Union[Dict[str, Any], BookingError]:
+def find_class(token: str, _class_config: config.Class) -> Union[SitClass, BookingError]:
     print(f"[INFO] Searching for class matching config: {_class_config}")
-    schedule_response = requests.get(
-        f"{CLASSES_SCHEDULE_URL}?token={token}&studios={_class_config.studio}&lang=no"
-    )
-    if schedule_response.status_code != requests.codes.OK:
+    schedule = fetch_sit_schedule(token, _class_config.studio)
+    if schedule is None:
         print("[ERROR] Schedule get request denied")
         return BookingError.ERROR
-    schedule = schedule_response.json()
-    if 'days' not in schedule:
-        print("[ERROR] Malformed schedule, contains no days")
-        return BookingError.MALFORMED_SCHEDULE
-    days = schedule['days']
+    days = schedule.days
     target_day = None
     if not 0 <= _class_config.weekday < len(WEEKDAYS):
         print(f"[ERROR] Invalid weekday number ({_class_config.weekday=})")
         return BookingError.MALFORMED_SEARCH
     weekday_str = WEEKDAYS[_class_config.weekday]
     for day in days:
-        if 'dayName' in day and day['dayName'] == weekday_str:
+        if day.dayName == weekday_str:
             target_day = day
             break
     if target_day is None:
         print(f"[ERROR] Could not find requested day '{weekday_str}'. To early?")
         return BookingError.MISSING_SCHEDULE_DAY
-    classes = target_day['classes']
+    classes = target_day.classes
     result = None
     for c in classes:
-        if 'activityId' not in c or c['activityId'] != _class_config.activity:
+        if c.activityId != _class_config.activity:
             continue
-        start_time = datetime.strptime(c['from'], '%Y-%m-%d %H:%M:%S')
+        start_time = datetime.strptime(c.from_field, '%Y-%m-%d %H:%M:%S')
         time_matches = start_time.hour == _class_config.time.hour and start_time.minute == _class_config.time.minute
         if not time_matches:
             print(f"[INFO] Found class, but start time did not match: {c}")
             result = BookingError.INCORRECT_START_TIME
             continue
-        if 'name' not in c:
-            print(f"[WARNING] Found class, but the name is missing: {c}")
-            result = BookingError.MALFORMED_CLASS
-            continue
-        search_feedback = f"[INFO] Found class: \"{c['name']}\""
-        if 'instructors' in c and len(c['instructors']) > 0 and 'name' in c['instructors'][0]:
-            search_feedback += f" with {c['instructors'][0]['name']}"
+        search_feedback = f"[INFO] Found class: \"{c.name}\""
+        if len(c.instructors) > 0:
+            search_feedback += f" with {format_name_list_to_natural([i.name for i in c.instructors])}"
         else:
             search_feedback += " (missing instructor)"
-        if 'from' in c:
-            search_feedback += f" at {c['from']}"
+        search_feedback += f" at {c.from_field}"
         print(search_feedback)
         return c
     print("[ERROR] Could not find class matching criteria")
@@ -101,7 +93,7 @@ def find_class(token: str, _class_config: config.Class) -> Union[Dict[str, Any],
     return result
 
 
-def find_class_by_id(token: str, class_id: str) -> Optional[Dict[str, Any]]:
+def find_class_by_id(token: str, class_id: str) -> Optional[SitClass]:
     print(f"[INFO] Searching for class by id: {class_id}")
     class_response = requests.get(
         f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
@@ -109,4 +101,4 @@ def find_class_by_id(token: str, class_id: str) -> Optional[Dict[str, Any]]:
     if class_response.status_code != requests.codes.OK:
         print("[ERROR] Class get request failed")
         return None
-    return class_response.json()["class"]
+    return SitClass(**class_response.json()["class"])

@@ -8,6 +8,7 @@ from auth0.management import Auth0
 from crontab import CronTab
 from fastapi import FastAPI, status, Response, Request, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPBearer
+from icalendar import cal
 from sqlalchemy.orm import Session
 
 from sit_rezervo import models
@@ -23,6 +24,7 @@ from sit_rezervo.errors import BookingError
 from sit_rezervo.main import try_cancel_booking, try_authenticate, pull_sessions, try_book_class
 from sit_rezervo.notify.slack import notify_cancellation_slack, notify_working_slack, \
     notify_cancellation_failure_slack, show_unauthorized_action_modal_slack
+from sit_rezervo.schemas.schedule import SitClass
 from sit_rezervo.schemas.session import UserNameSessionStatus
 from sit_rezervo.settings import Settings, get_settings
 from sit_rezervo.database import crud
@@ -32,6 +34,7 @@ from sit_rezervo.types import CancelBookingActionValue, Interaction
 from sit_rezervo.utils.config_utils import class_config_recurrent_id
 from sit_rezervo.utils.cron_utils import build_cron_comment_prefix_for_config, build_cron_jobs_from_config, \
     upsert_jobs_by_comment
+from sit_rezervo.utils.ical_utils import ical_event_from_sit_class
 
 api = FastAPI()
 
@@ -227,6 +230,7 @@ def upsert_user_config(user_config: UserConfig, background_tasks: BackgroundTask
     stored_config = StoredConfig.from_orm(db_config)
     config = config_from_stored(stored_config)
     background_tasks.add_task(upsert_booking_crontab, config, db_user)
+    background_tasks.add_task(pull_sessions, db_user.id)
     return db_config.config
 
 
@@ -269,7 +273,7 @@ def get_sessions_index(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     user_name_lookup = {u.id: auth0_mgmt_client.users.get(u.jwt_sub)["name"] for u in db.query(models.User).all()}
     session_dict = {}
-    for session in db.query(models.Session).all():
+    for session in db.query(models.Session).filter(models.Session.status != models.SessionState.PLANNED).all():
         class_id = session.class_id
         if class_id not in session_dict:
             session_dict[class_id] = []
@@ -279,3 +283,27 @@ def get_sessions_index(
             status=session.status
         ))
     return session_dict
+
+
+@api.get("/cal_token", response_model=str)
+def get_calendar_token(token=Depends(token_auth_scheme), db: Session = Depends(get_db),
+                       settings: Settings = Depends(get_settings)):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    return db_user.cal_token
+
+
+@api.get("/cal")
+def get_calendar(token: str, include_past: bool = True, db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter_by(cal_token=token).one_or_none()
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+    sessions_query = db.query(models.Session).filter_by(user_id=db_user.id)
+    if not include_past:
+        sessions_query = sessions_query.filter(models.Session.status != models.SessionState.CONFIRMED)
+    _classes = [SitClass(**s.class_data) for s in sessions_query.all() if s.class_data is not None]
+    ical = cal.Calendar()
+    for c in _classes:
+        ical.add_component(ical_event_from_sit_class(c))
+    return Response(content=ical.to_ical(), media_type='text/calendar')
