@@ -7,6 +7,11 @@ class SitInstructor(BaseModel):
     name: str
 
 
+class SitStudio(BaseModel):
+    id: int
+    name: str
+
+
 class SitClass(BaseModel):
     id: int
     name: str
@@ -14,6 +19,7 @@ class SitClass(BaseModel):
     from_field: str = Field(..., alias='from')
     to: str
     instructors: list[SitInstructor]
+    studio: SitStudio
     userStatus: Optional[str] = None
     bookable: bool
     bookingOpensAt: str
