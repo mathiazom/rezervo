@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from sit_rezervo import models
 from sit_rezervo.auth.auth0 import get_auth0_management_client
 from sit_rezervo.schemas.booking import BookingPayload
-from sit_rezervo.schemas.config.config import Config, config_from_stored, ConfigValue
+from sit_rezervo.schemas.config.config import Config, config_from_stored, ConfigValue, read_app_config
 from sit_rezervo.schemas.config.user import UserConfig, UserNameWithIsSelf
 from sit_rezervo.auth.sit import AuthenticationError
 from sit_rezervo.booking import find_class_by_id
@@ -304,6 +304,16 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
         sessions_query = sessions_query.filter(models.Session.status != models.SessionState.CONFIRMED)
     _classes = [SitClass(**s.class_data) for s in sessions_query.all() if s.class_data is not None]
     ical = cal.Calendar()
+    ical.add('prodid', '-//rezervo//rezervo.no//')
+    ical.add('version', '2.0')
+    ical.add('method', 'PUBLISH')
+    ical.add('calscale', 'GREGORIAN')
+    ical.add('x-wr-timezone', read_app_config().booking.timezone)
+    ical.add('x-wr-calname', f'rezervo')
+    ical.add(
+        'x-wr-caldesc',
+        f'Planlagte{" og gjennomførte" if include_past else ""} timer for {db_user.name} (rezervo.no)'
+    )
     for c in _classes:
-        ical.add_component(ical_event_from_sit_class(c))
+        ical.add_component(ical_event_from_sit_class(c, db_user.id))
     return Response(content=ical.to_ical(), media_type='text/calendar')

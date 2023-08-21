@@ -11,8 +11,9 @@ def generate_calendar_token():
     return secrets.token_urlsafe()
 
 
-def ical_event_from_sit_class(_class: SitClass) -> cal.Event:
+def ical_event_from_sit_class(_class: SitClass, user_id: str) -> cal.Event:
     event = cal.Event()
+    event.add('uid', f'sit-{_class.id}-{user_id}@rezervo.no')
     event.add('summary', _class.name)
     event.add('description', f"{_class.name}{f' med {format_name_list_to_natural([i.name for i in _class.instructors])}' if len(_class.instructors) > 0 else ''}")
     event.add('location', _class.studio.name)
