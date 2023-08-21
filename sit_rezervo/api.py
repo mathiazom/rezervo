@@ -34,7 +34,7 @@ from sit_rezervo.types import CancelBookingActionValue, Interaction
 from sit_rezervo.utils.config_utils import class_config_recurrent_id
 from sit_rezervo.utils.cron_utils import build_cron_comment_prefix_for_config, build_cron_jobs_from_config, \
     upsert_jobs_by_comment
-from sit_rezervo.utils.ical_utils import ical_event_from_sit_class
+from sit_rezervo.utils.ical_utils import ical_event_from_sit_class_session
 
 api = FastAPI()
 
@@ -302,7 +302,7 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
     sessions_query = db.query(models.Session).filter_by(user_id=db_user.id)
     if not include_past:
         sessions_query = sessions_query.filter(models.Session.status != models.SessionState.CONFIRMED)
-    _classes = [SitClass(**s.class_data) for s in sessions_query.all() if s.class_data is not None]
+    sessions = [s for s in sessions_query.all() if s.class_data is not None]
     ical = cal.Calendar()
     ical.add('prodid', '-//rezervo//rezervo.no//')
     ical.add('version', '2.0')
@@ -314,6 +314,6 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
         'x-wr-caldesc',
         f'Planlagte{" og gjennomførte" if include_past else ""} timer for {db_user.name} (rezervo.no)'
     )
-    for c in _classes:
-        ical.add_component(ical_event_from_sit_class(c, db_user.id))
+    for s in sessions:
+        ical.add_component(ical_event_from_sit_class_session(s))
     return Response(content=ical.to_ical(), media_type='text/calendar')
