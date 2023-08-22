@@ -50,6 +50,18 @@ ruff = "^0.0.285"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"
+poethepoet = "^0.22.0"
+
+[tool.poe.tasks]
+fix = ["fmt", "lint"]
+
+[tool.poe.tasks.fmt]
+cmd = "black sit_rezervo"
+help = "Format code using black"
+
+[tool.poe.tasks.lint]
+cmd = "ruff sit_rezervo --fix"
+help = "Lint code using ruff"
 
 [tool.ruff]
 select = [
