@@ -7,7 +7,7 @@ touch /var/log/rezervo.log
 tail -f /var/log/rezervo.log &
 
 echo "Migrating database to most recent alembic version"
-(cd sit_rezervo && alembic upgrade head)
+(cd rezervo && alembic upgrade head)
 
 echo "Pulling user sessions"
 rezervo sessions pull

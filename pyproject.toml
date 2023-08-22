@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Automatic booking of Sit Trening group classes"
 authors = ["Mathias Oterhals Myklebust <mathias@oterbust.no>"]
 readme = "README.md"
-packages = [{include = "sit_rezervo"}]
+packages = [{include = "rezervo"}]
 repository = "https://github.com/mathiazom/sit-rezervo"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -22,7 +22,7 @@ classifiers = [
 "Bug Tracker" = "https://github.com/mathiazom/sit-rezervo/issues"
 
 [tool.poetry.scripts]
-rezervo = "sit_rezervo.cli:cli"
+rezervo = "rezervo.cli:cli"
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -56,11 +56,11 @@ poethepoet = "^0.22.0"
 fix = ["fmt", "lint"]
 
 [tool.poe.tasks.fmt]
-cmd = "black sit_rezervo"
+cmd = "black rezervo"
 help = "Format code using black"
 
 [tool.poe.tasks.lint]
-cmd = "ruff sit_rezervo --fix"
+cmd = "ruff rezervo --fix"
 help = "Lint code using ruff"
 
 [tool.ruff]
@@ -79,4 +79,4 @@ ignore = [
 ]
 
 [tool.ruff.per-file-ignores]
-"sit_rezervo/alembic/env.py" = ["E402"]
+"rezervo/alembic/env.py" = ["E402"]

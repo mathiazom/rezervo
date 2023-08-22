@@ -40,7 +40,7 @@ services:
       - .env
     volumes:
       # mount source code as volume to allow hot reloading
-      - "../sit_rezervo:/app/sit_rezervo"
+      - "../rezervo:/app/rezervo"
       # app-wide configuration applied to all users
       - "./config.json:/app/config.json:ro"
       # supply env variables as file to allow access from cron

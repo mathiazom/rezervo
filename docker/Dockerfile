@@ -13,7 +13,7 @@ RUN /root/.local/bin/poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock README.md ./
 
-COPY sit_rezervo sit_rezervo
+COPY rezervo rezervo
 
 RUN /root/.local/bin/poetry install --only main
 
