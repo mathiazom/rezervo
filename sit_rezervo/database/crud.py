@@ -19,7 +19,7 @@ def user_from_token(db: Session, settings, token) -> Optional[models.User]:
         settings.JWT_DOMAIN,
         settings.JWT_ALGORITHMS,
         settings.JWT_AUDIENCE,
-        settings.JWT_ISSUER
+        settings.JWT_ISSUER,
     )
     if jwt_sub is None:
         return None
@@ -33,7 +33,9 @@ def get_config_by_id(db: Session, config_id: UUID) -> Optional[models.Config]:
 
 
 def create_user(db: Session, name: str, jwt_sub: str):
-    db_user = models.User(name=name, jwt_sub=jwt_sub, cal_token=generate_calendar_token())
+    db_user = models.User(
+        name=name, jwt_sub=jwt_sub, cal_token=generate_calendar_token()
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -46,24 +48,22 @@ def delete_user(db: Session, user_id: UUID):
     db.commit()
 
 
-def create_config(db: Session, user_id: UUID, sit_email: str, sit_password: str,
-                  slack_id: Optional[str]) -> models.Config:
+def create_config(
+    db: Session,
+    user_id: UUID,
+    sit_email: str,
+    sit_password: str,
+    slack_id: Optional[str],
+) -> models.Config:
     db_config = models.Config(
         user_id=user_id,
         admin_config=admin.AdminConfig(
-            auth=admin.Auth(
-                email=sit_email,
-                password=sit_password
-            ),
-            notifications=admin.Notifications(
-                slack=admin.Slack(
-                    user_id=slack_id
-                )
-            ) if slack_id is not None else None
+            auth=admin.Auth(email=sit_email, password=sit_password),
+            notifications=admin.Notifications(slack=admin.Slack(user_id=slack_id))
+            if slack_id is not None
+            else None,
         ).dict(),
-        config=user.UserConfig(
-            classes=[]
-        ).dict()
+        config=user.UserConfig(classes=[]).dict(),
     )
     db.add(db_config)
     db.commit()
@@ -77,7 +77,9 @@ def get_user_config(db: Session, user_id: UUID) -> Optional[models.Config]:
     return db_config
 
 
-def update_user_config(db: Session, user_id: UUID, config: UserConfig) -> Optional[models.Config]:
+def update_user_config(
+    db: Session, user_id: UUID, config: UserConfig
+) -> Optional[models.Config]:
     db_config = get_user_config(db, user_id)
     db_config.config = config.dict()
     db.commit()
@@ -87,10 +89,12 @@ def update_user_config(db: Session, user_id: UUID, config: UserConfig) -> Option
 
 def upsert_user_sessions(db: Session, user_id: UUID, user_sessions: list[UserSession]):
     # delete unconfirmed sessions
-    db.execute(delete(models.Session).where(
-        models.Session.user_id == user_id,
-        models.Session.status != SessionState.CONFIRMED
-    ))
+    db.execute(
+        delete(models.Session).where(
+            models.Session.user_id == user_id,
+            models.Session.status != SessionState.CONFIRMED,
+        )
+    )
     for s in user_sessions:
         db.merge(models.Session(**s.dict()))
     db.commit()

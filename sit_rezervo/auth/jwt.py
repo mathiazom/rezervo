@@ -2,7 +2,7 @@ import jwt
 
 
 def decode_jwt(token, domain, algorithms, api_audience, issuer):
-    jwks_url = f'https://{domain}/.well-known/jwks.json'
+    jwks_url = f"https://{domain}/.well-known/jwks.json"
     jwks_client = jwt.PyJWKClient(jwks_url)
     try:
         signing_key = jwks_client.get_signing_key_from_jwt(token).key

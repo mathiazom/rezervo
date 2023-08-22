@@ -62,23 +62,15 @@ CONFIG_MERGER = Merger(
     ["override"],
     # finally, choose the strategies in
     # the case where the types conflict:
-    ["override"]
+    ["override"],
 )
 
 
 def config_from_stored(s: stored.StoredConfig) -> Config:
     merged_config = {}
-    for c in [
-        s.config.dict(),
-        s.admin_config.dict(),
-        read_app_config().dict()
-    ]:
+    for c in [s.config.dict(), s.admin_config.dict(), read_app_config().dict()]:
         CONFIG_MERGER.merge(merged_config, c)
-    return Config(
-        id=s.id,
-        user_id=s.user_id,
-        config=ConfigValue(**merged_config)
-    )
+    return Config(id=s.id, user_id=s.user_id, config=ConfigValue(**merged_config))
 
 
 def read_app_config() -> AppConfig:

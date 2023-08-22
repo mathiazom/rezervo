@@ -13,7 +13,10 @@ from sit_rezervo import api, models
 from sit_rezervo.api import delete_booking_crontab, upsert_booking_crontab
 from sit_rezervo.auth.sit import AuthenticationError
 from sit_rezervo.booking import find_class
-from sit_rezervo.consts import CRON_PULL_SESSIONS_JOB_COMMENT, CRON_PULL_SESSIONS_SCHEDULE
+from sit_rezervo.consts import (
+    CRON_PULL_SESSIONS_JOB_COMMENT,
+    CRON_PULL_SESSIONS_SCHEDULE,
+)
 from sit_rezervo.database import crud
 from sit_rezervo.database.database import SessionLocal
 from sit_rezervo.errors import BookingError
@@ -36,9 +39,11 @@ cli.add_typer(sessions_cli, name="sessions")
 
 @cli.command()
 def book(
-        user_id: UUID,
-        class_id: int,
-        check_run: bool = typer.Option(False, "--check", help="Perform a dry-run to verify that booking is possible")
+    user_id: UUID,
+    class_id: int,
+    check_run: bool = typer.Option(
+        False, "--check", help="Perform a dry-run to verify that booking is possible"
+    ),
 ) -> None:
     """
     Book the class with config index matching the given class id
@@ -60,10 +65,17 @@ def book(
     if config.booking.max_attempts < 1:
         print(f"[ERROR] Max booking attempts should be a positive number")
         if config.notifications is not None:
-            notify_booking_failure(config.notifications, _class_config, BookingError.INVALID_CONFIG, check_run)
+            notify_booking_failure(
+                config.notifications,
+                _class_config,
+                BookingError.INVALID_CONFIG,
+                check_run,
+            )
         return
     print("[INFO] Authenticating...")
-    auth_result = try_authenticate(config.auth.email, config.auth.password, config.auth.max_attempts)
+    auth_result = try_authenticate(
+        config.auth.email, config.auth.password, config.auth.max_attempts
+    )
     if isinstance(auth_result, AuthenticationError):
         print("[ERROR] Abort!")
         if config.notifications is not None:
@@ -73,7 +85,9 @@ def book(
     if isinstance(class_search_result, BookingError):
         print("[ERROR] Abort!")
         if config.notifications is not None:
-            notify_booking_failure(config.notifications, _class_config, class_search_result, check_run)
+            notify_booking_failure(
+                config.notifications, _class_config, class_search_result, check_run
+            )
         return
     if check_run:
         print("[INFO] Check complete, all seems fine.")
@@ -89,30 +103,43 @@ def book(
         wait_time = timedelta.total_seconds()
         wait_time_string = readable_seconds(wait_time)
         if wait_time > config.booking.max_waiting_minutes * 60:
-            print(f"[ERROR] Booking waiting time was {wait_time_string}, "
-                  f"but max is {config.booking.max_waiting_minutes} minutes. Aborting.")
+            print(
+                f"[ERROR] Booking waiting time was {wait_time_string}, "
+                f"but max is {config.booking.max_waiting_minutes} minutes. Aborting."
+            )
             if config.notifications is not None:
-                notify_booking_failure(config.notifications, _class_config, BookingError.TOO_LONG_WAITING_TIME)
+                notify_booking_failure(
+                    config.notifications,
+                    _class_config,
+                    BookingError.TOO_LONG_WAITING_TIME,
+                )
             raise typer.Exit(1)
-        print(f"[INFO] Scheduling booking at {datetime.now(tz) + timedelta} "
-              f"(about {wait_time_string} from now)")
+        print(
+            f"[INFO] Scheduling booking at {datetime.now(tz) + timedelta} "
+            f"(about {wait_time_string} from now)"
+        )
         time.sleep(wait_time)
         print(f"[INFO] Awoke at {datetime.now(tz)}")
-    booking_result = try_book_class(auth_result, _class, config.booking.max_attempts, config.notifications)
+    booking_result = try_book_class(
+        auth_result, _class, config.booking.max_attempts, config.notifications
+    )
     if isinstance(booking_result, BookingError):
         if config.notifications is not None:
-            notify_booking_failure(config.notifications, _class_config, booking_result, check_run)
+            notify_booking_failure(
+                config.notifications, _class_config, booking_result, check_run
+            )
         raise typer.Exit(1)
     pull_sessions()
 
 
 @cli.command(
     name="api",
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True}  # Enabled to support uvicorn options
+    context_settings={
+        "allow_extra_args": True,
+        "ignore_unknown_options": True,
+    },  # Enabled to support uvicorn options
 )
-def serve_api(
-        ctx: typer.Context
-):
+def serve_api(ctx: typer.Context):
     """
     Start a web server to handle Slack message interactions
 
@@ -124,11 +151,13 @@ def serve_api(
 
 @cron_cli.command(name="sessionsjob")
 def create_cron_sessions_job():
-    comment = f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{CRON_PULL_SESSIONS_JOB_COMMENT}]"
+    comment = (
+        f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{CRON_PULL_SESSIONS_JOB_COMMENT}]"
+    )
     j = CronItem(
         command=generate_pull_sessions_command(read_app_config().cron),
         comment=comment,
-        pre_comment=True
+        pre_comment=True,
     )
     j.setall(CRON_PULL_SESSIONS_SCHEDULE)
     with CronTab(user=True) as crontab:
@@ -147,30 +176,24 @@ def refresh_cron():
 
 @users_cli.command(name="create")
 def create_user(
-        name: str,
-        jwt_sub: str,
-        sit_email: str,
-        sit_password: str,
-        slack_id: Optional[str] = typer.Option(None)
+    name: str,
+    jwt_sub: str,
+    sit_email: str,
+    sit_password: str,
+    slack_id: Optional[str] = typer.Option(None),
 ):
     with SessionLocal() as db:
         db_user = crud.create_user(db, name, jwt_sub)
-        crud.create_config(
-            db,
-            db_user.id,
-            sit_email,
-            sit_password,
-            slack_id
-        )
+        crud.create_config(db, db_user.id, sit_email, sit_password, slack_id)
         rprint(f"User '{db_user.name}' created")
 
 
 @users_cli.command(name="delete")
-def delete_user(
-        user_id: UUID
-):
+def delete_user(user_id: UUID):
     with SessionLocal() as db:
-        config: models.Config = db.query(models.Config).filter_by(user_id=user_id).first()
+        config: models.Config = (
+            db.query(models.Config).filter_by(user_id=user_id).first()
+        )
         if config is not None:
             delete_booking_crontab(config.id)
         crud.delete_user(db, user_id)

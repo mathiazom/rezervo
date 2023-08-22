@@ -7,7 +7,11 @@ from sit_rezervo.schemas.schedule import SitClass
 
 
 def upload_ical_to_transfersh(transfersh_url: str, ical_url: str, filename: str) -> str:
-    return transfersh_direct_url(requests.post(transfersh_url, files={filename: requests.get(ical_url).text}).text)
+    return transfersh_direct_url(
+        requests.post(
+            transfersh_url, files={filename: requests.get(ical_url).text}
+        ).text
+    )
 
 
 def transfersh_direct_url(url: str):

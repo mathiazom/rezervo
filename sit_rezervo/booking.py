@@ -13,13 +13,7 @@ from sit_rezervo.utils.str_utils import format_name_list_to_natural
 
 def book_class(token, class_id) -> bool:
     print(f"[INFO] Booking class {class_id}")
-    response = requests.post(
-        ADD_BOOKING_URL,
-        {
-            "classId": class_id,
-            "token": token
-        }
-    )
+    response = requests.post(ADD_BOOKING_URL, {"classId": class_id, "token": token})
     if response.status_code != requests.codes.OK:
         print("[ERROR] Booking attempt failed: " + response.text)
         return False
@@ -28,13 +22,7 @@ def book_class(token, class_id) -> bool:
 
 def cancel_booking(token, class_id) -> bool:
     print(f"[INFO] Cancelling booking of class {class_id}")
-    res = requests.post(
-        CANCEL_BOOKING_URL,
-        {
-            "classId": class_id,
-            "token": token
-        }
-    )
+    res = requests.post(CANCEL_BOOKING_URL, {"classId": class_id, "token": token})
     if res.status_code != requests.codes.OK:
         print("[ERROR] Booking cancellation attempt failed: " + res.text)
         return False
@@ -42,14 +30,20 @@ def cancel_booking(token, class_id) -> bool:
     if body["success"] is False:
         print("[ERROR] Booking cancellation attempt failed: " + body.errorMessage)
         return False
-    if "class" not in body or "userStatus" not in body["class"] or body["class"]["userStatus"] != "available":
+    if (
+        "class" not in body
+        or "userStatus" not in body["class"]
+        or body["class"]["userStatus"] != "available"
+    ):
         print("[ERROR] Booking cancellation attempt failed, class is still booked!")
         return False
     return True
 
 
 # Search the scheduled classes and return the first class matching the given arguments
-def find_class(token: str, _class_config: config.Class) -> Union[SitClass, BookingError]:
+def find_class(
+    token: str, _class_config: config.Class
+) -> Union[SitClass, BookingError]:
     print(f"[INFO] Searching for class matching config: {_class_config}")
     schedule = fetch_sit_schedule(token, _class_config.studio)
     if schedule is None:
@@ -73,15 +67,20 @@ def find_class(token: str, _class_config: config.Class) -> Union[SitClass, Booki
     for c in classes:
         if c.activityId != _class_config.activity:
             continue
-        start_time = datetime.strptime(c.from_field, '%Y-%m-%d %H:%M:%S')
-        time_matches = start_time.hour == _class_config.time.hour and start_time.minute == _class_config.time.minute
+        start_time = datetime.strptime(c.from_field, "%Y-%m-%d %H:%M:%S")
+        time_matches = (
+            start_time.hour == _class_config.time.hour
+            and start_time.minute == _class_config.time.minute
+        )
         if not time_matches:
             print(f"[INFO] Found class, but start time did not match: {c}")
             result = BookingError.INCORRECT_START_TIME
             continue
-        search_feedback = f"[INFO] Found class: \"{c.name}\""
+        search_feedback = f'[INFO] Found class: "{c.name}"'
         if len(c.instructors) > 0:
-            search_feedback += f" with {format_name_list_to_natural([i.name for i in c.instructors])}"
+            search_feedback += (
+                f" with {format_name_list_to_natural([i.name for i in c.instructors])}"
+            )
         else:
             search_feedback += " (missing instructor)"
         search_feedback += f" at {c.from_field}"
@@ -95,9 +94,7 @@ def find_class(token: str, _class_config: config.Class) -> Union[SitClass, Booki
 
 def find_class_by_id(token: str, class_id: str) -> Optional[SitClass]:
     print(f"[INFO] Searching for class by id: {class_id}")
-    class_response = requests.get(
-        f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
-    )
+    class_response = requests.get(f"{CLASS_URL}?token={token}&id={class_id}&lang=no")
     if class_response.status_code != requests.codes.OK:
         print("[ERROR] Class get request failed")
         return None

@@ -20,7 +20,9 @@ class Config(Base):
     __tablename__ = "configs"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), unique=True)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), unique=True
+    )
     config = Column(JSONB)
     admin_config = Column(JSONB)
 
@@ -40,7 +42,9 @@ class Session(Base):
     __tablename__ = "sessions"
 
     class_id = Column(String, primary_key=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True)
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
+    )
     status = Column(Enum(SessionState))
     class_data = Column(JSONB)
 

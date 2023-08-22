@@ -32,7 +32,7 @@ def session_state_from_sit(status: str) -> SessionState:
 
 
 class SitSession(BaseModel):
-    class_field: SitClass = Field(..., alias='class')
+    class_field: SitClass = Field(..., alias="class")
     status: str
 
     class Config:

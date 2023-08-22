@@ -16,7 +16,7 @@ class SitClass(BaseModel):
     id: int
     name: str
     activityId: int
-    from_field: str = Field(..., alias='from')
+    from_field: str = Field(..., alias="from")
     to: str
     instructors: list[SitInstructor]
     studio: SitStudio
