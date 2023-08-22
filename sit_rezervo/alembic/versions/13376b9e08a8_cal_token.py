@@ -6,8 +6,8 @@ Create Date: 2023-06-10 11:04:37.357533
 
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.orm import Session
 
 from sit_rezervo.models import User

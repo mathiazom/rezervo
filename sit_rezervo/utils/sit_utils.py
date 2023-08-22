@@ -1,14 +1,14 @@
-import math
 import datetime
+import math
 from typing import Union
 
 import requests
 
 from sit_rezervo.consts import (
-    CLASSES_SCHEDULE_URL,
     CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH,
+    CLASSES_SCHEDULE_URL,
 )
-from sit_rezervo.schemas.schedule import SitSchedule, SitDay
+from sit_rezervo.schemas.schedule import SitDay, SitSchedule
 
 
 def fetch_single_batch_sit_schedule(
@@ -31,7 +31,7 @@ def fetch_sit_schedule(
 ) -> Union[SitSchedule, None]:
     schedule_days: list[SitDay] = []
     from_date = datetime.datetime.now().date()
-    for i in range(
+    for _i in range(
         math.ceil(days / CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH)
         if days is not None
         else 1

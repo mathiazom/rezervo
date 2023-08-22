@@ -7,13 +7,13 @@ import pydantic
 from auth0.management import Auth0
 from crontab import CronTab
 from fastapi import (
-    FastAPI,
-    status,
-    Response,
-    Request,
     BackgroundTasks,
     Depends,
+    FastAPI,
     HTTPException,
+    Request,
+    Response,
+    status,
 )
 from fastapi.security import HTTPBearer
 from icalendar import cal
@@ -21,40 +21,40 @@ from sqlalchemy.orm import Session
 
 from sit_rezervo import models
 from sit_rezervo.auth.auth0 import get_auth0_management_client
-from sit_rezervo.schemas.booking import BookingPayload
-from sit_rezervo.schemas.config.config import (
-    Config,
-    config_from_stored,
-    ConfigValue,
-    read_app_config,
-)
-from sit_rezervo.schemas.config.user import UserConfig, UserNameWithIsSelf
 from sit_rezervo.auth.sit import AuthenticationError
 from sit_rezervo.booking import find_class_by_id
 from sit_rezervo.consts import (
     SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
     SLACK_ACTION_CANCEL_BOOKING,
 )
+from sit_rezervo.database import crud
 from sit_rezervo.database.database import SessionLocal
 from sit_rezervo.errors import BookingError
 from sit_rezervo.main import (
-    try_cancel_booking,
-    try_authenticate,
     pull_sessions,
+    try_authenticate,
     try_book_class,
+    try_cancel_booking,
 )
 from sit_rezervo.notify.slack import (
+    delete_scheduled_dm_slack,
+    notify_cancellation_failure_slack,
     notify_cancellation_slack,
     notify_working_slack,
-    notify_cancellation_failure_slack,
     show_unauthorized_action_modal_slack,
+    verify_slack_request,
 )
-from sit_rezervo.schemas.schedule import SitClass
+from sit_rezervo.schemas.booking import BookingPayload
+from sit_rezervo.schemas.config.config import (
+    Config,
+    ConfigValue,
+    config_from_stored,
+    read_app_config,
+)
+from sit_rezervo.schemas.config.stored import StoredConfig
+from sit_rezervo.schemas.config.user import UserConfig, UserNameWithIsSelf
 from sit_rezervo.schemas.session import UserNameSessionStatus
 from sit_rezervo.settings import Settings, get_settings
-from sit_rezervo.database import crud
-from sit_rezervo.notify.slack import delete_scheduled_dm_slack, verify_slack_request
-from sit_rezervo.schemas.config.stored import StoredConfig
 from sit_rezervo.types import CancelBookingActionValue, Interaction
 from sit_rezervo.utils.config_utils import class_config_recurrent_id
 from sit_rezervo.utils.cron_utils import (
@@ -171,7 +171,7 @@ async def slack_action(
         )
     if len(interaction.actions) != 1:
         return Response(
-            f"Unsupported number of interaction actions",
+            "Unsupported number of interaction actions",
             status_code=status.HTTP_400_BAD_REQUEST,
         )
     action = interaction.actions[0]
@@ -198,7 +198,7 @@ async def slack_action(
             )
         ):
             return Response(
-                f"Authentication failed", status_code=status.HTTP_401_UNAUTHORIZED
+                "Authentication failed", status_code=status.HTTP_401_UNAUTHORIZED
             )
         # This check should be performed before retrieving config, but then we wouldn't be able to display a funny modal
         if action_value.user_id != interaction.user.id:
@@ -223,7 +223,7 @@ async def slack_action(
         )
         return Response(status_code=status.HTTP_200_OK)
     return Response(
-        f"Unsupported interaction action", status_code=status.HTTP_400_BAD_REQUEST
+        "Unsupported interaction action", status_code=status.HTTP_400_BAD_REQUEST
     )
 
 
@@ -472,7 +472,7 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
     ical.add("method", "PUBLISH")
     ical.add("calscale", "GREGORIAN")
     ical.add("x-wr-timezone", read_app_config().booking.timezone)
-    ical.add("x-wr-calname", f"rezervo")
+    ical.add("x-wr-calname", "rezervo")
     ical.add(
         "x-wr-caldesc",
         f'Planlagte{" og gjennomførte" if include_past else ""} timer for {db_user.name} (rezervo.no)',

@@ -5,8 +5,8 @@ Revises: b795b5d14cf8
 Create Date: 2023-02-22 19:25:51.902132
 
 """
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.

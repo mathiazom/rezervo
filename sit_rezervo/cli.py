@@ -5,7 +5,7 @@ from uuid import UUID
 
 import typer
 import uvicorn
-from crontab import CronTab, CronItem
+from crontab import CronItem, CronTab
 from pytz import timezone
 from rich import print as rprint
 
@@ -20,8 +20,8 @@ from sit_rezervo.consts import (
 from sit_rezervo.database import crud
 from sit_rezervo.database.database import SessionLocal
 from sit_rezervo.errors import BookingError
-from sit_rezervo.main import try_book_class, try_authenticate, pull_sessions
-from sit_rezervo.notify.notify import notify_booking_failure, notify_auth_failure
+from sit_rezervo.main import pull_sessions, try_authenticate, try_book_class
+from sit_rezervo.notify.notify import notify_auth_failure, notify_booking_failure
 from sit_rezervo.schemas.config.config import config_from_stored, read_app_config
 from sit_rezervo.schemas.config.stored import StoredConfig
 from sit_rezervo.settings import get_settings
@@ -59,11 +59,11 @@ def book(
         print("[ERROR] Failed to load config, aborted.")
         return
     if config.classes is None or not 0 <= class_id < len(config.classes):
-        print(f"[ERROR] Class index out of bounds")
+        print("[ERROR] Class index out of bounds")
         return
     _class_config = config.classes[class_id]
     if config.booking.max_attempts < 1:
-        print(f"[ERROR] Max booking attempts should be a positive number")
+        print("[ERROR] Max booking attempts should be a positive number")
         if config.notifications is not None:
             notify_booking_failure(
                 config.notifications,

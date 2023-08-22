@@ -8,19 +8,19 @@ import requests
 
 from sit_rezervo import models
 from sit_rezervo.auth.sit import (
-    AuthenticationError,
-    authenticate_token,
-    authenticate_session,
     USER_AGENT,
+    AuthenticationError,
+    authenticate_session,
+    authenticate_token,
     fetch_public_token,
 )
 from sit_rezervo.booking import book_class, cancel_booking
 from sit_rezervo.consts import (
+    BOOKING_OPEN_DAYS_BEFORE_CLASS,
     ICAL_URL,
     MY_SESSIONS_URL,
-    WEEKDAYS,
     PLANNED_SESSIONS_NEXT_WHOLE_WEEKS,
-    BOOKING_OPEN_DAYS_BEFORE_CLASS,
+    WEEKDAYS,
 )
 from sit_rezervo.database.crud import upsert_user_sessions
 from sit_rezervo.database.database import SessionLocal
@@ -31,7 +31,7 @@ from sit_rezervo.schemas.config import config
 from sit_rezervo.schemas.config.admin import AdminConfig
 from sit_rezervo.schemas.config.stored import StoredConfig
 from sit_rezervo.schemas.config.user import UserConfig
-from sit_rezervo.schemas.schedule import SitClass, SitInstructor, SitSchedule
+from sit_rezervo.schemas.schedule import SitClass, SitSchedule
 from sit_rezervo.schemas.session import SitSession, UserSession, session_state_from_sit
 from sit_rezervo.utils.sit_utils import fetch_sit_schedule
 from sit_rezervo.utils.time_utils import total_days_for_next_whole_weeks
@@ -44,7 +44,7 @@ def try_book_class(
     notifications_config: Optional[config.Notifications] = None,
 ) -> Optional[BookingError]:
     if max_attempts < 1:
-        print(f"[ERROR] Max booking attempts should be a positive number")
+        print("[ERROR] Max booking attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     booked = False
     attempts = 0
@@ -65,7 +65,7 @@ def try_book_class(
         )
         return BookingError.ERROR
     print(
-        f"[INFO] Successfully booked class"
+        "[INFO] Successfully booked class"
         + (f" after {attempts} attempts!" if attempts != 1 else "!")
     )
     if notifications_config:
@@ -78,10 +78,10 @@ def try_cancel_booking(
     token: str, _class: SitClass, max_attempts: int
 ) -> Optional[BookingError]:
     if _class.userStatus not in ["booked", "waitlist"]:
-        print(f"[ERROR] Class is not booked, cancellation is not possible")
+        print("[ERROR] Class is not booked, cancellation is not possible")
         return BookingError.CANCELLING_WITHOUT_BOOKING
     if max_attempts < 1:
-        print(f"[ERROR] Max booking cancellation attempts should be a positive number")
+        print("[ERROR] Max booking cancellation attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     cancelled = False
     attempts = 0
@@ -102,7 +102,7 @@ def try_cancel_booking(
         )
         return BookingError.ERROR
     print(
-        f"[INFO] Successfully cancelled booking"
+        "[INFO] Successfully cancelled booking"
         + (f" after {attempts} attempts!" if attempts != 1 else "!")
     )
     return None

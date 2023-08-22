@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Union, Optional
+from typing import Optional, Union
 
 import requests
 
-from sit_rezervo.consts import ADD_BOOKING_URL, WEEKDAYS, CANCEL_BOOKING_URL, CLASS_URL
+from sit_rezervo.consts import ADD_BOOKING_URL, CANCEL_BOOKING_URL, CLASS_URL, WEEKDAYS
 from sit_rezervo.errors import BookingError
 from sit_rezervo.schemas.config import config
 from sit_rezervo.schemas.schedule import SitClass

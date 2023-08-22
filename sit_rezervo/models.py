@@ -1,8 +1,8 @@
-import uuid
 import enum
+import uuid
 
-from sqlalchemy import Enum, Column, String, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, Enum, ForeignKey, String
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from sit_rezervo.database.base_class import Base
 

@@ -2,7 +2,6 @@ from typing import Optional
 
 from sit_rezervo.schemas.base import OrmBase
 
-
 CONFIG_FILE = "config.json"
 
 

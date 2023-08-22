@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from sit_rezervo import models
 from sit_rezervo.auth import auth0
 from sit_rezervo.models import SessionState
-from sit_rezervo.schemas.config import user, admin
+from sit_rezervo.schemas.config import admin, user
 from sit_rezervo.schemas.config.user import UserConfig as UserConfig
 from sit_rezervo.schemas.session import UserSession
 from sit_rezervo.utils.ical_utils import generate_calendar_token

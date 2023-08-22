@@ -5,7 +5,7 @@ from deepmerge import Merger
 from pydantic import parse_file_as
 
 from sit_rezervo.schemas.base import OrmBase
-from sit_rezervo.schemas.config import admin, app, user, stored
+from sit_rezervo.schemas.config import admin, app, stored, user
 from sit_rezervo.schemas.config.app import AppConfig
 
 

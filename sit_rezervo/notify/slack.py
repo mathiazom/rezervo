@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 
 from requests import RequestException
 from slack_sdk import WebClient as SlackClient
@@ -9,17 +9,17 @@ from slack_sdk.signature import SignatureVerifier
 from slack_sdk.webhook import WebhookClient as SlackWebhookClient
 from starlette.datastructures import Headers
 
+from ..auth.sit import AuthenticationError
+from ..consts import (
+    SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
+    SLACK_ACTION_CANCEL_BOOKING,
+    WEEKDAYS,
+)
+from ..errors import BookingError
 from ..schemas.config import config
 from ..schemas.schedule import SitClass
 from ..types import CancelBookingActionValue
-from ..auth.sit import AuthenticationError
-from ..consts import (
-    WEEKDAYS,
-    SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
-    SLACK_ACTION_CANCEL_BOOKING,
-)
-from ..errors import BookingError
-from .utils import upload_ical_to_transfersh, activity_url
+from .utils import activity_url, upload_ical_to_transfersh
 
 
 def notify_slack(
@@ -103,7 +103,7 @@ def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
     channel_id = find_user_dm_channel_id(slack_token, user_id)
     if channel_id is None:
         print(
-            f"[FAILED] Could not find correct channel to delete scheduled direct message from Slack"
+            "[FAILED] Could not find correct channel to delete scheduled direct message from Slack"
         )
         return
     delete_scheduled_message_slack(slack_token, channel_id, reminder_id)
@@ -184,11 +184,11 @@ def notify_booking_failure_slack(
         f"*{class_name}* ({class_time}) for <@{user_id}>"
         f"{f'. *{BOOKING_FAILURE_REASONS[error]}*' if error in BOOKING_FAILURE_REASONS else ''}"
     )
-    print(f"[INFO] Posting booking failure notification to Slack")
+    print("[INFO] Posting booking failure notification to Slack")
     if not notify_slack(slack_token, channel, msg):
-        print(f"[FAILED] Could not post booking failure notification to Slack")
+        print("[FAILED] Could not post booking failure notification to Slack")
         return
-    print(f"[INFO] Booking failure notification posted successfully to Slack.")
+    print("[INFO] Booking failure notification posted successfully to Slack.")
     return
 
 
@@ -200,7 +200,7 @@ def notify_working_slack(slack_token: str, channel: str, message_ts: str):
         SlackClient(token=slack_token).reactions_add(
             channel=channel, timestamp=message_ts, name=WORKING_EMOJI_NAME
         )
-        print(f"[INFO] 'Working' reaction posted successfully to Slack.")
+        print("[INFO] 'Working' reaction posted successfully to Slack.")
     except SlackApiError as e:
         print(
             f"[FAILED] Could not post 'working' reaction to Slack: {e.response['error']}"
@@ -212,7 +212,7 @@ def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
         SlackClient(token=slack_token).reactions_remove(
             channel=channel, timestamp=message_ts, name=WORKING_EMOJI_NAME
         )
-        print(f"[INFO] 'Working' reaction removed successfully from Slack message.")
+        print("[INFO] 'Working' reaction removed successfully from Slack message.")
     except SlackApiError as e:
         print(
             f"[FAILED] Could not remove 'working' reaction from Slack message: {e.response['error']}"
@@ -286,7 +286,7 @@ def notify_cancellation_failure_slack(
             f"[FAILED] Could not post cancellation failure notification to Slack: {e.response['error']}"
         )
         return
-    print(f"[INFO] Cancellation failure notification posted successfully to Slack.")
+    print("[INFO] Cancellation failure notification posted successfully to Slack.")
 
 
 def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
@@ -320,7 +320,7 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
             f"[FAILED] Could not display unauthorized action modal in Slack: {e.response['error']}"
         )
         return
-    print(f"[INFO] Unauthorized action modal displayed successfully in Slack.")
+    print("[INFO] Unauthorized action modal displayed successfully in Slack.")
 
 
 def notify_booking_slack(
@@ -346,15 +346,15 @@ def notify_booking_slack(
             )
         except RequestException:
             print(
-                f"[WARNING] Could not upload ical event to transfer.sh instance, skipping ical link in notification."
+                "[WARNING] Could not upload ical event to transfer.sh instance, skipping ical link in notification."
             )
-    print(f"[INFO] Posting booking notification to Slack")
+    print("[INFO] Posting booking notification to Slack")
     if not notify_slack(
         slack_token, channel, message_blocks["message"], message_blocks["blocks"]
     ):
-        print(f"[FAILED] Could not post booking notification to Slack")
+        print("[FAILED] Could not post booking notification to Slack")
         return
-    print(f"[INFO] Booking notification posted successfully to Slack.")
+    print("[INFO] Booking notification posted successfully to Slack.")
     return
 
 
