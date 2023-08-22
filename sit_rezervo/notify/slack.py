@@ -295,7 +295,7 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
             trigger_id=trigger_id,
             view={
                 "type": "modal",
-                "title": {"type": "plain_text", "text": "sit-rezervo"},
+                "title": {"type": "plain_text", "text": "rezervo"},
                 "close": {"type": "plain_text", "text": ":cry: Lukk", "emoji": True},
                 "blocks": [
                     {

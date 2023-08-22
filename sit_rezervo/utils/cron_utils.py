@@ -97,7 +97,7 @@ def generate_booking_command(
 ) -> str:
     program_command = (
         f"cd {cron_config.sit_rezervo_dir} || exit 1; "
-        f'{cron_config.python_path}/sit-rezervo book "{user_id}"'
+        f'{cron_config.python_path}/rezervo book "{user_id}"'
     )
     output_redirection = f">> {cron_config.log_path} 2>&1"
     if precheck:
@@ -108,5 +108,5 @@ def generate_booking_command(
 def generate_pull_sessions_command(cron_config: config.Cron) -> str:
     return (
         f"cd {cron_config.sit_rezervo_dir} || exit 1; "
-        f"{cron_config.python_path}/sit-rezervo sessions pull >> {cron_config.log_path} 2>&1"
+        f"{cron_config.python_path}/rezervo sessions pull >> {cron_config.log_path} 2>&1"
     )

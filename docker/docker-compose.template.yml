@@ -1,10 +1,10 @@
 services:
   db:
-    container_name: sit-rezervo-db
+    container_name: rezervo-db
     image: postgres:14.5
     restart: unless-stopped
     volumes:
-      - sit-rezervo-data:/var/lib/postgresql/data
+      - rezervo-data:/var/lib/postgresql/data
     environment:
       POSTGRES_PASSWORD: UPDATE_TO_SOMETHING_STRONG
     healthcheck:
@@ -13,14 +13,14 @@ services:
       timeout: 5s
       retries: 5
 #  db-admin:
-#    container_name: sit-rezervo-db-admin
+#    container_name: rezervo-db-admin
 #    image: dpage/pgadmin4
 #    restart: always
 #    environment:
 #      PGADMIN_DEFAULT_EMAIL: your@fancy.email
 #      PGADMIN_DEFAULT_PASSWORD: SURELY_SOMETHING_STRONG
-  sit-rezervo:
-    container_name: sit-rezervo
+  rezervo:
+    container_name: rezervo
     image: ghcr.io/mathiazom/sit-rezervo:main
     command: ["--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
@@ -35,4 +35,4 @@ services:
       # supply env variables as file to allow access from cron
       - "./.env:/app/.env:ro"
 volumes:
-  sit-rezervo-data:
+  rezervo-data:

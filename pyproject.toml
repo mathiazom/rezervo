@@ -3,7 +3,7 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
-name = "sit-rezervo"
+name = "rezervo"
 version = "0.1.0"
 description = "Automatic booking of Sit Trening group classes"
 authors = ["Mathias Oterhals Myklebust <mathias@oterbust.no>"]
@@ -22,7 +22,7 @@ classifiers = [
 "Bug Tracker" = "https://github.com/mathiazom/sit-rezervo/issues"
 
 [tool.poetry.scripts]
-sit-rezervo = "sit_rezervo.cli:cli"
+rezervo = "sit_rezervo.cli:cli"
 
 [tool.poetry.dependencies]
 python = "^3.10"

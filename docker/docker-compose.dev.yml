@@ -1,10 +1,10 @@
 services:
   db:
-    container_name: sit-rezervo-db
+    container_name: rezervo-db
     image: postgres:14.5
     restart: unless-stopped
     volumes:
-      - sit-rezervo-data:/var/lib/postgresql/data
+      - rezervo-data:/var/lib/postgresql/data
     ports:
       - 5432:5432
     environment:
@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 5
   db-admin:
-    container_name: sit-rezervo-db-admin
+    container_name: rezervo-db-admin
     image: dpage/pgadmin4
     restart: always
     ports:
@@ -23,11 +23,11 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: dev@example.org
       PGADMIN_DEFAULT_PASSWORD: password
-  sit-rezervo:
+  rezervo:
     build:
       context: ..
       dockerfile: ./docker/Dockerfile
-    container_name: sit-rezervo
+    container_name: rezervo
     # modified run server command with hot reloading
     command: ["--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
@@ -47,4 +47,4 @@ services:
       - "./.env:/app/.env:ro"
 
 volumes:
-  sit-rezervo-data:
+  rezervo-data:

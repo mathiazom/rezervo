@@ -11,7 +11,7 @@
     "precheck_hours": 4,
     "sit_rezervo_dir": "/app",
     "python_path": "/usr/local/bin",
-    "log_path": "/var/log/sit-rezervo.log",
+    "log_path": "/var/log/rezervo.log",
     "preparation_minutes": 10
   },
   "notifications": {
