@@ -21,7 +21,6 @@ from sqlalchemy.orm import Session
 
 from rezervo import models
 from rezervo.auth.auth0 import get_auth0_management_client
-from rezervo.integrations.sit import AuthenticationError
 from rezervo.booking import find_class_by_id
 from rezervo.consts import (
     SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
@@ -30,6 +29,7 @@ from rezervo.consts import (
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import BookingError
+from rezervo.integrations.sit import AuthenticationError
 from rezervo.main import (
     pull_sessions,
     try_authenticate,

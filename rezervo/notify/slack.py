@@ -9,16 +9,17 @@ from slack_sdk.signature import SignatureVerifier
 from slack_sdk.webhook import WebhookClient as SlackWebhookClient
 from starlette.datastructures import Headers
 
-from rezervo.integrations.sit import AuthenticationError
-from ..consts import (
+from rezervo.consts import (
     SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
     SLACK_ACTION_CANCEL_BOOKING,
     WEEKDAYS,
 )
-from ..errors import BookingError
-from ..schemas.config import config
-from ..schemas.schedule import SitClass
-from ..types import CancelBookingActionValue
+from rezervo.errors import BookingError
+from rezervo.integrations.sit import AuthenticationError
+from rezervo.schemas.config import config
+from rezervo.schemas.schedule import SitClass
+from rezervo.types import CancelBookingActionValue
+
 from .utils import activity_url, upload_ical_to_transfersh
 
 

@@ -7,13 +7,6 @@ import pydantic
 import requests
 
 from rezervo import models
-from rezervo.integrations.sit import (
-    USER_AGENT,
-    AuthenticationError,
-    authenticate_session,
-    authenticate_token,
-    fetch_public_token,
-)
 from rezervo.booking import book_class, cancel_booking
 from rezervo.consts import (
     BOOKING_OPEN_DAYS_BEFORE_CLASS,
@@ -25,6 +18,13 @@ from rezervo.consts import (
 from rezervo.database.crud import upsert_user_sessions
 from rezervo.database.database import SessionLocal
 from rezervo.errors import BookingError
+from rezervo.integrations.sit import (
+    USER_AGENT,
+    AuthenticationError,
+    authenticate_session,
+    authenticate_token,
+    fetch_public_token,
+)
 from rezervo.models import SessionState
 from rezervo.notify.notify import notify_booking
 from rezervo.schemas.config import config

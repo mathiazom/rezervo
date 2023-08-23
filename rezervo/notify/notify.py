@@ -1,7 +1,7 @@
 from typing import Optional
 
-from rezervo.integrations.sit import AuthenticationError
 from rezervo.errors import BookingError
+from rezervo.integrations.sit import AuthenticationError
 from rezervo.notify.slack import (
     notify_auth_failure_slack,
     notify_booking_failure_slack,

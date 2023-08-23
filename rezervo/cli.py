@@ -11,7 +11,6 @@ from rich import print as rprint
 
 from rezervo import api, models
 from rezervo.api import delete_booking_crontab, upsert_booking_crontab
-from rezervo.integrations.sit import AuthenticationError
 from rezervo.booking import find_class
 from rezervo.consts import (
     CRON_PULL_SESSIONS_JOB_COMMENT,
@@ -20,6 +19,7 @@ from rezervo.consts import (
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import BookingError
+from rezervo.integrations.sit import AuthenticationError
 from rezervo.main import pull_sessions, try_authenticate, try_book_class
 from rezervo.notify.notify import notify_auth_failure, notify_booking_failure
 from rezervo.schemas.config.config import config_from_stored, read_app_config
