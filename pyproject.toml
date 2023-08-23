@@ -53,15 +53,27 @@ mypy = "^0.991"
 poethepoet = "^0.22.0"
 
 [tool.poe.tasks]
-fix = ["fmt", "lint"]
+fix = ["fmt", "lintfix"]
+
+[tool.poe.tasks.check]
+sequence = ["typecheck", "lint"]
+ignore_fail = "return_non_zero"
 
 [tool.poe.tasks.fmt]
 cmd = "black rezervo"
 help = "Format code using black"
 
-[tool.poe.tasks.lint]
+[tool.poe.tasks.lintfix]
 cmd = "ruff rezervo --fix"
+help = "Lint and fix code using ruff"
+
+[tool.poe.tasks.lint]
+cmd = "ruff rezervo"
 help = "Lint code using ruff"
+
+[tool.poe.tasks.typecheck]
+cmd = "mypy rezervo"
+help = "Check typing using mypy"
 
 [tool.ruff]
 select = [
