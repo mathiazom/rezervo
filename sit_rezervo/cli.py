@@ -11,6 +11,7 @@ from rich import print as rprint
 
 from sit_rezervo import api, models
 from sit_rezervo.api import delete_booking_crontab, upsert_booking_crontab
+from sit_rezervo.auth.fsc import fsc_authenticate
 from sit_rezervo.auth.sit import AuthenticationError
 from sit_rezervo.booking import find_class
 from sit_rezervo.consts import (
@@ -35,6 +36,12 @@ cron_cli = typer.Typer()
 cli.add_typer(cron_cli, name="cron")
 sessions_cli = typer.Typer()
 cli.add_typer(sessions_cli, name="sessions")
+
+
+@cli.command()
+def fsc():
+    auth_result = fsc_authenticate("adrianandersen@protonmail.com", "!AMwHzqXzBQua&exGande%XCo3yaiHk4AbLng9y8ujQxD#Tr%o%*")
+    print(auth_result)
 
 
 @cli.command()
