@@ -1,18 +1,18 @@
 import datetime
 import math
-from typing import Union
+from typing import Optional, Union
 
 import requests
 
-from rezervo.consts import (
+from rezervo.integrations.sit.consts import (
     CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH,
     CLASSES_SCHEDULE_URL,
 )
-from rezervo.schemas.schedule import SitDay, SitSchedule
+from rezervo.integrations.sit.schema import SitDay, SitSchedule
 
 
 def fetch_single_batch_sit_schedule(
-    token, studio: str = None, from_iso: str = None
+    token: str, studio: Optional[int] = None, from_iso: Optional[str] = None
 ) -> Union[SitSchedule, None]:
     res = requests.get(
         f"{CLASSES_SCHEDULE_URL}"
@@ -27,7 +27,7 @@ def fetch_single_batch_sit_schedule(
 
 
 def fetch_sit_schedule(
-    token, studio: str = None, days: int = None
+    token, studio: Optional[int] = None, days: Optional[int] = None
 ) -> Union[SitSchedule, None]:
     schedule_days: list[SitDay] = []
     from_date = datetime.datetime.now().date()

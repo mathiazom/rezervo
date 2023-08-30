@@ -1,7 +1,6 @@
 from typing import Optional
 
-from rezervo.errors import BookingError
-from rezervo.integrations.sit import AuthenticationError
+from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.slack import (
     notify_auth_failure_slack,
     notify_booking_failure_slack,
@@ -9,12 +8,14 @@ from rezervo.notify.slack import (
     schedule_class_reminder_slack,
 )
 from rezervo.schemas.config import config
-from rezervo.schemas.schedule import SitClass
+from rezervo.schemas.config.user import Class
+from rezervo.schemas.schedule import RezervoClass
+from rezervo.utils.logging_utils import warn
 
 
 def notify_auth_failure(
     notifications_config: config.Notifications,
-    error: AuthenticationError = None,
+    error: Optional[AuthenticationError] = None,
     check_run: bool = False,
 ) -> None:
     slack_config = notifications_config.slack
@@ -26,15 +27,13 @@ def notify_auth_failure(
             error,
             check_run=check_run,
         )
-    print(
-        "[WARNING] No notification targets, auth failure notification will not be sent!"
-    )
+    warn.log("No notification targets, auth failure notification will not be sent!")
 
 
 def notify_booking_failure(
     notifications_config: config.Notifications,
-    _class_config: config.Class,
-    error: BookingError = None,
+    _class_config: Optional[Class] = None,
+    error: Optional[BookingError] = None,
     check_run: bool = False,
 ) -> None:
     slack_config = notifications_config.slack
@@ -47,13 +46,13 @@ def notify_booking_failure(
             error,
             check_run,
         )
-    print(
-        "[WARNING] No notification targets, booking failure notification will not be sent!"
-    )
+    warn.log("No notification targets, booking failure notification will not be sent!")
 
 
 def notify_booking(
-    notifications_config: config.Notifications, booked_class: SitClass, ical_url: str
+    notifications_config: config.Notifications,
+    booked_class: RezervoClass,
+    ical_url: str,
 ) -> None:
     slack_config = notifications_config.slack
     if slack_config is not None:
@@ -76,14 +75,16 @@ def notify_booking(
             transfersh_url,
             scheduled_reminder_id,
         )
-    print("[WARNING] No notification targets, booking notification will not be sent!")
+    warn.log("No notification targets, booking notification will not be sent!")
 
 
 def schedule_class_reminder(
-    notifications_config: config.Notifications, booked_class: SitClass
+    notifications_config: config.Notifications, booked_class: RezervoClass
 ) -> Optional[str]:
     slack_config = notifications_config.slack
     if slack_config is not None:
+        if notifications_config.reminder_hours_before is None:
+            return None
         return schedule_class_reminder_slack(
             slack_config.bot_token,
             slack_config.user_id,
@@ -91,4 +92,5 @@ def schedule_class_reminder(
             booked_class,
             notifications_config.reminder_hours_before,
         )
-    print("[WARNING] No notification targets, class reminder will not be sent!")
+    warn.log("No notification targets, class reminder will not be sent!")
+    return None

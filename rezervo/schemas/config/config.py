@@ -1,15 +1,16 @@
-from typing import Optional
+from typing import Any, Optional
 from uuid import UUID
 
-from deepmerge import Merger
-from pydantic import parse_file_as
+from deepmerge import Merger  # type: ignore[import]
+from pydantic import BaseModel, parse_file_as
 
-from rezervo.schemas.base import OrmBase
-from rezervo.schemas.config import admin, app, stored, user
+from rezervo.schemas.config import admin, app, user
+from rezervo.schemas.config.admin import AdminConfig
 from rezervo.schemas.config.app import AppConfig
+from rezervo.schemas.config.user import UserPreferences
 
 
-class Auth(admin.Auth, app.Auth):
+class Auth(app.Auth):
     pass
 
 
@@ -29,21 +30,14 @@ class Notifications(user.Notifications, admin.Notifications, app.Notifications):
     slack: Optional[Slack] = None
 
 
-class Class(user.Class):
-    pass
-
-
-class ConfigValue(user.UserConfig, admin.AdminConfig, app.AppConfig):
-    active: bool
+class ConfigValue(user.UserPreferences, admin.AdminConfig, app.AppConfig):
     auth: Auth
     booking: Booking
     cron: Cron
     notifications: Optional[Notifications] = None
-    classes: Optional[list[Class]]
 
 
-class Config(OrmBase):
-    id: UUID
+class Config(BaseModel):
     user_id: UUID
     config: ConfigValue
 
@@ -66,11 +60,13 @@ CONFIG_MERGER = Merger(
 )
 
 
-def config_from_stored(s: stored.StoredConfig) -> Config:
-    merged_config = {}
-    for c in [s.config.dict(), s.admin_config.dict(), read_app_config().dict()]:
+def config_from_stored(
+    user_id: UUID, preferences: UserPreferences, admin_config: AdminConfig
+) -> Config:
+    merged_config: dict[str, Any] = {}
+    for c in [preferences.dict(), admin_config.dict(), read_app_config().dict()]:
         CONFIG_MERGER.merge(merged_config, c)
-    return Config(id=s.id, user_id=s.user_id, config=ConfigValue(**merged_config))
+    return Config(user_id=user_id, config=ConfigValue(**merged_config))
 
 
 def read_app_config() -> AppConfig:

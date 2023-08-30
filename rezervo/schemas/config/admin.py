@@ -11,11 +11,5 @@ class Notifications(OrmBase):
     slack: Optional[Slack] = None
 
 
-class Auth(OrmBase):
-    email: str
-    password: str
-
-
 class AdminConfig(OrmBase):
-    auth: Auth
     notifications: Optional[Notifications] = None

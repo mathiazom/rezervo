@@ -1,10 +1,11 @@
 import secrets
 from datetime import datetime
+from typing import Optional
 
-from icalendar import cal
+from icalendar import cal  # type: ignore[import]
 
-from rezervo.models import Session, SessionState
-from rezervo.schemas.schedule import SitClass
+from rezervo.models import SessionState
+from rezervo.schemas.schedule import UserSession
 from rezervo.utils.str_utils import format_name_list_to_natural
 
 
@@ -12,10 +13,14 @@ def generate_calendar_token():
     return secrets.token_urlsafe()
 
 
-def ical_event_from_sit_class_session(session: Session) -> cal.Event:
-    _class = SitClass(**session.class_data)
+def ical_event_from_session(session: UserSession) -> Optional[cal.Event]:
+    _class = session.class_data
+    if _class is None:
+        return None
     event = cal.Event()
-    event.add("uid", f"sit-{_class.id}-{session.user_id}@rezervo.no")
+    event.add(
+        "uid", f"{session.integration.value}-{_class.id}-{session.user_id}@rezervo.no"
+    )
     event.add("summary", _class.name)
     event.add(
         "description",

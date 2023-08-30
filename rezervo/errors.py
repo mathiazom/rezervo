@@ -12,3 +12,12 @@ class BookingError(Enum):
     TOO_LONG_WAITING_TIME = auto()
     INVALID_CONFIG = auto()
     CANCELLING_WITHOUT_BOOKING = auto()
+
+
+class AuthenticationError(Enum):
+    ERROR = auto()
+    TOKEN_EXTRACTION_FAILED = auto()
+    TOKEN_VALIDATION_FAILED = auto()
+    TOKEN_INVALID = auto()
+    AUTH_TEMPORARILY_BLOCKED = auto()
+    INVALID_CREDENTIALS = auto()

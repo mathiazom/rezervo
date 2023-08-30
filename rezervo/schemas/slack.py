@@ -2,6 +2,8 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
+from rezervo.schemas.config.user import IntegrationIdentifier
+
 
 class User(BaseModel):
     id: str
@@ -13,6 +15,7 @@ class Action(BaseModel):
 
 
 class CancelBookingActionValue(BaseModel):
+    integration: IntegrationIdentifier
     class_id: str
     user_id: str
     scheduled_reminder_id: Optional[str] = None

@@ -1,33 +1,42 @@
 import enum
 import uuid
 
-from sqlalchemy import Column, Enum, ForeignKey, String
+from sqlalchemy import Boolean, Column, Enum, ForeignKey, String
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from rezervo.database.base_class import Base
+from rezervo.schemas.config.user import IntegrationIdentifier
 
 
 class User(Base):
     __tablename__ = "users"
 
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    name = Column(String)
+    name = Column(String, unique=True, nullable=False)
     jwt_sub = Column(String, nullable=True)
     cal_token = Column(String, nullable=False)
-
-
-class Config(Base):
-    __tablename__ = "configs"
-
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    user_id = Column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), unique=True
-    )
-    config = Column(JSONB)
+    preferences = Column(JSONB)
     admin_config = Column(JSONB)
 
     def __repr__(self):
-        return f"<Config (id='{self.id}' user_id='{self.user_id}' config={self.config} admin_config={self.admin_config})>"
+        return f"<User (id='{self.id}' name='{self.name}' jwt_sub='{self.jwt_sub}' preferences={self.preferences} admin_config={self.admin_config})>"
+
+
+class IntegrationUser(Base):
+    __tablename__ = "integration_users"
+
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
+    )
+    integration = Column(Enum(IntegrationIdentifier), primary_key=True)
+    username = Column(String, nullable=False)
+    password = Column(String, nullable=False)
+    auth_token = Column(String, nullable=True)
+    active = Column(Boolean, nullable=False, default=True)
+    classes = Column(JSONB, nullable=False, default=[])
+
+    def __repr__(self):
+        return f"<IntegrationUser (user_id='{self.user_id}' integration='{self.integration}' username='{self.username}' active='{self.active}' classes={self.classes})>"
 
 
 class SessionState(enum.Enum):
@@ -41,6 +50,7 @@ class SessionState(enum.Enum):
 class Session(Base):
     __tablename__ = "sessions"
 
+    integration = Column(Enum(IntegrationIdentifier), nullable=False, primary_key=True)
     class_id = Column(String, primary_key=True)
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
@@ -49,4 +59,4 @@ class Session(Base):
     class_data = Column(JSONB)
 
     def __repr__(self):
-        return f"<Session (class_id='{self.class_id}' user_id='{self.user_id}' status='{self.status}' class_data={self.class_data})>"
+        return f"<Session (integration='{self.integration}' class_id='{self.class_id}' user_id='{self.user_id}' status='{self.status}' class_data={self.class_data})>"

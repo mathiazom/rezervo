@@ -3,7 +3,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from rezervo.schemas.schedule import SitClass
+from rezervo.schemas.schedule import RezervoClass
 
 
 def upload_ical_to_transfersh(transfersh_url: str, ical_url: str, filename: str) -> str:
@@ -20,8 +20,8 @@ def transfersh_direct_url(url: str):
     return u._replace(path=f"/get{u.path}").geturl()
 
 
-def activity_url(host: Optional[str], _class: SitClass):
+def activity_url(host: Optional[str], _class: RezervoClass):
     if host:
-        return f"<{host}/?classId={_class.id}|*{_class.name}*>"
+        return f"<{host}/{_class.integration}/?classId={_class.id}|*{_class.name}*>"
 
     return f"*{_class.name}*"

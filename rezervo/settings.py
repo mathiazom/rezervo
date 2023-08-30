@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     JWT_AUDIENCE: str | None = None
     JWT_ISSUER: str | None = None
 
-    CRON_JOB_COMMENT_PREFIX: str = "sr"
+    CRON_JOB_COMMENT_PREFIX: str = "rezervo"
 
     AUTH0_MANAGEMENT_API_CLIENT_ID: str | None = None
     AUTH0_MANAGEMENT_API_CLIENT_SECRET: str | None = None

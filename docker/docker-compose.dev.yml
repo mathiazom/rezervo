@@ -36,15 +36,16 @@ services:
     restart: unless-stopped
     ports:
       - 8000:8000
+    tty: true
     env_file:
-      - .env
+      - "../rezervo/.env"
     volumes:
       # mount source code as volume to allow hot reloading
       - "../rezervo:/app/rezervo"
       # app-wide configuration applied to all users
-      - "./config.json:/app/config.json:ro"
+      - "../rezervo/config.json:/app/config.json:ro"
       # supply env variables as file to allow access from cron
-      - "./.env:/app/.env:ro"
+      - "../rezervo/.env:/app/.env:ro"
 
 volumes:
   rezervo-data:

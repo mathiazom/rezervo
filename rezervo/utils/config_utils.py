@@ -1,4 +1,4 @@
-from rezervo.schemas.config.config import Class
+from rezervo.schemas.config.user import Class
 
 
 def class_config_recurrent_id(class_config: Class):

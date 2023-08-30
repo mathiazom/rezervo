@@ -14,11 +14,11 @@ from rezervo.consts import (
     SLACK_ACTION_CANCEL_BOOKING,
     WEEKDAYS,
 )
-from rezervo.errors import BookingError
-from rezervo.integrations.sit import AuthenticationError
-from rezervo.schemas.config import config
-from rezervo.schemas.schedule import SitClass
-from rezervo.types import CancelBookingActionValue
+from rezervo.errors import AuthenticationError, BookingError
+from rezervo.schemas.config.user import Class
+from rezervo.schemas.schedule import RezervoClass
+from rezervo.schemas.slack import CancelBookingActionValue
+from rezervo.utils.logging_utils import err, warn
 
 from .utils import activity_url, upload_ical_to_transfersh
 
@@ -35,7 +35,7 @@ def notify_slack(
             channel=channel, text=message, blocks=message_blocks, thread_ts=thread_ts
         )
     except SlackApiError as e:
-        print(f"[FAILED] Could not post notification to Slack: {e.response['error']}")
+        err.log(f"Could not post notification to Slack: {e.response['error']}")
         return False
     return True
 
@@ -49,15 +49,13 @@ def delete_scheduled_message_slack(
             scheduled_message_id=scheduled_message_id,
         )
         if not res.get("ok", False):
-            print(
-                f"[FAILED] Could not delete scheduled message from Slack: {res.get('error')}"
+            err.log(
+                f"Could not delete scheduled message from Slack: {res.get('error')}"
             )
             return False
-        print(f"[INFO] Deleted scheduled message ({scheduled_message_id}) from Slack")
+        print(f"Deleted scheduled message ({scheduled_message_id}) from Slack")
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not delete scheduled message from Slack: {e.response['error']}"
-        )
+        err.log(f"Could not delete scheduled message from Slack: {e.response['error']}")
         return False
     return True
 
@@ -66,16 +64,16 @@ def find_user_dm_channel_id(slack_token: str, user_id: str) -> Optional[str]:
     try:
         res = SlackClient(token=slack_token).conversations_open(users=user_id)
         if not res.get("ok", False):
-            print(
-                f"[FAILED] Could not find user direct message channel id on Slack: {res.get('error')}"
+            err.log(
+                f"Could not find user direct message channel id on Slack: {res.get('error')}"
             )
             return None
         channel_id = res.get("channel").get("id")
-        print(f"[INFO] Located channel id of user direct message: {channel_id}")
+        print(f"Located channel id of user direct message: {channel_id}")
         return channel_id
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not find user direct message channel id on Slack: {e.response['error']}"
+        err.log(
+            f"Could not find user direct message channel id on Slack: {e.response['error']}"
         )
         return None
 
@@ -91,20 +89,18 @@ def schedule_dm_slack(
         res = SlackClient(token=slack_token).chat_scheduleMessage(
             channel=user_id, text=message, blocks=message_blocks, post_at=post_at
         )
-        print(f"[INFO] Scheduled direct message to Slack: {res['message']['text']}")
+        print(f"Scheduled direct message to Slack: {res['message']['text']}")
         return res.data["scheduled_message_id"]
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not schedule direct message to Slack: {e.response['error']}"
-        )
+        err.log(f"Could not schedule direct message to Slack: {e.response['error']}")
         return None
 
 
 def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
     channel_id = find_user_dm_channel_id(slack_token, user_id)
     if channel_id is None:
-        print(
-            "[FAILED] Could not find correct channel to delete scheduled direct message from Slack"
+        err.log(
+            "Could not find correct channel to delete scheduled direct message from Slack"
         )
         return
     delete_scheduled_message_slack(slack_token, channel_id, reminder_id)
@@ -114,7 +110,7 @@ def schedule_class_reminder_slack(
     slack_token: str,
     user_id: str,
     host: Optional[str],
-    _class: SitClass,
+    _class: RezervoClass,
     hours_before: float,
 ) -> Optional[str]:
     start_time = datetime.datetime.fromisoformat(_class.from_field)
@@ -136,7 +132,7 @@ def notify_auth_failure_slack(
     slack_token: str,
     channel: str,
     user_id: str,
-    error: AuthenticationError = None,
+    error: Optional[AuthenticationError] = None,
     thread_ts: Optional[str] = None,
     check_run: bool = False,
 ) -> None:
@@ -144,16 +140,14 @@ def notify_auth_failure_slack(
         f"{':warning: Forhåndssjekk feilet!' if check_run else ':dizzy_face:'} Klarte ikke å logge inn som "
         f"<@{user_id}>{f'. *{AUTH_FAILURE_REASONS[error]}*' if error in AUTH_FAILURE_REASONS else ''}"
     )
-    print(
-        f"[INFO] Posting auth {'check ' if check_run else ''}failure notification to Slack"
-    )
-    if not notify_slack(slack_token, channel, message, thread_ts):
-        print(
-            f"[FAILED] Could not post auth {'check ' if check_run else ''}failure notification to Slack"
+    print(f"Posting auth {'check ' if check_run else ''}failure notification to Slack")
+    if not notify_slack(slack_token, channel, message, thread_ts=thread_ts):
+        err.log(
+            f"Could not post auth {'check ' if check_run else ''}failure notification to Slack"
         )
         return
     print(
-        f"[INFO] Auth {'check ' if check_run else ''}failure notification posted successfully to Slack."
+        f"Auth {'check ' if check_run else ''}failure notification posted successfully to Slack."
     )
     return
 
@@ -171,25 +165,31 @@ def notify_booking_failure_slack(
     slack_token: str,
     channel: str,
     user_id: str,
-    _class_config: config.Class,
-    error: BookingError = None,
+    _class_config: Optional[Class] = None,
+    error: Optional[BookingError] = None,
     check_run: bool = False,
 ) -> None:
-    class_name = f"{_class_config.display_name if _class_config.display_name is not None else _class_config.activity}"
-    class_time = (
-        f"{WEEKDAYS[_class_config.weekday].lower()} "
-        f"{datetime.time(_class_config.time.hour, _class_config.time.minute).strftime('%H:%M')}"
-    )
-    msg = (
-        f"{':warning: Forhåndssjekk feilet! Kan ikke booke' if check_run else ':dizzy_face: Klarte ikke å booke'} "
-        f"*{class_name}* ({class_time}) for <@{user_id}>"
-        f"{f'. *{BOOKING_FAILURE_REASONS[error]}*' if error in BOOKING_FAILURE_REASONS else ''}"
-    )
-    print("[INFO] Posting booking failure notification to Slack")
+    if _class_config is None:
+        msg = (
+            f"{':warning: Forhåndssjekk feilet ' if check_run else ':dizzy_face: Klarte ikke å booke'} "
+            f"for <@{user_id}>{f'. *{BOOKING_FAILURE_REASONS[error]}*' if error in BOOKING_FAILURE_REASONS else ''}"
+        )
+    else:
+        class_name = f"{_class_config.display_name if _class_config.display_name is not None else _class_config.activity}"
+        class_time = (
+            f"{WEEKDAYS[_class_config.weekday].lower()} "
+            f"{datetime.time(_class_config.time.hour, _class_config.time.minute).strftime('%H:%M')}"
+        )
+        msg = (
+            f"{':warning: Forhåndssjekk feilet! Kan ikke booke' if check_run else ':dizzy_face: Klarte ikke å booke'} "
+            f"*{class_name}* ({class_time}) for <@{user_id}>"
+            f"{f'. *{BOOKING_FAILURE_REASONS[error]}*' if error in BOOKING_FAILURE_REASONS else ''}"
+        )
+    print("Posting booking failure notification to Slack")
     if not notify_slack(slack_token, channel, msg):
-        print("[FAILED] Could not post booking failure notification to Slack")
+        err.log("Could not post booking failure notification to Slack")
         return
-    print("[INFO] Booking failure notification posted successfully to Slack.")
+    print("Booking failure notification posted successfully to Slack.")
     return
 
 
@@ -201,11 +201,9 @@ def notify_working_slack(slack_token: str, channel: str, message_ts: str):
         SlackClient(token=slack_token).reactions_add(
             channel=channel, timestamp=message_ts, name=WORKING_EMOJI_NAME
         )
-        print("[INFO] 'Working' reaction posted successfully to Slack.")
+        print("'Working' reaction posted successfully to Slack.")
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not post 'working' reaction to Slack: {e.response['error']}"
-        )
+        err.log(f"Could not post 'working' reaction to Slack: {e.response['error']}")
 
 
 def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
@@ -213,10 +211,10 @@ def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
         SlackClient(token=slack_token).reactions_remove(
             channel=channel, timestamp=message_ts, name=WORKING_EMOJI_NAME
         )
-        print("[INFO] 'Working' reaction removed successfully from Slack message.")
+        print("'Working' reaction removed successfully from Slack message.")
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not remove 'working' reaction from Slack message: {e.response['error']}"
+        err.log(
+            f"Could not remove 'working' reaction from Slack message: {e.response['error']}"
         )
 
 
@@ -254,8 +252,8 @@ def notify_cancellation_slack(
             thread_ts=source_ts,
         )
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not post cancellation notification to Slack: {e.response['error']}"
+        err.log(
+            f"Could not post cancellation notification to Slack: {e.response['error']}"
         )
         return False
     return True
@@ -283,11 +281,11 @@ def notify_cancellation_failure_slack(
         )
         notify_slack(slack_token, channel, message, thread_ts=source_ts)
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not post cancellation failure notification to Slack: {e.response['error']}"
+        err.log(
+            f"Could not post cancellation failure notification to Slack: {e.response['error']}"
         )
         return
-    print("[INFO] Cancellation failure notification posted successfully to Slack.")
+    print("Cancellation failure notification posted successfully to Slack.")
 
 
 def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
@@ -317,11 +315,11 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
             },
         )
     except SlackApiError as e:
-        print(
-            f"[FAILED] Could not display unauthorized action modal in Slack: {e.response['error']}"
+        err.log(
+            f"Could not display unauthorized action modal in Slack: {e.response['error']}"
         )
         return
-    print("[INFO] Unauthorized action modal displayed successfully in Slack.")
+    print("Unauthorized action modal displayed successfully in Slack.")
 
 
 def notify_booking_slack(
@@ -329,7 +327,7 @@ def notify_booking_slack(
     channel: str,
     user_id: str,
     host: Optional[str],
-    booked_class: SitClass,
+    booked_class: RezervoClass,
     ical_url: str,
     transfersh_url: Optional[str],
     scheduled_reminder_id: Optional[str] = None,
@@ -339,23 +337,23 @@ def notify_booking_slack(
     )
     if transfersh_url:
         filename = f"{booked_class.id}.ics"
-        print(f"[INFO] Uploading {filename} to {transfersh_url}")
+        print(f"Uploading {filename} to {transfersh_url}")
         try:
             ical_tsh_url = upload_ical_to_transfersh(transfersh_url, ical_url, filename)
             message_blocks = build_booking_message_blocks(
                 booked_class, user_id, host, ical_tsh_url, scheduled_reminder_id
             )
         except RequestException:
-            print(
-                "[WARNING] Could not upload ical event to transfer.sh instance, skipping ical link in notification."
+            warn.log(
+                "Could not upload ical event to transfer.sh instance, skipping ical link in notification."
             )
-    print("[INFO] Posting booking notification to Slack")
+    print("Posting booking notification to Slack")
     if not notify_slack(
         slack_token, channel, message_blocks["message"], message_blocks["blocks"]
     ):
-        print("[FAILED] Could not post booking notification to Slack")
+        err.log("Could not post booking notification to Slack")
         return
-    print("[INFO] Booking notification posted successfully to Slack.")
+    print("Booking notification posted successfully to Slack.")
     return
 
 
@@ -364,7 +362,7 @@ CANCELLATION_EMOJI = ":no_entry:"
 
 
 def build_booking_message_blocks(
-    booked_class: SitClass,
+    booked_class: RezervoClass,
     user_id: str,
     host: Optional[str],
     ical_tsh_url: Optional[str] = None,
@@ -376,6 +374,7 @@ def build_booking_message_blocks(
             "action_id": SLACK_ACTION_CANCEL_BOOKING,
             "value": (
                 CancelBookingActionValue(
+                    integration=booked_class.integration,
                     user_id=user_id,
                     class_id=str(booked_class.id),
                     scheduled_reminder_id=scheduled_reminder_id,
@@ -406,14 +405,20 @@ def build_booking_message_blocks(
             },
         )
     message = f"{BOOKING_EMOJI} {activity_url(host, booked_class)} ({booked_class.from_field}) er booket for <@{user_id}>"
-    blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": message}}]
+    blocks: list[dict[str, Any]] = [
+        {"type": "section", "text": {"type": "mrkdwn", "text": message}}
+    ]
     if len(buttons) > 0:
         blocks.append({"type": "actions", "elements": buttons})
     return {"message": message, "blocks": blocks}
 
 
-def verify_slack_request(body: bytes, headers: Headers, signing_secret: str):
+def verify_slack_request(body: bytes, headers: Headers, signing_secret: str) -> bool:
     # see https://api.slack.com/authentication/verifying-requests-from-slack
+    timestamp = headers.get("x-slack-request-timestamp")
+    signature = headers.get("x-slack-signature")
+    if timestamp is None or signature is None:
+        return False
     return SignatureVerifier(signing_secret=signing_secret).is_valid(
-        body, headers.get("x-slack-request-timestamp"), headers.get("x-slack-signature")
+        body, timestamp, signature
     )

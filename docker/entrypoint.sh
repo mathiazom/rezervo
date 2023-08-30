@@ -9,13 +9,10 @@ tail -f /var/log/rezervo.log &
 echo "Migrating database to most recent alembic version"
 (cd rezervo && alembic upgrade head)
 
-echo "Pulling user sessions"
 rezervo sessions pull
 
-echo "Creating cronjob for sessions pulling"
 rezervo cron sessionsjob
 
-echo "Updating crontab according to user configurations"
 rezervo cron refresh
 
 echo "Starting cron service..."

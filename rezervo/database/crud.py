@@ -7,9 +7,17 @@ from sqlalchemy.orm import Session
 from rezervo import models
 from rezervo.auth import auth0
 from rezervo.models import SessionState
-from rezervo.schemas.config import admin, user
-from rezervo.schemas.config.user import UserConfig as UserConfig
-from rezervo.schemas.session import UserSession
+from rezervo.schemas.config import admin
+from rezervo.schemas.config.admin import AdminConfig
+from rezervo.schemas.config.config import Config, config_from_stored
+from rezervo.schemas.config.user import (
+    IntegrationConfig,
+    IntegrationIdentifier,
+    IntegrationUser,
+    UserPreferences,
+    get_integration_config_from_integration_user,
+)
+from rezervo.schemas.schedule import UserSession, session_model_from_user_session
 from rezervo.utils.ical_utils import generate_calendar_token
 
 
@@ -26,15 +34,17 @@ def user_from_token(db: Session, settings, token) -> Optional[models.User]:
     return db.query(models.User).filter_by(jwt_sub=jwt_sub).one_or_none()
 
 
-def get_config_by_id(db: Session, config_id: UUID) -> Optional[models.Config]:
-    db_config_query = db.query(models.Config).filter_by(id=config_id)
-    db_config = db_config_query.one_or_none()
-    return db_config
-
-
-def create_user(db: Session, name: str, jwt_sub: str):
+def create_user(db: Session, name: str, jwt_sub: str, slack_id: Optional[str] = None):
     db_user = models.User(
-        name=name, jwt_sub=jwt_sub, cal_token=generate_calendar_token()
+        name=name,
+        jwt_sub=jwt_sub,
+        cal_token=generate_calendar_token(),
+        admin_config=admin.AdminConfig(
+            notifications=admin.Notifications(slack=admin.Slack(user_id=slack_id))
+            if slack_id is not None
+            else None,
+        ).dict(),
+        preferences=UserPreferences().dict(),
     )
     db.add(db_user)
     db.commit()
@@ -42,49 +52,86 @@ def create_user(db: Session, name: str, jwt_sub: str):
     return db_user
 
 
+def upsert_integration_user(
+    db: Session,
+    user_id: UUID,
+    integration: IntegrationIdentifier,
+    username: str,
+    password: str,
+):
+    db_integration_user = (
+        db.query(models.IntegrationUser)
+        .filter_by(user_id=user_id, integration=integration)
+        .one_or_none()
+    )
+    if db_integration_user is None:
+        db_integration_user = models.IntegrationUser(
+            user_id=user_id,
+            integration=integration,
+            username=username,
+            password=password,
+        )
+        db.add(db_integration_user)
+    else:
+        db_integration_user.username = username
+        db_integration_user.password = password
+    db.commit()
+    db.refresh(db_integration_user)
+    return db_integration_user
+
+
+def upsert_integration_user_token(
+    db: Session, user_id: UUID, integration: IntegrationIdentifier, token: str
+):
+    db.query(models.IntegrationUser).filter_by(
+        user_id=user_id, integration=integration
+    ).update({"auth_token": token})
+    db.commit()
+
+
+def get_integration_user(
+    db: Session, integration: IntegrationIdentifier, user_id: UUID
+) -> Optional[IntegrationUser]:
+    db_integration_user = (
+        db.query(models.IntegrationUser)
+        .filter_by(user_id=user_id, integration=integration)
+        .one_or_none()
+    )
+    if db_integration_user is None:
+        return None
+    return IntegrationUser.from_orm(db_integration_user)
+
+
+def get_integration_config(
+    db: Session, integration: IntegrationIdentifier, user_id: UUID
+) -> Optional[IntegrationConfig]:
+    user = get_integration_user(db, integration, user_id)
+    if user is None:
+        return None
+    return get_integration_config_from_integration_user(user)
+
+
+def update_integration_config(
+    db: Session, user_id: UUID, config: IntegrationConfig
+) -> Optional[models.IntegrationUser]:
+    db_integration_user = (
+        db.query(models.IntegrationUser)
+        .filter_by(user_id=user_id, integration=config.integration)
+        .one_or_none()
+    )
+    if db_integration_user is None:
+        return None
+    db_integration_user.active = config.active
+    db_integration_user.classes = config.dict()["classes"]
+    db.commit()
+    db.refresh(db_integration_user)
+    return db_integration_user
+
+
 def delete_user(db: Session, user_id: UUID):
     db_user = db.get(models.User, user_id)
     db.delete(db_user)
     db.commit()
-
-
-def create_config(
-    db: Session,
-    user_id: UUID,
-    sit_email: str,
-    sit_password: str,
-    slack_id: Optional[str],
-) -> models.Config:
-    db_config = models.Config(
-        user_id=user_id,
-        admin_config=admin.AdminConfig(
-            auth=admin.Auth(email=sit_email, password=sit_password),
-            notifications=admin.Notifications(slack=admin.Slack(user_id=slack_id))
-            if slack_id is not None
-            else None,
-        ).dict(),
-        config=user.UserConfig(classes=[]).dict(),
-    )
-    db.add(db_config)
-    db.commit()
-    db.refresh(db_config)
-    return db_config
-
-
-def get_user_config(db: Session, user_id: UUID) -> Optional[models.Config]:
-    db_config_query = db.query(models.Config).filter_by(user_id=user_id)
-    db_config: Optional[models.Config] = db_config_query.one_or_none()
-    return db_config
-
-
-def update_user_config(
-    db: Session, user_id: UUID, config: UserConfig
-) -> Optional[models.Config]:
-    db_config = get_user_config(db, user_id)
-    db_config.config = config.dict()
-    db.commit()
-    db.refresh(db_config)
-    return db_config
 
 
 def upsert_user_sessions(db: Session, user_id: UUID, user_sessions: list[UserSession]):
@@ -96,5 +143,37 @@ def upsert_user_sessions(db: Session, user_id: UUID, user_sessions: list[UserSes
         )
     )
     for s in user_sessions:
-        db.merge(models.Session(**s.dict()))
+        db.merge(session_model_from_user_session(s))
     db.commit()
+
+
+def get_user(db, user_id) -> Optional[models.User]:
+    return db.query(models.User).filter_by(id=user_id).one_or_none()
+
+
+def get_user_config_by_id(db, user_id) -> Optional[Config]:
+    db_user = get_user(db, user_id)
+    if db_user is None:
+        return None
+    return get_user_config(db_user)
+
+
+def get_user_config(user: models.User) -> Config:
+    return config_from_stored(
+        user.id,
+        UserPreferences(**user.preferences),
+        AdminConfig(**user.admin_config),
+    )
+
+
+def get_user_config_by_slack_id(db, slack_id) -> Optional[Config]:
+    for u in db.query(models.User).all():
+        user_config = get_user_config(u)
+        config = user_config.config
+        if config.notifications is None:
+            continue
+        if config.notifications.slack is None:
+            continue
+        if config.notifications.slack.user_id == slack_id:
+            return user_config
+    return None

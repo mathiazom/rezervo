@@ -51,6 +51,7 @@ ruff = "^0.0.285"
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"
 poethepoet = "^0.22.0"
+types-python-crontab = "^3.0.0.1"
 
 [tool.poe.tasks]
 fix = ["fmt", "lintfix"]
@@ -93,3 +94,6 @@ ignore = [
 
 [tool.ruff.per-file-ignores]
 "rezervo/alembic/env.py" = ["E402"]
+
+[tool.mypy]
+ignore_missing_imports = true
