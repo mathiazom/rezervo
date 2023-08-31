@@ -1,3 +1,4 @@
+name: "rezervo"
 services:
   db:
     container_name: rezervo-db
