@@ -1,6 +1,7 @@
 from typing import Optional
 
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.push import send_web_push
 from rezervo.notify.slack import (
     notify_auth_failure_slack,
     notify_booking_failure_slack,
@@ -55,6 +56,14 @@ def notify_booking(
     ical_url: str,
 ) -> None:
     slack_config = notifications_config.slack
+    push_subscription = notifications_config.push_notification_subscription
+
+    if push_subscription is not None:
+        return send_web_push(
+            push_subscription,
+            f"{booked_class.name} ({booked_class.from_field}) har blitt booket",
+        )
+
     if slack_config is not None:
         scheduled_reminder_id = None
         if notifications_config.reminder_hours_before is not None:

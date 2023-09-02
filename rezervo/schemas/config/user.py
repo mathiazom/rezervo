@@ -7,8 +7,19 @@ from pydantic import BaseModel
 from rezervo.schemas.base import OrmBase
 
 
+class PushNotificationSubscriptionKeys(OrmBase):
+    p256dh: str
+    auth: str
+
+
+class PushNotificationSubscription(OrmBase):
+    endpoint: str
+    keys: PushNotificationSubscriptionKeys
+
+
 class Notifications(OrmBase):
     reminder_hours_before: Optional[float] = None
+    push_notification_subscription: Optional[PushNotificationSubscription] = None
 
 
 class ClassTime(OrmBase):
