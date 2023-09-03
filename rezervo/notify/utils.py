@@ -22,6 +22,8 @@ def transfersh_direct_url(url: str):
 
 def activity_url(host: Optional[str], _class: RezervoClass):
     if host:
-        return f"<{host}/{_class.integration}/?classId={_class.id}|*{_class.name}*>"
+        return (
+            f"<{host}/{_class.integration.value}/?classId={_class.id}|*{_class.name}*>"
+        )
 
     return f"*{_class.name}*"
