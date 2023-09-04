@@ -32,7 +32,12 @@ def notify_slack(
 ):
     try:
         SlackClient(token=slack_token).chat_postMessage(
-            channel=channel, text=message, blocks=message_blocks, thread_ts=thread_ts
+            channel=channel,
+            text=message,
+            blocks=message_blocks,
+            thread_ts=thread_ts,
+            unfurl_links=False,
+            unfurl_media=False,
         )
     except SlackApiError as e:
         err.log(f"Could not post notification to Slack: {e.response['error']}")
@@ -87,7 +92,12 @@ def schedule_dm_slack(
 ) -> Optional[str]:
     try:
         res = SlackClient(token=slack_token).chat_scheduleMessage(
-            channel=user_id, text=message, blocks=message_blocks, post_at=post_at
+            channel=user_id,
+            text=message,
+            blocks=message_blocks,
+            post_at=post_at,
+            unfurl_links=False,
+            unfurl_media=False,
         )
         print(f"Scheduled direct message to Slack: {res['message']['text']}")
         return res.data["scheduled_message_id"]
