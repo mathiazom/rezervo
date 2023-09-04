@@ -75,7 +75,11 @@ def fetch_sit_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSe
                 )
                 continue
             sessions_json = res.json()
-            sit_sessions = pydantic.parse_obj_as(list[SitSession], sessions_json)
+            sit_sessions = []
+            for s in sessions_json:
+                if s["type"] != "groupclass":
+                    continue
+                sit_sessions.append(pydantic.parse_obj_as(SitSession, s))
             past_and_imminent_sessions = [
                 UserSession(
                     integration=IntegrationIdentifier.SIT,
