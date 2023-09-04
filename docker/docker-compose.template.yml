@@ -22,7 +22,7 @@ services:
 #      PGADMIN_DEFAULT_PASSWORD: SURELY_SOMETHING_STRONG
   rezervo:
     container_name: rezervo
-    image: ghcr.io/mathiazom/sit-rezervo:main
+    image: ghcr.io/mathiazom/rezervo:main
     command: ["--host", "0.0.0.0", "--port", "8000", "--reload"]
     depends_on:
       db:
