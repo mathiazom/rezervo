@@ -14,12 +14,51 @@ from rezervo.schemas.config.user import (
     IntegrationConfig,
     IntegrationIdentifier,
     IntegrationUser,
+    IntegrationUserCredentials,
+    IntegrationUserProfile,
     UserNameWithIsSelf,
 )
 from rezervo.settings import Settings, get_settings
 from rezervo.utils.config_utils import class_config_recurrent_id
 
 router = APIRouter()
+
+
+@router.get("/{integration}/user", response_model=IntegrationUserProfile)
+def get_integration_user_profile(
+    integration: IntegrationIdentifier,
+    token=Depends(token_auth_scheme),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    config_info = crud.get_integration_user_profile(db, integration, db_user.id)
+    if config_info is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    return config_info
+
+
+@router.put("/{integration}/user", response_model=IntegrationUserProfile)
+def put_integration_user_creds(
+    integration: IntegrationIdentifier,
+    integration_user_creds: IntegrationUserCredentials,
+    background_tasks: BackgroundTasks,
+    token=Depends(token_auth_scheme),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    updated_config = crud.upsert_integration_user(
+        db, db_user.id, integration, integration_user_creds
+    )
+    if updated_config is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    background_tasks.add_task(refresh_cron)
+    return updated_config
 
 
 @router.get("/{integration}/config", response_model=IntegrationConfig)

@@ -47,10 +47,16 @@ class IntegrationConfig(BaseIntegrationConfig):
     integration: IntegrationIdentifier
 
 
-class IntegrationUser(IntegrationConfig):
-    user_id: UUID
+class IntegrationUserProfile(OrmBase):
     username: str
+
+
+class IntegrationUserCredentials(IntegrationUserProfile):
     password: str
+
+
+class IntegrationUser(IntegrationConfig, IntegrationUserCredentials):
+    user_id: UUID
     auth_token: Optional[str] = None
 
 

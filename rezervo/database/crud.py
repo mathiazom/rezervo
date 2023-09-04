@@ -14,6 +14,8 @@ from rezervo.schemas.config.user import (
     IntegrationConfig,
     IntegrationIdentifier,
     IntegrationUser,
+    IntegrationUserCredentials,
+    IntegrationUserProfile,
     UserPreferences,
     get_integration_config_from_integration_user,
 )
@@ -56,8 +58,7 @@ def upsert_integration_user(
     db: Session,
     user_id: UUID,
     integration: IntegrationIdentifier,
-    username: str,
-    password: str,
+    creds: IntegrationUserCredentials,
 ):
     db_integration_user = (
         db.query(models.IntegrationUser)
@@ -68,13 +69,13 @@ def upsert_integration_user(
         db_integration_user = models.IntegrationUser(
             user_id=user_id,
             integration=integration,
-            username=username,
-            password=password,
+            username=creds.username,
+            password=creds.password,
         )
         db.add(db_integration_user)
     else:
-        db_integration_user.username = username
-        db_integration_user.password = password
+        db_integration_user.username = creds.username
+        db_integration_user.password = creds.password
     db.commit()
     db.refresh(db_integration_user)
     return db_integration_user
@@ -109,6 +110,15 @@ def get_integration_config(
     if user is None:
         return None
     return get_integration_config_from_integration_user(user)
+
+
+def get_integration_user_profile(
+    db: Session, integration: IntegrationIdentifier, user_id: UUID
+) -> Optional[IntegrationUserProfile]:
+    user = get_integration_user(db, integration, user_id)
+    if user is None:
+        return None
+    return IntegrationUserProfile.from_orm(user)
 
 
 def update_integration_config(

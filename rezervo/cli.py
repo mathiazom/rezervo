@@ -24,7 +24,10 @@ from rezervo.notify.notify import notify_auth_failure, notify_booking_failure
 from rezervo.schemas.config.config import (
     read_app_config,
 )
-from rezervo.schemas.config.user import IntegrationIdentifier
+from rezervo.schemas.config.user import (
+    IntegrationIdentifier,
+    IntegrationUserCredentials,
+)
 from rezervo.sessions import pull_sessions
 from rezervo.settings import get_settings
 from rezervo.utils.cron_utils import (
@@ -209,7 +212,12 @@ def upsert_user_integration(
         if user is None:
             rprint(f"User '{name}' not found")
             raise typer.Exit(1)
-        crud.upsert_integration_user(db, user.id, integration, username, password)
+        crud.upsert_integration_user(
+            db,
+            user.id,
+            integration,
+            IntegrationUserCredentials(username=username, password=password),
+        )
         rprint(f"User '{user.name}' integrated with {integration.name}")
 
 
