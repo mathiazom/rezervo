@@ -18,3 +18,8 @@ config.json
 *.log
 
 **/.env
+
+# Web Push VAPID keys
+vapid_keypair.pem
+vapid_private.txt
+vapid_public.txt

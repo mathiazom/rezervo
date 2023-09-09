@@ -9,7 +9,12 @@ from rezervo.auth import auth0
 from rezervo.models import SessionState
 from rezervo.schemas.config import admin
 from rezervo.schemas.config.admin import AdminConfig
-from rezervo.schemas.config.config import Config, config_from_stored
+from rezervo.schemas.config.config import (
+    Config,
+    PushNotificationSubscription,
+    PushNotificationSubscriptionKeys,
+    config_from_stored,
+)
 from rezervo.schemas.config.user import (
     IntegrationConfig,
     IntegrationIdentifier,
@@ -165,20 +170,35 @@ def get_user_config_by_id(db, user_id) -> Optional[Config]:
     db_user = get_user(db, user_id)
     if db_user is None:
         return None
-    return get_user_config(db_user)
+    return get_user_config(db, db_user)
 
 
-def get_user_config(user: models.User) -> Config:
+def get_user_push_notification_subscriptions(
+    db, user_id: UUID
+) -> list[PushNotificationSubscription]:
+    return [
+        PushNotificationSubscription(
+            endpoint=db_subscription.endpoint,
+            keys=PushNotificationSubscriptionKeys(**db_subscription.keys),
+        )
+        for db_subscription in db.query(models.PushNotificationSubscription).filter_by(
+            user_id=user_id
+        )
+    ]
+
+
+def get_user_config(db, user: models.User) -> Config:
     return config_from_stored(
         user.id,
         UserPreferences(**user.preferences),
+        get_user_push_notification_subscriptions(db, user.id),
         AdminConfig(**user.admin_config),
     )
 
 
 def get_user_config_by_slack_id(db, slack_id) -> Optional[Config]:
     for u in db.query(models.User).all():
-        user_config = get_user_config(u)
+        user_config = get_user_config(db, u)
         config = user_config.config
         if config.notifications is None:
             continue
@@ -187,3 +207,58 @@ def get_user_config_by_slack_id(db, slack_id) -> Optional[Config]:
         if config.notifications.slack.user_id == slack_id:
             return user_config
     return None
+
+
+def upsert_push_notification_subscription(
+    db, user_id, subscription: PushNotificationSubscription
+):
+    db_subscription = (
+        db.query(models.PushNotificationSubscription)
+        .filter_by(user_id=user_id, endpoint=subscription.endpoint)
+        .one_or_none()
+    )
+    if db_subscription is None:
+        db_subscription = models.PushNotificationSubscription(
+            user_id=user_id,
+            endpoint=subscription.endpoint,
+            keys=subscription.keys.dict(),
+        )
+        db.add(db_subscription)
+    else:
+        db_subscription.keys = subscription.keys
+    db.commit()
+    db.refresh(db_subscription)
+    return db_subscription
+
+
+def delete_push_notification_subscription(
+    db, user_id: UUID, subscription: PushNotificationSubscription
+) -> bool:
+    db_subscription = (
+        db.query(models.PushNotificationSubscription)
+        .filter_by(
+            user_id=user_id,
+            endpoint=subscription.endpoint,
+            keys=subscription.keys.dict(),
+        )
+        .one_or_none()
+    )
+    if db_subscription is None:
+        return False
+    db.delete(db_subscription)
+    db.commit()
+    return True
+
+
+def verify_push_notification_subscription(
+    db, user_id: UUID, subscription: PushNotificationSubscription
+) -> bool:
+    return (
+        db.query(models.PushNotificationSubscription)
+        .filter_by(
+            user_id=user_id,
+            endpoint=subscription.endpoint,
+            keys=subscription.keys.dict(),
+        )
+        .one_or_none()
+    ) is not None

@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     AUTH0_MANAGEMENT_API_CLIENT_ID: str | None = None
     AUTH0_MANAGEMENT_API_CLIENT_SECRET: str | None = None
 
-    REZERVO_WEB_API: str | None = None
+    WEB_PUSH_EMAIL: str | None = None
     WEB_PUSH_PRIVATE_KEY: str | None = None
 
     class Config:

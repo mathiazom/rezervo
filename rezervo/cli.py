@@ -140,6 +140,10 @@ def book(
         print(f"Awoke at {datetime.now(tz)}")
     with stat("Booking class..."):
         booking_result = book_class(integration_user, _class, config)
+    if isinstance(booking_result, AuthenticationError):
+        if config.notifications is not None:
+            notify_auth_failure(config.notifications, booking_result, check_run)
+        raise typer.Exit(1)
     if isinstance(booking_result, BookingError):
         if config.notifications is not None:
             notify_booking_failure(

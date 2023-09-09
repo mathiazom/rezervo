@@ -13,6 +13,24 @@ Automatic booking of [Sit Trening group classes](https://www.sit.no/trening/grup
     poetry install
     ```
 3. In the [`rezervo`](rezervo) directory, define `.env` and `config.json` based on [`.env.template`](rezervo/.env.template) and [`config.template.json`](rezervo/config.template.json). This includes defining Auth0 tenant details, credentials for Slack notifications and app-wide booking preferences.
+   
+   <details>
+      <summary>📳 Web Push variables</summary>
+   
+      ##### Web Push variables
+      Web push requires a VAPID key pair. This can be generated with the following command using `openssl`:
+      ```shell
+      openssl ecparam -name prime256v1 -genkey -noout -out vapid_keypair.pem
+      ```
+      The private key can then be encoded as base64 and added to the `.env` file as `WEB_PUSH_PRIVATE_KEY`:
+      ```shell
+      openssl ec -in ./vapid_private.pem -outform DER|tail -c +8|head -c 32|base64|tr -d '=' |tr '/+' '_-' >> vapid_private.txt
+      ```
+      Similarly, the public key can be encoded as base64 and included in the client application receiving the notifications:
+      ```shell
+      openssl ec -in ./vapid_private.pem -pubout -outform DER|tail -c 65|base64|tr -d '=' |tr '/+' '_-'|tr -d '\n' >> vapid_public.txt
+      ```
+   </details>
 
 
 #### 🐋 Run with Docker

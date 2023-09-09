@@ -22,13 +22,28 @@ class User(Base):
         return f"<User (id='{self.id}' name='{self.name}' jwt_sub='{self.jwt_sub}' preferences={self.preferences} admin_config={self.admin_config})>"
 
 
+class PushNotificationSubscription(Base):
+    __tablename__ = "push_notification_subscriptions"
+
+    user_id = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
+    )
+    endpoint = Column(String, primary_key=True)
+    keys = Column(JSONB, nullable=False)
+
+    def __repr__(self):
+        return f"<PushNotificationSubscription (user_id='{self.user_id}' endpoint={self.endpoint})>"
+
+
 class IntegrationUser(Base):
     __tablename__ = "integration_users"
 
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
-    integration = Column(Enum(IntegrationIdentifier), primary_key=True)
+    integration = Column(
+        Enum(IntegrationIdentifier, name="integration"), primary_key=True
+    )
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     auth_token = Column(String, nullable=True)
@@ -50,7 +65,11 @@ class SessionState(enum.Enum):
 class Session(Base):
     __tablename__ = "sessions"
 
-    integration = Column(Enum(IntegrationIdentifier), nullable=False, primary_key=True)
+    integration = Column(
+        Enum(IntegrationIdentifier, name="integration"),
+        nullable=False,
+        primary_key=True,
+    )
     class_id = Column(String, primary_key=True)
     user_id = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True

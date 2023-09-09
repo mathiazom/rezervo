@@ -40,7 +40,7 @@ def book_class_api(
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
-    config = crud.get_user_config(db_user).config
+    config = crud.get_user_config(db, db_user).config
     print("Searching for class...")
     _class = find_authed_class_by_id(integration_user, config, payload.class_id)
     match _class:
@@ -83,7 +83,7 @@ def cancel_booking_api(
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
-    config = crud.get_user_config(db_user).config
+    config = crud.get_user_config(db, db_user).config
     print("Searching for class...")
     _class = find_authed_class_by_id(integration_user, config, payload.class_id)
     match _class:

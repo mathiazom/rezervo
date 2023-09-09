@@ -4,6 +4,7 @@ from uuid import UUID
 from deepmerge import Merger  # type: ignore[import]
 from pydantic import BaseModel, parse_file_as
 
+from rezervo.schemas.base import OrmBase
 from rezervo.schemas.config import admin, app, user
 from rezervo.schemas.config.admin import AdminConfig
 from rezervo.schemas.config.app import AppConfig
@@ -26,8 +27,19 @@ class Slack(admin.Slack, app.Slack):
     pass
 
 
+class PushNotificationSubscriptionKeys(OrmBase):
+    p256dh: str
+    auth: str
+
+
+class PushNotificationSubscription(OrmBase):
+    endpoint: str
+    keys: PushNotificationSubscriptionKeys
+
+
 class Notifications(user.Notifications, admin.Notifications, app.Notifications):
     slack: Optional[Slack] = None
+    push_notification_subscriptions: Optional[list[PushNotificationSubscription]] = None
 
 
 class ConfigValue(user.UserPreferences, admin.AdminConfig, app.AppConfig):
@@ -61,12 +73,19 @@ CONFIG_MERGER = Merger(
 
 
 def config_from_stored(
-    user_id: UUID, preferences: UserPreferences, admin_config: AdminConfig
+    user_id: UUID,
+    preferences: UserPreferences,
+    push_notification_subscriptions: list[PushNotificationSubscription],
+    admin_config: AdminConfig,
 ) -> Config:
     merged_config: dict[str, Any] = {}
     for c in [preferences.dict(), admin_config.dict(), read_app_config().dict()]:
         CONFIG_MERGER.merge(merged_config, c)
-    return Config(user_id=user_id, config=ConfigValue(**merged_config))
+    config_value = ConfigValue(**merged_config)
+    config_value.notifications.push_notification_subscriptions = (
+        push_notification_subscriptions
+    )
+    return Config(user_id=user_id, config=config_value)
 
 
 def read_app_config() -> AppConfig:
