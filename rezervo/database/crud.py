@@ -79,6 +79,12 @@ def upsert_integration_user(
         )
         db.add(db_integration_user)
     else:
+        if (
+            db_integration_user.username == creds.username
+            and db_integration_user.password == creds.password
+        ):
+            return db_integration_user
+        db_integration_user.auth_token = None  # forget token for previous credentials
         db_integration_user.username = creds.username
         db_integration_user.password = creds.password
     db.commit()
