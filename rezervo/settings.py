@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     AUTH0_MANAGEMENT_API_CLIENT_ID: str | None = None
     AUTH0_MANAGEMENT_API_CLIENT_SECRET: str | None = None
 
+    WEB_PUSH_EMAIL: str | None = None
+    WEB_PUSH_PRIVATE_KEY: str | None = None
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

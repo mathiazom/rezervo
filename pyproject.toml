@@ -47,6 +47,7 @@ auth0-python = "^4.2.0"
 icalendar = "^5.0.7"
 black = "^23.7.0"
 ruff = "^0.0.285"
+pywebpush = "^1.14.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"

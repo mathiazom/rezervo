@@ -127,6 +127,7 @@ def try_authenticate(
             f"Authentication failed after {attempts} attempt"
             + ("s" if attempts != 1 else "")
         )
+        return result
     if result is None:
         return AuthenticationError.ERROR
     with SessionLocal() as db:

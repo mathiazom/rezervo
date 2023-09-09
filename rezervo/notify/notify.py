@@ -1,6 +1,11 @@
 from typing import Optional
 
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.push import (
+    notify_auth_failure_web_push,
+    notify_booking_failure_web_push,
+    notify_booking_web_push,
+)
 from rezervo.notify.slack import (
     notify_auth_failure_slack,
     notify_booking_failure_slack,
@@ -18,16 +23,24 @@ def notify_auth_failure(
     error: Optional[AuthenticationError] = None,
     check_run: bool = False,
 ) -> None:
+    notified = False
+    push_subscriptions = notifications_config.push_notification_subscriptions
+    if push_subscriptions is not None:
+        for subscription in push_subscriptions:
+            notify_auth_failure_web_push(subscription, error, check_run)
+            notified = True
     slack_config = notifications_config.slack
     if slack_config is not None:
-        return notify_auth_failure_slack(
+        notify_auth_failure_slack(
             slack_config.bot_token,
             slack_config.channel_id,
             slack_config.user_id,
             error,
             check_run=check_run,
         )
-    warn.log("No notification targets, auth failure notification will not be sent!")
+        notified = True
+    if not notified:
+        warn.log("No notification targets, auth failure notification will not be sent!")
 
 
 def notify_booking_failure(
@@ -36,9 +49,17 @@ def notify_booking_failure(
     error: Optional[BookingError] = None,
     check_run: bool = False,
 ) -> None:
+    notified = False
+    push_subscriptions = notifications_config.push_notification_subscriptions
+    if push_subscriptions is not None:
+        for subscription in push_subscriptions:
+            notify_booking_failure_web_push(
+                subscription, _class_config, error, check_run
+            )
+            notified = True
     slack_config = notifications_config.slack
     if slack_config is not None:
-        return notify_booking_failure_slack(
+        notify_booking_failure_slack(
             slack_config.bot_token,
             slack_config.channel_id,
             slack_config.user_id,
@@ -46,7 +67,11 @@ def notify_booking_failure(
             error,
             check_run,
         )
-    warn.log("No notification targets, booking failure notification will not be sent!")
+        notified = True
+    if not notified:
+        warn.log(
+            "No notification targets, booking failure notification will not be sent!"
+        )
 
 
 def notify_booking(
@@ -54,6 +79,12 @@ def notify_booking(
     booked_class: RezervoClass,
     ical_url: str,
 ) -> None:
+    notified = False
+    push_subscriptions = notifications_config.push_notification_subscriptions
+    if push_subscriptions is not None:
+        for subscription in push_subscriptions:
+            notify_booking_web_push(subscription, booked_class)
+            notified = True
     slack_config = notifications_config.slack
     if slack_config is not None:
         scheduled_reminder_id = None
@@ -65,7 +96,7 @@ def notify_booking(
             transfersh_url = notifications_config.transfersh.url
         else:
             transfersh_url = None
-        return notify_booking_slack(
+        notify_booking_slack(
             slack_config.bot_token,
             slack_config.channel_id,
             slack_config.user_id,
@@ -75,7 +106,9 @@ def notify_booking(
             transfersh_url,
             scheduled_reminder_id,
         )
-    warn.log("No notification targets, booking notification will not be sent!")
+        notified = True
+    if not notified:
+        warn.log("No notification targets, booking notification will not be sent!")
 
 
 def schedule_class_reminder(
