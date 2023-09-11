@@ -126,7 +126,7 @@ def schedule_class_reminder_slack(
     start_time = datetime.datetime.fromisoformat(_class.from_field)
     reminder_time = start_time - datetime.timedelta(hours=hours_before)
     reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
-    message = f"Husk *{activity_url(host, _class)}* ({_class.from_field}, *{_class.studio.name}*) om {hours_before:g} timer!"
+    message = f"Husk *{activity_url(host, _class)}* ({_class.from_field[:-3]}, *{_class.studio.name}*) om {hours_before:g} timer!"
     return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
 
 
@@ -395,7 +395,7 @@ def build_booking_message_blocks(
                 "title": {"type": "plain_text", "text": "Er du sikker?"},
                 "text": {
                     "type": "plain_text",
-                    "text": f"Du er i ferd med å avbestille {booked_class.name} ({booked_class.from_field}, *{booked_class.studio.name}*). "
+                    "text": f"Du er i ferd med å avbestille {booked_class.name} ({booked_class.from_field[:-3]}, *{booked_class.studio.name}*). "
                     f"Dette kan ikke angres!",
                 },
                 "confirm": {"type": "plain_text", "text": "Avbestill"},
@@ -414,7 +414,7 @@ def build_booking_message_blocks(
                 "url": ical_tsh_url,
             },
         )
-    message = f"{BOOKING_EMOJI} {activity_url(host, booked_class)} ({booked_class.from_field}, *{booked_class.studio.name}*) er booket for <@{user_id}>"
+    message = f"{BOOKING_EMOJI} {activity_url(host, booked_class)} ({booked_class.from_field[:-3]}, *{booked_class.studio.name}*) er booket for <@{user_id}>"
     blocks: list[dict[str, Any]] = [
         {"type": "section", "text": {"type": "mrkdwn", "text": message}}
     ]
