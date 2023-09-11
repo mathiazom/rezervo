@@ -44,7 +44,7 @@ def notify_booking_web_push(
 ) -> None:
     if not notify_web_push(
         subscription,
-        f"{booked_class.name} ({booked_class.from_field}) har blitt booket",
+        f"{booked_class.name} ({booked_class.from_field}, {booked_class.studio.name}) er booket",
     ):
         err.log("Failed to send booking notification via web push")
         return
