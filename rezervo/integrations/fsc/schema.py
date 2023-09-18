@@ -1,0 +1,224 @@
+from datetime import datetime
+from enum import Enum
+from typing import Dict, List, Optional, Union
+
+from pydantic import BaseModel
+
+from rezervo.models import SessionState
+from rezervo.schemas.config.user import IntegrationIdentifier
+from rezervo.schemas.schedule import RezervoClass, RezervoInstructor, RezervoStudio
+
+
+class FscResponse(BaseModel):
+    success: bool
+    errors: Optional[Dict[str, List[str]]] = None
+
+
+class Duration(BaseModel):
+    start: str
+    end: str
+
+
+class GroupActivityProduct(BaseModel):
+    id: int
+    name: str
+
+
+class BusinessUnit(BaseModel):
+    id: int
+    name: str
+    location: str
+    companyNameForInvoice: str
+
+
+class Location(BaseModel):
+    id: int
+    name: str
+
+
+class Instructor(BaseModel):
+    id: int
+    name: str
+    isSubstitute: bool
+
+
+class Slots(BaseModel):
+    total: int
+    totalBookable: int
+    reservedForDropin: int
+    leftToBook: int
+    leftToBookIncDropin: int  # also known as leftToBookIncludingDropIn
+    hasWaitingList: bool
+    inWaitingList: int
+
+
+class FscClass(BaseModel):
+    id: int
+    name: str
+    duration: Duration
+    groupActivityProduct: GroupActivityProduct
+    businessUnit: BusinessUnit
+    locations: List[Location]
+    instructors: List[Instructor]
+    bookableEarliest: str
+    bookableLatest: str
+    externalMessage: Optional[str] = None
+    internalMessage: Optional[str] = None
+    cancelled: bool
+    slots: Slots
+
+
+class FscWeekScheduleResponse(FscResponse):
+    data: List[FscClass]
+
+
+class Customer(BaseModel):
+    id: int
+    firstName: str
+    lastName: str
+
+
+class GroupActivity(BaseModel):
+    id: int
+    name: str
+
+
+class WaitingListBooking(BaseModel):
+    id: int
+    waitingListPosition: int
+
+
+class Order(BaseModel):
+    id: int
+    number: str
+    externalId: Optional[str]
+    lastModified: str
+
+
+class GroupActivityBooking(BaseModel):
+    id: int
+    order: Order
+
+
+class BookingType(Enum):
+    WAITING_LIST = "waitingListBooking"
+    GROUP_ACTIVITY = "groupActivityBooking"
+
+
+class BookingData(BaseModel):
+    type: BookingType
+    groupActivity: GroupActivity
+    businessUnit: BusinessUnit
+    customer: Customer
+    duration: Duration
+    waitingListBooking: Optional[WaitingListBooking] = None
+    groupActivityBooking: Optional[GroupActivityBooking] = None
+    additionToEventBooking: Optional[object] = None
+
+
+class BookingsResponse(FscResponse):
+    data: Optional[List[BookingData]] = None
+
+
+class Country(BaseModel):
+    id: int
+    name: str
+    alpha2: str
+
+
+class ShippingAddress(BaseModel):
+    postalCode: str
+    city: str
+    street: str
+    careOf: str
+    country: Country
+
+
+class MobilePhone(BaseModel):
+    number: str
+    countryCode: int
+
+
+class CustomerType(BaseModel):
+    id: int
+    name: str
+
+
+class ProfileImage(BaseModel):
+    id: int
+
+
+class Consent(BaseModel):
+    id: int
+    name: str
+
+
+class UserDetails(BaseModel):
+    id: int
+    firstName: str
+    lastName: str
+    sex: str
+    ssn: Optional[str] = None
+    birthDate: str
+    shippingAddress: ShippingAddress
+    billingAddress: Optional[
+        dict
+    ] = None  # You can create a separate BillingAddress class if needed
+    email: str
+    mobilePhone: MobilePhone
+    businessUnit: BusinessUnit  # Reusing existing BusinessUnit schema
+    customerType: CustomerType
+    customerTypeEndDate: Optional[str] = None
+    customerNumber: str
+    cardNumber: str
+    acceptedBookingTerms: bool
+    acceptedSubscriptionTerms: bool
+    acceptedRegistrationTerms: str
+    profileImage: ProfileImage
+    benefitStatus: Optional[Union[int, str]] = None  # Type based on actual usage
+    memberJoinDate: str
+    allowMassSendEmail: bool
+    allowMassSendMail: bool
+    allowMassSendSms: bool
+    consents: List[Consent]
+    temporary: Optional[Union[int, str]] = None  # Type based on actual usage
+    lastPasswordChangedTime: str
+
+
+class UserDetailsResponse(FscResponse):
+    data: UserDetails
+    auth: Dict[str, int]
+
+
+def session_state_from_fsc(booking_type: BookingType) -> SessionState:
+    match booking_type:
+        case BookingType.GROUP_ACTIVITY:
+            return SessionState.BOOKED
+        case BookingType.WAITING_LIST:
+            return SessionState.WAITLIST
+    return SessionState.UNKNOWN
+
+
+def to_local_date_str(date: str) -> str:
+    return date.replace("Z", "")[:-4]
+
+
+def rezervo_class_from_fsc_class(fsc_class: FscClass) -> RezervoClass:
+    return RezervoClass(
+        integration=IntegrationIdentifier.FSC,
+        id=fsc_class.id,
+        name=fsc_class.groupActivityProduct.name,
+        activityId=fsc_class.groupActivityProduct.id,
+        from_field=to_local_date_str(fsc_class.duration.start),
+        to=to_local_date_str(fsc_class.duration.end),
+        instructors=[RezervoInstructor(name=s.name) for s in fsc_class.instructors],
+        studio=RezervoStudio(
+            id=fsc_class.businessUnit.id,
+            name=fsc_class.businessUnit.name,
+        ),
+        userStatus=None,
+        bookable=datetime.fromisoformat(to_local_date_str(fsc_class.bookableEarliest))
+        < datetime.now()
+        < datetime.fromisoformat(to_local_date_str(fsc_class.bookableLatest)),
+        bookingOpensAt=to_local_date_str(fsc_class.bookableEarliest),
+    )
