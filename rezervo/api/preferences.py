@@ -19,7 +19,15 @@ def get_user_preferences(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return UserPreferences(**db_user.preferences)
+
+    with_slack_notifications = db_user.preferences.get("notifications", {}) | {
+        "slack_notifications": True
+        if "notifications" in db_user.admin_config
+        and "slack" in db_user.admin_config["notifications"]
+        else False
+    }
+    preferences = db_user.preferences | {"notifications": with_slack_notifications}
+    return UserPreferences(**preferences)
 
 
 @router.put("/preferences", response_model=UserPreferences)
