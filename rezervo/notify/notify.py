@@ -86,7 +86,7 @@ def notify_booking(
             notify_booking_web_push(subscription, booked_class)
             notified = True
     slack_config = notifications_config.slack
-    if slack_config is not None:
+    if slack_config is not None and slack_config.user_id is not None:
         scheduled_reminder_id = None
         if notifications_config.reminder_hours_before is not None:
             scheduled_reminder_id = schedule_class_reminder(

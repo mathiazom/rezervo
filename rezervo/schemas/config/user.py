@@ -9,6 +9,7 @@ from rezervo.schemas.base import OrmBase
 
 class Notifications(OrmBase):
     reminder_hours_before: Optional[float] = None
+    slack_notifications: Optional[bool] = None
 
 
 class ClassTime(OrmBase):
