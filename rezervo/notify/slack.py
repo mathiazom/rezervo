@@ -338,8 +338,8 @@ def notify_booking_slack(
     user_id: str,
     host: Optional[str],
     booked_class: RezervoClass,
-    ical_url: str,
-    transfersh_url: Optional[str],
+    ical_url: Optional[str] = None,
+    transfersh_url: Optional[str] = None,
     scheduled_reminder_id: Optional[str] = None,
 ) -> None:
     message_blocks = build_booking_message_blocks(
@@ -349,7 +349,11 @@ def notify_booking_slack(
         filename = f"{booked_class.id}.ics"
         print(f"Uploading {filename} to {transfersh_url}")
         try:
-            ical_tsh_url = upload_ical_to_transfersh(transfersh_url, ical_url, filename)
+            ical_tsh_url = (
+                upload_ical_to_transfersh(transfersh_url, ical_url, filename)
+                if ical_url is not None
+                else None
+            )
             message_blocks = build_booking_message_blocks(
                 booked_class, user_id, host, ical_tsh_url, scheduled_reminder_id
             )

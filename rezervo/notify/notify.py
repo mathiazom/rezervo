@@ -77,7 +77,7 @@ def notify_booking_failure(
 def notify_booking(
     notifications_config: config.Notifications,
     booked_class: RezervoClass,
-    ical_url: str,
+    ical_url: Optional[str] = None,
 ) -> None:
     notified = False
     push_subscriptions = notifications_config.push_notification_subscriptions

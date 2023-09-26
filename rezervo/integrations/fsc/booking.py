@@ -144,8 +144,7 @@ def try_book_fsc_class(
         + (f" after {attempts} attempts!" if attempts != 1 else "!")
     )
     if config.notifications:
-        ical_url = "not supported"
-        notify_booking(config.notifications, _class, ical_url)
+        notify_booking(config.notifications, _class)
     return None
 
 
