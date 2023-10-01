@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -18,7 +18,6 @@ from rezervo.integrations.sit.auth import (
     fetch_public_token,
 )
 from rezervo.integrations.sit.consts import (
-    BOOKING_OPEN_DAYS_BEFORE_CLASS,
     MY_SESSIONS_URL,
 )
 from rezervo.integrations.sit.schedule import fetch_sit_schedule
@@ -44,7 +43,7 @@ from rezervo.utils.time_utils import total_days_for_next_whole_weeks
 def fetch_sit_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSession]]:
     planned_sit_schedule = fetch_sit_schedule(
         fetch_public_token(),
-        days=total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS),
+        total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS),
     )
     with SessionLocal() as db:
         db_sit_users_query = db.query(models.IntegrationUser).filter(
@@ -133,10 +132,10 @@ def get_user_planned_sessions_from_schedule(
                 )
                 if not time_matches:
                     continue
-                # check if start time is too close to now (if so, it is either already booked or will not be booked)
-                if start_time < datetime.now() + timedelta(
-                    days=BOOKING_OPEN_DAYS_BEFORE_CLASS
-                ):
+
+                opening_time = datetime.fromisoformat(c.bookingOpensAt)
+                # check if opening_time is too close to now (if so, it is either already booked or will not be booked)
+                if opening_time < datetime.now():
                     continue
                 classes.append(c)
     return classes

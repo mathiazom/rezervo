@@ -1,5 +1,5 @@
-import datetime
 import re
+from datetime import datetime, timedelta
 from re import Pattern
 from typing import AnyStr
 from uuid import UUID
@@ -7,7 +7,8 @@ from uuid import UUID
 from crontab import CronItem, CronTab
 
 from rezervo import models
-from rezervo.integrations.active import get_integration
+from rezervo.errors import AuthenticationError, BookingError
+from rezervo.integrations.common import find_class
 from rezervo.schemas.config.config import Config, Cron
 from rezervo.schemas.config.user import Class, IntegrationConfig, IntegrationIdentifier
 from rezervo.settings import get_settings
@@ -56,7 +57,7 @@ def build_cron_comment_prefix_for_user_integration(
 
 def build_cron_job_for_class(
     index: int,
-    _class: Class,
+    _class_config: Class,
     integration: IntegrationIdentifier,
     cron_config: Cron,
     user: models.User,
@@ -67,14 +68,19 @@ def build_cron_job_for_class(
             integration, index, cron_config, user.id, precheck
         ),
         comment=f"{build_cron_comment_prefix_for_user_integration(user.id, integration)} --- {user.name} --- "
-        f"{_class.display_name}{' --- [precheck]' if precheck else ''}",
+        f"{_class_config.display_name}{' --- [precheck]' if precheck else ''}",
         pre_comment=True,
     )
+    _class = find_class(IntegrationIdentifier(integration), _class_config)
+    if isinstance(_class, BookingError) or isinstance(
+        _class_config, AuthenticationError
+    ):
+        print("Failed to fetch class info for booking schedule")
+        return
     j.setall(
         *generate_booking_schedule(
-            _class,
+            datetime.fromisoformat(_class.bookingOpensAt),
             cron_config,
-            get_integration(integration).booking_open_days_before_class,
             precheck,
         )
     )
@@ -82,34 +88,25 @@ def build_cron_job_for_class(
 
 
 def generate_booking_schedule(
-    _class: Class, cron_config: Cron, booking_open_days_before: int, precheck: bool
+    opening_time: datetime, cron_config: Cron, precheck: bool
 ):
-    # Using current datetime simply as a starting point
-    # We really only care about the "wall clock" part, which is replaced by input values
-    activity_time = datetime.datetime.now().replace(
-        hour=_class.time.hour,
-        minute=_class.time.minute,
-        second=0,
-        microsecond=0,  # Cosmetic only
-    )
-    # Back up time to give booking script some prep time
-    booking_time = activity_time - datetime.timedelta(
-        minutes=cron_config.preparation_minutes
-    )
-    # Handle case where backing up time changes the weekday (weekday 0 is Monday in datetime and Sunday in cron...)
-    booking_weekday_delta = activity_time.weekday() - booking_time.weekday()
-    booking_cron_weekday = (
-        _class.weekday + 1 - booking_open_days_before - booking_weekday_delta
-    ) % 7
     if precheck:
-        precheck_time = booking_time - datetime.timedelta(
-            hours=cron_config.precheck_hours
+        precheck_time = opening_time - timedelta(hours=cron_config.precheck_hours)
+        return (
+            precheck_time.minute,
+            precheck_time.hour,
+            "*",
+            "*",
+            (precheck_time.weekday() + 1) % 7,
         )
-        precheck_cron_weekday = (
-            booking_cron_weekday - (booking_time.weekday() - precheck_time.weekday())
-        ) % 7
-        return precheck_time.minute, precheck_time.hour, "*", "*", precheck_cron_weekday
-    return booking_time.minute, booking_time.hour, "*", "*", booking_cron_weekday
+    booking_time = opening_time - timedelta(minutes=cron_config.preparation_minutes)
+    return (
+        booking_time.minute,
+        booking_time.hour,
+        "*",
+        "*",
+        (booking_time.weekday() + 1) % 7,
+    )
 
 
 def generate_booking_command(
