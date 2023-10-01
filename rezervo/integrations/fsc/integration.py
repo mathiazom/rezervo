@@ -15,5 +15,4 @@ integration = Integration(
     cancel_booking=try_cancel_fsc_booking,
     fetch_sessions=fetch_fsc_sessions,
     rezervo_class_from_class_data=rezervo_class_from_fsc_class,
-    booking_open_days_before_class=6,  # TODO: due to be changed by other PR
 )

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
@@ -116,10 +116,10 @@ def get_user_planned_sessions_from_schedule(
             )
             if not time_matches:
                 continue
-            # check if start time is too close to now (if so, it is either already booked or will not be booked)
-            if start_time < datetime.now() + timedelta(
-                days=6  # TODO: due to be changed by other PR
-            ):
+
+            opening_time = datetime.fromisoformat(c.bookingOpensAt)
+            # check if opening_time is too close to now (if so, it is either already booked or will not be booked)
+            if opening_time < datetime.now():
                 continue
             classes.append(c)
     return classes
