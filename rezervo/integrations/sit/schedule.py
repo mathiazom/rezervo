@@ -27,15 +27,11 @@ def fetch_single_batch_sit_schedule(
 
 
 def fetch_sit_schedule(
-    token, studio: Optional[int] = None, days: Optional[int] = None
+    token, days: int, studio: Optional[int] = None
 ) -> Union[SitSchedule, None]:
     schedule_days: list[SitDay] = []
     from_date = datetime.datetime.now().date()
-    for _i in range(
-        math.ceil(days / CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH)
-        if days is not None
-        else 1
-    ):
+    for _i in range(math.ceil(days / CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH)):
         batch = fetch_single_batch_sit_schedule(token, studio, from_date.isoformat())
         if batch is not None:
             # api actually returns 7 days, but the extra days are empty...

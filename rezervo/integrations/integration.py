@@ -27,4 +27,3 @@ class Integration(BaseModel):
     ]
     fetch_sessions: Callable[[Optional[UUID]], dict[UUID, list[UserSession]]]
     rezervo_class_from_class_data: Callable[[Any], Optional[RezervoClass]]
-    booking_open_days_before_class: int

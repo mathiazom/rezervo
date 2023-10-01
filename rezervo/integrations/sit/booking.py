@@ -65,7 +65,7 @@ def find_public_sit_class(
         err.log("Failed to fetch public token")
         return token
     print(f"Searching for class matching config: {_class_config}")
-    schedule = fetch_sit_schedule(token, _class_config.studio)
+    schedule = fetch_sit_schedule(token, 7, _class_config.studio)
     if schedule is None:
         err.log("Schedule get request denied")
         return BookingError.ERROR
