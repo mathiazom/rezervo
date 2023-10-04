@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Dict, List, Optional, Union
 
@@ -200,7 +200,11 @@ def session_state_from_fsc(booking_type: BookingType) -> SessionState:
 
 
 def to_local_date_str(date: str) -> str:
-    return date.replace("Z", "")[:-4]
+    utc_time = datetime.fromisoformat(date.replace("Z", "")).replace(
+        tzinfo=timezone.utc
+    )
+    local_time = utc_time.astimezone()
+    return local_time.replace(tzinfo=None).isoformat()
 
 
 def rezervo_class_from_fsc_class(fsc_class: FscClass) -> RezervoClass:

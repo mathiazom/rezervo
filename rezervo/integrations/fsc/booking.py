@@ -66,7 +66,7 @@ def find_fsc_class(
             continue
         start_time = datetime.fromisoformat(c.duration.start.replace("Z", "")[:-4])
         utc_start_time = pytz.timezone("UTC").localize(start_time)
-        localized_start_time = utc_start_time.astimezone(pytz.timezone("Europe/Oslo"))
+        localized_start_time = utc_start_time.astimezone(pytz.timezone("urope/Oslo"))
         time_matches = (
             localized_start_time.hour == _class_config.time.hour
             and localized_start_time.minute == _class_config.time.minute
