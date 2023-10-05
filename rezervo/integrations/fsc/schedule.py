@@ -10,16 +10,26 @@ from rezervo.integrations.fsc.schema import (
     FscWeekScheduleResponse,
 )
 
+FSC_MAX_SCHEDULE_DAYS_PER_FETCH = 14
 
-def fetch_fsc_schedule() -> Union[List[FscClass], None]:
+
+def fetch_fsc_schedule(days: int) -> Union[List[FscClass], None]:
+    classes: list[FscClass] = []
     now = datetime.utcnow()
     from_date = datetime(now.year, now.month, now.day)
-    query_params = {
-        "period_start": from_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
-        "period_end": (from_date + timedelta(weeks=1)).strftime("%Y-%m-%dT%H:%M:%S")
-        + ".000Z",
-    }
-    res = requests.get(f"{CLASSES_SCHEDULE_URL}?{urlencode(query_params)}")
-    if res.status_code != requests.codes.OK:
-        return None
-    return FscWeekScheduleResponse(**res.json()).data
+    days_left = days
+    while days_left > 0:
+        batch_size = min(FSC_MAX_SCHEDULE_DAYS_PER_FETCH, days_left)
+        days_left -= batch_size
+        to_date = from_date + timedelta(days=batch_size)
+        query_params = {
+            "period_start": from_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
+            "period_end": to_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
+        }
+        res = requests.get(f"{CLASSES_SCHEDULE_URL}?{urlencode(query_params)}")
+        if res.status_code != requests.codes.OK:
+            raise Exception("Failed to fetch fsc schedule")
+        classes.extend(FscWeekScheduleResponse(**res.json()).data)
+        from_date = to_date
+    # TODO: handle unlikely duplicates (if somehow classes are included in multiple batches)
+    return classes

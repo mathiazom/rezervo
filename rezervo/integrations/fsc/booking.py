@@ -35,7 +35,7 @@ def find_fsc_class_by_id(
     integration_user: IntegrationUser, config: ConfigValue, class_id: str
 ) -> Union[RezervoClass, None, BookingError, AuthenticationError]:
     print(f"Searching for class by id: {class_id}")
-    fsc_schedule = fetch_fsc_schedule()
+    fsc_schedule = fetch_fsc_schedule(days=7)
     if fsc_schedule is None:
         err.log("Class get request failed")
         return BookingError.ERROR
@@ -52,7 +52,7 @@ def find_fsc_class(
     _class_config: Class,
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
     print(f"Searching for class matching config: {_class_config}")
-    schedule = fetch_fsc_schedule()
+    schedule = fetch_fsc_schedule(days=7)
     if schedule is None:
         err.log("Schedule get request denied")
         return BookingError.ERROR
