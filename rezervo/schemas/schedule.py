@@ -29,7 +29,7 @@ class RezervoClass(BaseModel):
     studio: RezervoStudio
     userStatus: Optional[str] = None
     bookable: bool
-    bookingOpensAt: str
+    bookingOpensAt: str  # must be timezone aware in ISO8601 format
 
     class Config:
         allow_population_by_field_name = True

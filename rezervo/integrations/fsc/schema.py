@@ -1,7 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Optional, Union
 
+import pytz
 from pydantic import BaseModel
 
 from rezervo.models import SessionState
@@ -199,12 +200,19 @@ def session_state_from_fsc(booking_type: BookingType) -> SessionState:
     return SessionState.UNKNOWN
 
 
-def to_local_date_str(date: str) -> str:
-    utc_time = datetime.fromisoformat(date.replace("Z", "")).replace(
-        tzinfo=timezone.utc
+def tz_aware_iso_from_fsc_date_str(date: str) -> str:
+    return pytz.UTC.localize(datetime.fromisoformat(date.replace("Z", ""))).isoformat()
+
+
+# TODO: this should be replaced when timezones are handled properly
+def human_iso_from_fsc_date_str(date: str) -> str:
+    return (
+        pytz.UTC.localize(datetime.fromisoformat(date.replace("Z", "")))
+        .astimezone(pytz.timezone("Europe/Oslo"))
+        .replace(tzinfo=None)
+        .isoformat()
+        .replace("T", " ")
     )
-    local_time = utc_time.astimezone()
-    return local_time.replace(tzinfo=None).isoformat()
 
 
 def rezervo_class_from_fsc_class(fsc_class: FscClass) -> RezervoClass:
@@ -213,16 +221,20 @@ def rezervo_class_from_fsc_class(fsc_class: FscClass) -> RezervoClass:
         id=fsc_class.id,
         name=fsc_class.groupActivityProduct.name,
         activityId=fsc_class.groupActivityProduct.id,
-        from_field=to_local_date_str(fsc_class.duration.start),
-        to=to_local_date_str(fsc_class.duration.end),
+        from_field=human_iso_from_fsc_date_str(fsc_class.duration.start),
+        to=human_iso_from_fsc_date_str(fsc_class.duration.end),
         instructors=[RezervoInstructor(name=s.name) for s in fsc_class.instructors],
         studio=RezervoStudio(
             id=fsc_class.businessUnit.id,
             name=fsc_class.businessUnit.name,
         ),
         userStatus=None,
-        bookable=datetime.fromisoformat(to_local_date_str(fsc_class.bookableEarliest))
-        < datetime.now()
-        < datetime.fromisoformat(to_local_date_str(fsc_class.bookableLatest)),
-        bookingOpensAt=to_local_date_str(fsc_class.bookableEarliest),
+        bookable=datetime.fromisoformat(
+            tz_aware_iso_from_fsc_date_str(fsc_class.bookableEarliest)
+        )
+        < datetime.now().astimezone()
+        < datetime.fromisoformat(
+            tz_aware_iso_from_fsc_date_str(fsc_class.bookableLatest)
+        ),
+        bookingOpensAt=tz_aware_iso_from_fsc_date_str(fsc_class.bookableEarliest),
     )

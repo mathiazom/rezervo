@@ -90,8 +90,12 @@ def build_cron_job_for_class(
 def generate_booking_schedule(
     opening_time: datetime, cron_config: Cron, precheck: bool
 ):
+    # making sure date and time strings are in system timezone
+    system_opening_time = opening_time.astimezone()
     if precheck:
-        precheck_time = opening_time - timedelta(hours=cron_config.precheck_hours)
+        precheck_time = system_opening_time - timedelta(
+            hours=cron_config.precheck_hours
+        )
         return (
             precheck_time.minute,
             precheck_time.hour,
@@ -99,7 +103,9 @@ def generate_booking_schedule(
             "*",
             (precheck_time.weekday() + 1) % 7,
         )
-    booking_time = opening_time - timedelta(minutes=cron_config.preparation_minutes)
+    booking_time = system_opening_time - timedelta(
+        minutes=cron_config.preparation_minutes
+    )
     return (
         booking_time.minute,
         booking_time.hour,

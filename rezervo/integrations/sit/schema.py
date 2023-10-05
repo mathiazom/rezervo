@@ -1,6 +1,8 @@
+from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
+from pytz import timezone
 
 from rezervo.models import SessionState
 from rezervo.schemas.config.user import IntegrationIdentifier
@@ -61,6 +63,10 @@ def session_state_from_sit(status: str) -> SessionState:
     return SessionState.UNKNOWN
 
 
+def tz_aware_iso_from_sit_date_str(date: str) -> str:
+    return timezone("Europe/Oslo").localize(datetime.fromisoformat(date)).isoformat()
+
+
 def rezervo_class_from_sit_class(sit_class: SitClass) -> RezervoClass:
     return RezervoClass(
         integration=IntegrationIdentifier.SIT,
@@ -76,5 +82,5 @@ def rezervo_class_from_sit_class(sit_class: SitClass) -> RezervoClass:
         ),
         userStatus=sit_class.userStatus,
         bookable=sit_class.bookable,
-        bookingOpensAt=sit_class.bookingOpensAt,
+        bookingOpensAt=tz_aware_iso_from_sit_date_str(sit_class.bookingOpensAt),
     )

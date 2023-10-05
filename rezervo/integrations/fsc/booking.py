@@ -15,6 +15,7 @@ from rezervo.integrations.fsc.schema import (
     BookingsResponse,
     BookingType,
     rezervo_class_from_fsc_class,
+    tz_aware_iso_from_fsc_date_str,
 )
 from rezervo.notify.notify import notify_booking
 from rezervo.schemas.config.config import ConfigValue
@@ -64,9 +65,9 @@ def find_fsc_class(
     for c in schedule:
         if c.groupActivityProduct.id != _class_config.activity:
             continue
-        start_time = datetime.fromisoformat(c.duration.start.replace("Z", "")[:-4])
-        utc_start_time = pytz.timezone("UTC").localize(start_time)
-        localized_start_time = utc_start_time.astimezone(pytz.timezone("urope/Oslo"))
+        localized_start_time = datetime.fromisoformat(
+            tz_aware_iso_from_fsc_date_str(c.duration.start)
+        ).astimezone(pytz.timezone("Europe/Oslo"))
         time_matches = (
             localized_start_time.hour == _class_config.time.hour
             and localized_start_time.minute == _class_config.time.minute

@@ -3,9 +3,11 @@ from typing import List, Optional
 from uuid import UUID
 
 import pydantic
+import pytz
 import requests
 
 from rezervo import models
+from rezervo.consts import PLANNED_SESSIONS_NEXT_WHOLE_WEEKS
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
 from rezervo.integrations.fsc.auth import authenticate_session
@@ -17,6 +19,7 @@ from rezervo.integrations.fsc.schema import (
     FscClass,
     rezervo_class_from_fsc_class,
     session_state_from_fsc,
+    tz_aware_iso_from_fsc_date_str,
 )
 from rezervo.models import SessionState
 from rezervo.schemas.config.user import (
@@ -27,10 +30,13 @@ from rezervo.schemas.config.user import (
 )
 from rezervo.schemas.schedule import UserSession
 from rezervo.utils.logging_utils import err
+from rezervo.utils.time_utils import total_days_for_next_whole_weeks
 
 
 def fetch_fsc_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSession]]:
-    fsc_schedule = fetch_fsc_schedule()
+    fsc_schedule = fetch_fsc_schedule(
+        days=total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS)
+    )
     with SessionLocal() as db:
         db_fsc_users_query = db.query(models.IntegrationUser).filter(
             models.IntegrationUser.integration == IntegrationIdentifier.FSC
@@ -110,16 +116,19 @@ def get_user_planned_sessions_from_schedule(
         for uc in integration_config.classes:
             if c.groupActivityProduct.id != uc.activity:
                 continue
-            start_time = datetime.fromisoformat(c.duration.start.replace("Z", "")[:-4])
+            start_time = datetime.fromisoformat(
+                tz_aware_iso_from_fsc_date_str(c.duration.start)
+            ).astimezone(pytz.timezone("Europe/Oslo"))
             time_matches = (
                 start_time.hour == uc.time.hour and start_time.minute == uc.time.minute
             )
             if not time_matches:
                 continue
-
-            opening_time = datetime.fromisoformat(c.bookingOpensAt)
-            # check if opening_time is too close to now (if so, it is either already booked or will not be booked)
-            if opening_time < datetime.now():
+            opening_time = datetime.fromisoformat(
+                tz_aware_iso_from_fsc_date_str(c.bookableEarliest)
+            )
+            # check if opening_time is in the past (if so, it is either already booked or will not be booked)
+            if opening_time < datetime.now().astimezone():
                 continue
             classes.append(c)
     return classes
