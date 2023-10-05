@@ -6,7 +6,6 @@ from uuid import UUID
 import typer
 import uvicorn
 from crontab import CronItem, CronTab
-from pytz import timezone
 from rich import print as rprint
 
 from rezervo import models
@@ -114,11 +113,9 @@ def book(
     if _class.bookable:
         print("Booking is already open, booking now!")
     else:
-        # Retrieve booking opening, and make sure it's timezone aware
-        tz = timezone(config.booking.timezone)
-        opening_time = tz.localize(datetime.fromisoformat(_class.bookingOpensAt))
-        timedelta = opening_time - datetime.now(tz)
-        wait_time = timedelta.total_seconds()
+        opening_time = datetime.fromisoformat(_class.bookingOpensAt)
+        delta_to_opening = opening_time - datetime.now().astimezone()
+        wait_time = delta_to_opening.total_seconds()
         wait_time_string = readable_seconds(wait_time)
         if wait_time > config.booking.max_waiting_minutes * 60:
             err.log(
@@ -133,11 +130,11 @@ def book(
                 )
             raise typer.Exit(1)
         print(
-            f"Scheduling booking at {datetime.now(tz) + timedelta} "
+            f"Scheduling booking at {datetime.now().astimezone() + delta_to_opening} "
             f"(about {wait_time_string} from now)"
         )
         time.sleep(wait_time)
-        print(f"Awoke at {datetime.now(tz)}")
+        print(f"Awoke at {datetime.now().astimezone()}")
     with stat("Booking class..."):
         booking_result = book_class(integration_user, _class, config)
     if isinstance(booking_result, AuthenticationError):

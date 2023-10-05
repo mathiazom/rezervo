@@ -39,6 +39,4 @@ def fetch_sit_schedule(
         from_date = from_date + datetime.timedelta(
             days=CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH
         )
-    if days is not None:
-        schedule_days = schedule_days[:days]
-    return SitSchedule(days=schedule_days)
+    return SitSchedule(days=schedule_days[:days])
