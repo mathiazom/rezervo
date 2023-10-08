@@ -1,6 +1,5 @@
-import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Union
 
 import pytz
@@ -14,6 +13,7 @@ from rezervo.integrations.ttt.schema import (
     BookingData,
     BookingType,
     BrpAuthResult,
+    FscClass,
     rezervo_class_from_fsc_class,
     tz_aware_iso_from_fsc_date_str,
 )
@@ -25,42 +25,72 @@ from rezervo.utils.logging_utils import err
 from rezervo.utils.str_utils import format_name_list_to_natural
 
 
-def booking_url(auth_result: BrpAuthResult) -> Union[str, AuthenticationError]:
-    if isinstance(auth_result, AuthenticationError):
-        return auth_result
+def booking_url(auth_result: BrpAuthResult) -> str:
     return f"https://3t.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities"
+
+
+MAX_SEARCH_ATTEMPTS = 6
 
 
 def find_fsc_class_by_id(
     integration_user: IntegrationUser, config: ConfigValue, class_id: str
 ) -> Union[RezervoClass, None, BookingError, AuthenticationError]:
     print(f"Searching for class by id: {class_id}")
-    fsc_schedule = fetch_fsc_schedule(days=7)
-    if fsc_schedule is None:
-        err.log("Class get request failed")
-        return BookingError.ERROR
-    fsc_class = next(
-        (c for c in fsc_schedule if c.id == int(class_id)),
-        None,
-    )
+    attempts = 0
+    fsc_class = None
+    now = datetime.now()
+    from_date = datetime(now.year, now.month, now.day)
+    batch_size = 7
+    while attempts < MAX_SEARCH_ATTEMPTS:
+        print(f"Searching for class starting at {from_date}")
+        fsc_schedule = fetch_fsc_schedule(days=batch_size, from_date=from_date)
+        if fsc_schedule is None:
+            err.log("Class get request failed")
+            return BookingError.ERROR
+        fsc_class = next(
+            (c for c in fsc_schedule if c.id == int(class_id)),
+            None,
+        )
+        if fsc_class is not None:
+            break
+        from_date += timedelta(days=batch_size)
+        attempts += 1
     if fsc_class is None:
         return BookingError.CLASS_MISSING
-
     return rezervo_class_from_fsc_class(fsc_class)
+
+
+def try_find_fsc_class(
+    _class_config: Class,
+) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    print(f"Searching for class matching config: {_class_config}")
+    attempts = 0
+    fsc_class = None
+    now = datetime.now()
+    from_date = datetime(now.year, now.month, now.day)
+    batch_size = 7
+    while attempts < MAX_SEARCH_ATTEMPTS:
+        schedule = fetch_fsc_schedule(days=batch_size, from_date=from_date)
+        if schedule is None:
+            err.log("Schedule get request denied")
+            return BookingError.ERROR
+        fsc_class = find_fsc_class(_class_config, schedule)
+        if fsc_class is not None:
+            break
+        from_date += timedelta(days=batch_size)
+        attempts += 1
+    if fsc_class is None:
+        err.log("Could not find class matching criteria")
+    return fsc_class
 
 
 def find_fsc_class(
     _class_config: Class,
+    schedule: List[FscClass],
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-    print(f"Searching for class matching config: {_class_config}")
-    schedule = fetch_fsc_schedule(days=7)
-    if schedule is None:
-        err.log("Schedule get request denied")
-        return BookingError.ERROR
     if not 0 <= _class_config.weekday < len(WEEKDAYS):
         err.log(f"Invalid weekday number ({_class_config.weekday=})")
         return BookingError.MALFORMED_SEARCH
-
     result = None
     for c in schedule:
         if c.groupActivityProduct.id != _class_config.activity:
@@ -90,9 +120,6 @@ def find_fsc_class(
         search_feedback += f" at {c.duration.start}"
         print(search_feedback)
         return rezervo_class_from_fsc_class(c)
-    err.log("Could not find class matching criteria")
-    if result is None:
-        result = BookingError.CLASS_MISSING
     return result
 
 
@@ -154,19 +181,14 @@ def cancel_fsc_booking(
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
     res = requests.delete(
-        f"{booking_url(auth_result)}/{booking_reference}",
-        data=json.dumps({"bookingType": booking_type}),
+        f"{booking_url(auth_result)}/{booking_reference}?bookingType={booking_type}",
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {auth_result['access_token']}",
         },
     )
-    if res.status_code != requests.codes.OK:
+    if res.status_code != requests.codes.NO_CONTENT:
         err.log("Booking cancellation attempt failed: " + res.text)
-        return False
-    body = res.json()
-    if body["success"] is False:
-        err.log("Booking cancellation attempt failed: " + body.errorMessage)
         return False
     return True
 
@@ -178,12 +200,18 @@ def try_cancel_fsc_booking(
         err.log("Max booking cancellation attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     print("Authenticating...")
-    auth_session = authenticate(integration_user.username, integration_user.password)
-    if isinstance(auth_session, AuthenticationError):
+    auth_result = authenticate(integration_user.username, integration_user.password)
+    if isinstance(auth_result, AuthenticationError):
         err.log("Authentication failed")
-        return auth_session
+        return auth_result
     try:
-        res = auth_session.get(booking_url(auth_session))
+        res = requests.get(
+            booking_url(auth_result),
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {auth_result['access_token']}",
+            },
+        )
     except requests.exceptions.RequestException as e:
         err.log(
             f"Failed to retrieve sessions for '{integration_user.username}'",
@@ -206,7 +234,7 @@ def try_cancel_fsc_booking(
     cancelled = False
     attempts = 0
     while not cancelled:
-        cancelled = cancel_fsc_booking(auth_session, booking_id, booking_type)
+        cancelled = cancel_fsc_booking(auth_result, booking_id, booking_type)
         attempts += 1
         if cancelled:
             break

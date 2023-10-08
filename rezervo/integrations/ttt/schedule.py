@@ -12,10 +12,13 @@ from rezervo.integrations.ttt.schema import (
 FSC_MAX_SCHEDULE_DAYS_PER_FETCH = 14
 
 
-def fetch_fsc_schedule(days: int) -> Union[List[FscClass], None]:
+def fetch_fsc_schedule(
+    days: int, from_date: datetime = None
+) -> Union[List[FscClass], None]:
     classes: list[FscClass] = []
-    now = datetime.utcnow()
-    from_date = datetime(now.year, now.month, now.day)
+    if from_date is None:
+        now = datetime.utcnow()
+        from_date = datetime(now.year, now.month, now.day)
     days_left = days
     while days_left > 0:
         batch_size = min(FSC_MAX_SCHEDULE_DAYS_PER_FETCH, days_left)

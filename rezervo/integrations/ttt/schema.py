@@ -208,7 +208,7 @@ def human_iso_from_fsc_date_str(date: str) -> str:
 
 def rezervo_class_from_fsc_class(fsc_class: FscClass) -> RezervoClass:
     return RezervoClass(
-        integration=IntegrationIdentifier.FSC,
+        integration=IntegrationIdentifier.TTT,
         id=fsc_class.id,
         name=fsc_class.groupActivityProduct.name,
         activityId=fsc_class.groupActivityProduct.id,
