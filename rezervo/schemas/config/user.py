@@ -36,6 +36,7 @@ class UserNameWithIsSelf(BaseModel):
 class IntegrationIdentifier(enum.Enum):
     SIT = "sit"
     FSC = "fsc"
+    TTT = "3t"
 
 
 class BaseIntegrationConfig(OrmBase):
