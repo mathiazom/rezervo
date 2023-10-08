@@ -41,11 +41,13 @@ def build_cron_jobs_from_config(
                 user,
                 precheck=True,
             )
-            jobs.append(p)
+            if p is not None:
+                jobs.append(p)
         j = build_cron_job_for_class(
             i, c, integration_config.integration, conf.config.cron, user
         )
-        jobs.append(j)
+        if j is not None:
+            jobs.append(j)
     return jobs
 
 
@@ -76,7 +78,7 @@ def build_cron_job_for_class(
         _class_config, AuthenticationError
     ):
         print("Failed to fetch class info for booking schedule")
-        return
+        return None
     j.setall(
         *generate_booking_schedule(
             datetime.fromisoformat(_class.bookingOpensAt),
