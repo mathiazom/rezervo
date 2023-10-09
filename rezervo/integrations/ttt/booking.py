@@ -66,17 +66,31 @@ def try_find_fsc_class(
     print(f"Searching for class matching config: {_class_config}")
     attempts = 0
     fsc_class = None
-    now = datetime.now()
-    from_date = datetime(now.year, now.month, now.day)
+    now_date = datetime.now()
+    from_date = datetime(now_date.year, now_date.month, now_date.day)
     batch_size = 7
     while attempts < MAX_SEARCH_ATTEMPTS:
         schedule = fetch_fsc_schedule(days=batch_size, from_date=from_date)
         if schedule is None:
             err.log("Schedule get request denied")
             return BookingError.ERROR
-        fsc_class = find_fsc_class(_class_config, schedule)
-        if fsc_class is not None:
-            break
+        search_result = find_fsc_class(_class_config, schedule)
+        if search_result is not None:
+            if fsc_class is None:
+                fsc_class = search_result
+            else:
+                # Check if class has closer booking date than any already found class
+                now = datetime.now().astimezone()
+                new_booking_delta = abs(
+                    now - datetime.fromisoformat(search_result.bookingOpensAt)
+                )
+                existing_booking_delta = abs(
+                    now - datetime.fromisoformat(fsc_class.bookingOpensAt)
+                )
+                if new_booking_delta < existing_booking_delta:
+                    fsc_class = search_result
+                else:
+                    break
         from_date += timedelta(days=batch_size)
         attempts += 1
     if fsc_class is None:
