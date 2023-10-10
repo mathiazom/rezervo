@@ -2,7 +2,7 @@ import datetime
 import json
 from typing import Optional
 
-from pywebpush import webpush
+from pywebpush import WebPushException, webpush
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
@@ -30,12 +30,18 @@ BOOKING_FAILURE_REASONS = {
 
 def notify_web_push(subscription: PushNotificationSubscription, message: str) -> bool:
     settings = get_settings()
-    res = webpush(
-        subscription_info=subscription.dict(),
-        data=json.dumps({"title": "rezervo", "message": message}),
-        vapid_private_key=settings.WEB_PUSH_PRIVATE_KEY,
-        vapid_claims={"sub": f"mailto:{settings.WEB_PUSH_EMAIL}"},
-    )
+    try:
+        res = webpush(
+            subscription_info=subscription.dict(),
+            data=json.dumps({"title": "rezervo", "message": message}),
+            vapid_private_key=settings.WEB_PUSH_PRIVATE_KEY,
+            vapid_claims={"sub": f"mailto:{settings.WEB_PUSH_EMAIL}"},
+        )
+    except WebPushException as e:
+        err.log(
+            f"Web push notification failed for endpoint {subscription.endpoint}: {e}"
+        )
+        return False
     return res.ok
 
 
