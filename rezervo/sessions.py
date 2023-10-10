@@ -13,7 +13,7 @@ def pull_integration_sessions(
     sessions = get_integration(integration).fetch_sessions(user_id)
     with SessionLocal() as db:
         for uid, user_sessions in sessions.items():
-            crud.upsert_user_sessions(db, uid, user_sessions)
+            crud.upsert_user_integration_sessions(db, uid, integration, user_sessions)
 
 
 def pull_sessions(

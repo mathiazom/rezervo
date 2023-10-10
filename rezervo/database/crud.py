@@ -155,11 +155,17 @@ def delete_user(db: Session, user_id: UUID):
     db.commit()
 
 
-def upsert_user_sessions(db: Session, user_id: UUID, user_sessions: list[UserSession]):
+def upsert_user_integration_sessions(
+    db: Session,
+    user_id: UUID,
+    integration: IntegrationIdentifier,
+    user_sessions: list[UserSession],
+):
     # delete unconfirmed sessions
     db.execute(
         delete(models.Session).where(
             models.Session.user_id == user_id,
+            models.Session.integration == integration,
             models.Session.status != SessionState.CONFIRMED,
         )
     )
