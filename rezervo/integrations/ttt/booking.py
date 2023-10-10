@@ -155,7 +155,7 @@ def book_fsc_class(auth_result: BrpAuthResult, class_id: int) -> bool:
 def try_book_fsc_class(
     integration_user: IntegrationUser, _class: RezervoClass, config: ConfigValue
 ) -> Union[None, BookingError, AuthenticationError]:
-    max_attempts = 1
+    max_attempts = config.booking.max_attempts
     if max_attempts < 1:
         err.log("Max booking attempts should be a positive number")
         return BookingError.INVALID_CONFIG
