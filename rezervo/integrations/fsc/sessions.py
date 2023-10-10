@@ -68,21 +68,23 @@ def fetch_fsc_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSe
             if "data" in bookings_response:
                 for s in bookings_response["data"]:
                     fsc_sessions.append(pydantic.parse_obj_as(BookingData, s))
-            past_and_imminent_sessions = [
-                UserSession(
-                    integration=IntegrationIdentifier.FSC,
-                    class_id=s.groupActivity.id,
-                    user_id=fsc_user.user_id,
-                    status=session_state_from_fsc(s.type),
-                    class_data=rezervo_class_from_fsc_class(
-                        next(
-                            filter(lambda c: c.id == s.groupActivity.id, fsc_schedule),
-                            None,
-                        )
-                    ),
+            past_and_imminent_sessions = []
+            for s in fsc_sessions:
+                fsc_class = next(
+                    filter(lambda c: c.id == s.groupActivity.id, fsc_schedule),
+                    None,
                 )
-                for s in fsc_sessions
-            ]
+                if fsc_class is None:
+                    continue
+                past_and_imminent_sessions.append(
+                    UserSession(
+                        integration=IntegrationIdentifier.TTT,
+                        class_id=s.groupActivity.id,
+                        user_id=fsc_user.user_id,
+                        status=session_state_from_fsc(s.type),
+                        class_data=rezervo_class_from_fsc_class(fsc_class),
+                    )
+                )
             planned_sessions = (
                 get_user_planned_sessions_from_schedule(
                     get_integration_config_from_integration_user(fsc_user),
