@@ -4,16 +4,20 @@ from urllib.parse import urlencode
 
 import requests
 
-from rezervo.providers.brpsystems.consts import CLASSES_SCHEDULE_URL
 from rezervo.providers.brpsystems.schema import (
     BrpClass,
+    BrpSubdomain,
 )
 
 BRP_MAX_SCHEDULE_DAYS_PER_FETCH = 14
 
 
+def classes_schedule_url(subdomain: BrpSubdomain, business_unit: int) -> str:
+    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/businessunits/{business_unit}/groupactivities"
+
+
 def fetch_brp_schedule(
-    days: int, from_date: datetime = None
+    subdomain: BrpSubdomain, business_unit: int, days: int, from_date: datetime = None
 ) -> Union[List[BrpClass], None]:
     classes: list[BrpClass] = []
     if from_date is None:
@@ -28,7 +32,9 @@ def fetch_brp_schedule(
             "period.start": from_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
             "period.end": to_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
         }
-        res = requests.get(f"{CLASSES_SCHEDULE_URL}?{urlencode(query_params)}")
+        res = requests.get(
+            f"{classes_schedule_url(subdomain, business_unit)}?{urlencode(query_params)}"
+        )
         if res.status_code != requests.codes.OK:
             raise Exception("Failed to fetch brp schedule")
         classes.extend(

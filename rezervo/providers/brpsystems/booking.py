@@ -7,6 +7,7 @@ import requests
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.notify import notify_booking
 from rezervo.providers.brpsystems.auth import authenticate
 from rezervo.providers.brpsystems.schedule import fetch_brp_schedule
 from rezervo.providers.brpsystems.schema import (
@@ -14,26 +15,27 @@ from rezervo.providers.brpsystems.schema import (
     BookingType,
     BrpAuthResult,
     BrpClass,
+    BrpSubdomain,
     rezervo_class_from_brp_class,
     tz_aware_iso_from_brp_date_str,
 )
-from rezervo.notify.notify import notify_booking
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import Class, IntegrationUser
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.utils.logging_utils import err
 from rezervo.utils.str_utils import format_name_list_to_natural
 
-
-def booking_url(auth_result: BrpAuthResult) -> str:
-    return f"https://3t.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities"
-
-
 MAX_SEARCH_ATTEMPTS = 6
 
 
+def booking_url(subdomain: BrpSubdomain, auth_result: BrpAuthResult) -> str:
+    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities"
+
+
 def find_brp_class_by_id(
-    integration_user: IntegrationUser, config: ConfigValue, class_id: str
+    subdomain: BrpSubdomain,
+    business_unit: int,
+    class_id: str,
 ) -> Union[RezervoClass, None, BookingError, AuthenticationError]:
     print(f"Searching for class by id: {class_id}")
     attempts = 0
@@ -43,7 +45,9 @@ def find_brp_class_by_id(
     batch_size = 7
     while attempts < MAX_SEARCH_ATTEMPTS:
         print(f"Searching for class starting at {from_date}")
-        brp_schedule = fetch_brp_schedule(days=batch_size, from_date=from_date)
+        brp_schedule = fetch_brp_schedule(
+            subdomain, business_unit, days=batch_size, from_date=from_date
+        )
         if brp_schedule is None:
             err.log("Class get request failed")
             return BookingError.ERROR
@@ -57,10 +61,12 @@ def find_brp_class_by_id(
         attempts += 1
     if brp_class is None:
         return BookingError.CLASS_MISSING
-    return rezervo_class_from_brp_class(brp_class)
+    return rezervo_class_from_brp_class(subdomain, brp_class)
 
 
 def try_find_brp_class(
+    subdomain: BrpSubdomain,
+    business_unit: int,
     _class_config: Class,
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
     print(f"Searching for class matching config: {_class_config}")
@@ -70,11 +76,13 @@ def try_find_brp_class(
     from_date = datetime(now_date.year, now_date.month, now_date.day)
     batch_size = 7
     while attempts < MAX_SEARCH_ATTEMPTS:
-        schedule = fetch_brp_schedule(days=batch_size, from_date=from_date)
+        schedule = fetch_brp_schedule(
+            subdomain, business_unit, days=batch_size, from_date=from_date
+        )
         if schedule is None:
             err.log("Schedule get request denied")
             return BookingError.ERROR
-        search_result = find_brp_class(_class_config, schedule)
+        search_result = find_brp_class(subdomain, _class_config, schedule)
         if search_result is not None:
             if brp_class is None:
                 brp_class = search_result
@@ -99,6 +107,7 @@ def try_find_brp_class(
 
 
 def find_brp_class(
+    subdomain: BrpSubdomain,
     _class_config: Class,
     schedule: List[BrpClass],
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
@@ -133,13 +142,15 @@ def find_brp_class(
             search_feedback += " (missing instructor)"
         search_feedback += f" at {c.duration.start}"
         print(search_feedback)
-        return rezervo_class_from_brp_class(c)
+        return rezervo_class_from_brp_class(subdomain, c)
     return result
 
 
-def book_brp_class(auth_result: BrpAuthResult, class_id: int) -> bool:
+def book_brp_class(
+    subdomain: BrpSubdomain, auth_result: BrpAuthResult, class_id: int
+) -> bool:
     response = requests.post(
-        booking_url(auth_result),
+        booking_url(subdomain, auth_result),
         json={"groupActivity": class_id, "allowWaitingList": True},
         headers={
             "Content-Type": "application/json",
@@ -153,21 +164,26 @@ def book_brp_class(auth_result: BrpAuthResult, class_id: int) -> bool:
 
 
 def try_book_brp_class(
-    integration_user: IntegrationUser, _class: RezervoClass, config: ConfigValue
+    subdomain: BrpSubdomain,
+    integration_user: IntegrationUser,
+    _class: RezervoClass,
+    config: ConfigValue,
 ) -> Union[None, BookingError, AuthenticationError]:
     max_attempts = config.booking.max_attempts
     if max_attempts < 1:
         err.log("Max booking attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     print("Authenticating...")
-    auth_result = authenticate(integration_user.username, integration_user.password)
+    auth_result = authenticate(
+        subdomain, integration_user.username, integration_user.password
+    )
     if isinstance(auth_result, AuthenticationError):
         err.log("Authentication failed")
         return auth_result
     booked = False
     attempts = 0
     while not booked:
-        booked = book_brp_class(auth_result, _class.id)
+        booked = book_brp_class(subdomain, auth_result, _class.id)
         attempts += 1
         if booked:
             break
@@ -191,11 +207,14 @@ def try_book_brp_class(
 
 
 def cancel_brp_booking(
-    auth_result: BrpAuthResult, booking_reference: int, booking_type: BookingType
+    subdomain: BrpSubdomain,
+    auth_result: BrpAuthResult,
+    booking_reference: int,
+    booking_type: BookingType,
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
     res = requests.delete(
-        f"{booking_url(auth_result)}/{booking_reference}?bookingType={booking_type}",
+        f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type}",
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {auth_result['access_token']}",
@@ -208,19 +227,24 @@ def cancel_brp_booking(
 
 
 def try_cancel_brp_booking(
-    integration_user: IntegrationUser, _class: RezervoClass, config: ConfigValue
+    subdomain: BrpSubdomain,
+    integration_user: IntegrationUser,
+    _class: RezervoClass,
+    config: ConfigValue,
 ) -> Union[None, BookingError, AuthenticationError]:
     if config.booking.max_attempts < 1:
         err.log("Max booking cancellation attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     print("Authenticating...")
-    auth_result = authenticate(integration_user.username, integration_user.password)
+    auth_result = authenticate(
+        subdomain, integration_user.username, integration_user.password
+    )
     if isinstance(auth_result, AuthenticationError):
         err.log("Authentication failed")
         return auth_result
     try:
         res = requests.get(
-            booking_url(auth_result),
+            booking_url(subdomain, auth_result),
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {auth_result['access_token']}",
@@ -248,7 +272,7 @@ def try_cancel_brp_booking(
     cancelled = False
     attempts = 0
     while not cancelled:
-        cancelled = cancel_brp_booking(auth_result, booking_id, booking_type)
+        cancelled = cancel_brp_booking(subdomain, auth_result, booking_id, booking_type)
         attempts += 1
         if cancelled:
             break
