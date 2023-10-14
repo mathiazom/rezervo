@@ -6,22 +6,22 @@ import requests
 
 from rezervo.providers.brpsystems.consts import CLASSES_SCHEDULE_URL
 from rezervo.providers.brpsystems.schema import (
-    FscClass,
+    BrpClass,
 )
 
-FSC_MAX_SCHEDULE_DAYS_PER_FETCH = 14
+BRP_MAX_SCHEDULE_DAYS_PER_FETCH = 14
 
 
-def fetch_fsc_schedule(
+def fetch_brp_schedule(
     days: int, from_date: datetime = None
-) -> Union[List[FscClass], None]:
-    classes: list[FscClass] = []
+) -> Union[List[BrpClass], None]:
+    classes: list[BrpClass] = []
     if from_date is None:
         now = datetime.utcnow()
         from_date = datetime(now.year, now.month, now.day)
     days_left = days
     while days_left > 0:
-        batch_size = min(FSC_MAX_SCHEDULE_DAYS_PER_FETCH, days_left)
+        batch_size = min(BRP_MAX_SCHEDULE_DAYS_PER_FETCH, days_left)
         days_left -= batch_size
         to_date = from_date + timedelta(days=batch_size)
         query_params = {
@@ -30,10 +30,10 @@ def fetch_fsc_schedule(
         }
         res = requests.get(f"{CLASSES_SCHEDULE_URL}?{urlencode(query_params)}")
         if res.status_code != requests.codes.OK:
-            raise Exception("Failed to fetch fsc schedule")
+            raise Exception("Failed to fetch brp schedule")
         classes.extend(
             [
-                FscClass(**item)
+                BrpClass(**item)
                 for item in res.json()
                 if item.get("bookableEarliest") is not None
                 and item.get("bookableLatest") is not None
