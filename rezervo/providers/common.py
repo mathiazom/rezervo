@@ -1,7 +1,7 @@
 from typing import Any, Optional, Union
 
+from rezervo.active_integrations import get_integration
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.integrations.active import get_integration
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import Class, IntegrationIdentifier, IntegrationUser
 from rezervo.schemas.schedule import RezervoClass

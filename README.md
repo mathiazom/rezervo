@@ -74,7 +74,7 @@ poe fix
 ```
 
 #### 🔌 Support new integration
-Add your own integration by adding it to `ACTIVE_INTEGRATIONS` in [`rezervo/integrations/active.py`](rezervo/integrations/active.py).
+Add your own integration by adding it to `ACTIVE_INTEGRATIONS` in [`rezervo/active_integrations.py`](rezervo/active_integrations.py).
 
 ### 🚀 Deployment
 A template for a production deployment is given in [`docker-compose.template.yml`](docker/docker-compose.template.yml), which uses the most recent [`rezervo` Docker image](https://github.com/users/mathiazom/packages/container/package/sit-rezervo).

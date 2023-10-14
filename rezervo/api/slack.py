@@ -18,7 +18,6 @@ from rezervo.consts import (
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.integrations.common import cancel_booking, find_authed_class_by_id
 from rezervo.notify.slack import (
     delete_scheduled_dm_slack,
     notify_cancellation_failure_slack,
@@ -27,6 +26,7 @@ from rezervo.notify.slack import (
     show_unauthorized_action_modal_slack,
     verify_slack_request,
 )
+from rezervo.providers.common import cancel_booking, find_authed_class_by_id
 from rezervo.schemas.config.config import Config, ConfigValue
 from rezervo.schemas.slack import CancelBookingActionValue, Interaction
 from rezervo.sessions import pull_sessions

@@ -1,9 +1,9 @@
 from rich import print as rprint
 
 from rezervo import models
+from rezervo.active_integrations import ACTIVE_INTEGRATIONS
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
-from rezervo.integrations.active import ACTIVE_INTEGRATIONS
 from rezervo.utils.cron_utils import upsert_booking_crontab
 
 

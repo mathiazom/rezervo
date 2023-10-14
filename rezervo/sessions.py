@@ -1,9 +1,9 @@
 from typing import Optional
 from uuid import UUID
 
+from rezervo.active_integrations import ACTIVE_INTEGRATIONS, get_integration
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
-from rezervo.integrations.active import ACTIVE_INTEGRATIONS, get_integration
 from rezervo.schemas.config.user import IntegrationIdentifier
 
 
