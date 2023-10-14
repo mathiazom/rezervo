@@ -12,13 +12,13 @@ from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
 from rezervo.providers.brpsystems.auth import authenticate
 from rezervo.providers.brpsystems.booking import booking_url
-from rezervo.providers.brpsystems.schedule import fetch_fsc_schedule
+from rezervo.providers.brpsystems.schedule import fetch_brp_schedule
 from rezervo.providers.brpsystems.schema import (
     BookingData,
-    FscClass,
-    rezervo_class_from_fsc_class,
-    session_state_from_fsc,
-    tz_aware_iso_from_fsc_date_str,
+    BrpClass,
+    rezervo_class_from_brp_class,
+    session_state_from_brp,
+    tz_aware_iso_from_brp_date_str,
 )
 from rezervo.models import SessionState
 from rezervo.schemas.config.user import (
@@ -32,26 +32,26 @@ from rezervo.utils.logging_utils import err
 from rezervo.utils.time_utils import total_days_for_next_whole_weeks
 
 
-def fetch_fsc_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSession]]:
-    fsc_schedule = fetch_fsc_schedule(
+def fetch_brp_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSession]]:
+    brp_schedule = fetch_brp_schedule(
         days=total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS)
     )
     with SessionLocal() as db:
-        db_fsc_users_query = db.query(models.IntegrationUser).filter(
+        db_brp_users_query = db.query(models.IntegrationUser).filter(
             models.IntegrationUser.integration == IntegrationIdentifier.TTT
         )
         if user_id is not None:
-            db_fsc_users_query = db_fsc_users_query.filter(
+            db_brp_users_query = db_brp_users_query.filter(
                 models.IntegrationUser.user_id == user_id
             )
-        db_fsc_users = db_fsc_users_query.all()
+        db_brp_users = db_brp_users_query.all()
         sessions: dict[UUID, list[UserSession]] = {}
-        for db_fsc_user in db_fsc_users:
-            fsc_user: IntegrationUser = IntegrationUser.from_orm(db_fsc_user)
-            auth_result = authenticate(fsc_user.username, fsc_user.password)
+        for db_brp_user in db_brp_users:
+            brp_user: IntegrationUser = IntegrationUser.from_orm(db_brp_user)
+            auth_result = authenticate(brp_user.username, brp_user.password)
             if isinstance(auth_result, AuthenticationError):
                 err.log(
-                    f"Authentication failed for '{fsc_user.username}', abort user sessions pull!"
+                    f"Authentication failed for '{brp_user.username}', abort user sessions pull!"
                 )
                 continue
             try:
@@ -63,66 +63,66 @@ def fetch_fsc_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSe
                 )
             except requests.exceptions.RequestException as e:
                 err.log(
-                    f"Failed to retrieve sessions for '{fsc_user.username}'",
+                    f"Failed to retrieve sessions for '{brp_user.username}'",
                     e,
                 )
                 continue
             bookings_response: List[BookingData] = res.json()
-            fsc_sessions = []
+            brp_sessions = []
             for s in bookings_response:
-                fsc_sessions.append(pydantic.parse_obj_as(BookingData, s))
+                brp_sessions.append(pydantic.parse_obj_as(BookingData, s))
             past_and_imminent_sessions = []
-            for s in fsc_sessions:
-                fsc_class = next(
-                    filter(lambda c: c.id == s.groupActivity.id, fsc_schedule),
+            for s in brp_sessions:
+                brp_class = next(
+                    filter(lambda c: c.id == s.groupActivity.id, brp_schedule),
                     None,
                 )
-                if fsc_class is None:
+                if brp_class is None:
                     continue
                 past_and_imminent_sessions.append(
                     UserSession(
                         integration=IntegrationIdentifier.TTT,
                         class_id=s.groupActivity.id,
-                        user_id=fsc_user.user_id,
-                        status=session_state_from_fsc(s.type),
-                        class_data=rezervo_class_from_fsc_class(fsc_class),
+                        user_id=brp_user.user_id,
+                        status=session_state_from_brp(s.type),
+                        class_data=rezervo_class_from_brp_class(brp_class),
                     )
                 )
             planned_sessions = (
                 get_user_planned_sessions_from_schedule(
-                    get_integration_config_from_integration_user(fsc_user),
-                    fsc_schedule,
+                    get_integration_config_from_integration_user(brp_user),
+                    brp_schedule,
                 )
-                if fsc_schedule is not None
+                if brp_schedule is not None
                 else []
             )
             user_sessions = past_and_imminent_sessions + [
                 UserSession(
                     integration=IntegrationIdentifier.TTT,
                     class_id=p.id,
-                    user_id=fsc_user.user_id,
+                    user_id=brp_user.user_id,
                     status=SessionState.PLANNED,
-                    class_data=rezervo_class_from_fsc_class(p),
+                    class_data=rezervo_class_from_brp_class(p),
                 )
                 for p in planned_sessions
                 if p.id not in [s.class_id for s in past_and_imminent_sessions]
             ]
-            sessions[fsc_user.user_id] = user_sessions
+            sessions[brp_user.user_id] = user_sessions
     return sessions
 
 
 def get_user_planned_sessions_from_schedule(
-    integration_config: IntegrationConfig, schedule: List[FscClass]
-) -> list[FscClass]:
+    integration_config: IntegrationConfig, schedule: List[BrpClass]
+) -> list[BrpClass]:
     if not integration_config.active:
         return []
-    classes: list[FscClass] = []
+    classes: list[BrpClass] = []
     for c in schedule:
         for uc in integration_config.classes:
             if c.groupActivityProduct.id != uc.activity:
                 continue
             start_time = datetime.fromisoformat(
-                tz_aware_iso_from_fsc_date_str(c.duration.start)
+                tz_aware_iso_from_brp_date_str(c.duration.start)
             ).astimezone(pytz.timezone("Europe/Oslo"))
             time_matches = (
                 start_time.hour == uc.time.hour and start_time.minute == uc.time.minute
@@ -130,7 +130,7 @@ def get_user_planned_sessions_from_schedule(
             if not time_matches:
                 continue
             opening_time = datetime.fromisoformat(
-                tz_aware_iso_from_fsc_date_str(c.bookableEarliest)
+                tz_aware_iso_from_brp_date_str(c.bookableEarliest)
             )
             # check if opening_time is in the past (if so, it is either already booked or will not be booked)
             if opening_time < datetime.now().astimezone():

@@ -8,14 +8,14 @@ import requests
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.providers.brpsystems.auth import authenticate
-from rezervo.providers.brpsystems.schedule import fetch_fsc_schedule
+from rezervo.providers.brpsystems.schedule import fetch_brp_schedule
 from rezervo.providers.brpsystems.schema import (
     BookingData,
     BookingType,
     BrpAuthResult,
-    FscClass,
-    rezervo_class_from_fsc_class,
-    tz_aware_iso_from_fsc_date_str,
+    BrpClass,
+    rezervo_class_from_brp_class,
+    tz_aware_iso_from_brp_date_str,
 )
 from rezervo.notify.notify import notify_booking
 from rezervo.schemas.config.config import ConfigValue
@@ -32,52 +32,52 @@ def booking_url(auth_result: BrpAuthResult) -> str:
 MAX_SEARCH_ATTEMPTS = 6
 
 
-def find_fsc_class_by_id(
+def find_brp_class_by_id(
     integration_user: IntegrationUser, config: ConfigValue, class_id: str
 ) -> Union[RezervoClass, None, BookingError, AuthenticationError]:
     print(f"Searching for class by id: {class_id}")
     attempts = 0
-    fsc_class = None
+    brp_class = None
     now = datetime.now()
     from_date = datetime(now.year, now.month, now.day)
     batch_size = 7
     while attempts < MAX_SEARCH_ATTEMPTS:
         print(f"Searching for class starting at {from_date}")
-        fsc_schedule = fetch_fsc_schedule(days=batch_size, from_date=from_date)
-        if fsc_schedule is None:
+        brp_schedule = fetch_brp_schedule(days=batch_size, from_date=from_date)
+        if brp_schedule is None:
             err.log("Class get request failed")
             return BookingError.ERROR
-        fsc_class = next(
-            (c for c in fsc_schedule if c.id == int(class_id)),
+        brp_class = next(
+            (c for c in brp_schedule if c.id == int(class_id)),
             None,
         )
-        if fsc_class is not None:
+        if brp_class is not None:
             break
         from_date += timedelta(days=batch_size)
         attempts += 1
-    if fsc_class is None:
+    if brp_class is None:
         return BookingError.CLASS_MISSING
-    return rezervo_class_from_fsc_class(fsc_class)
+    return rezervo_class_from_brp_class(brp_class)
 
 
-def try_find_fsc_class(
+def try_find_brp_class(
     _class_config: Class,
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
     print(f"Searching for class matching config: {_class_config}")
     attempts = 0
-    fsc_class = None
+    brp_class = None
     now_date = datetime.now()
     from_date = datetime(now_date.year, now_date.month, now_date.day)
     batch_size = 7
     while attempts < MAX_SEARCH_ATTEMPTS:
-        schedule = fetch_fsc_schedule(days=batch_size, from_date=from_date)
+        schedule = fetch_brp_schedule(days=batch_size, from_date=from_date)
         if schedule is None:
             err.log("Schedule get request denied")
             return BookingError.ERROR
-        search_result = find_fsc_class(_class_config, schedule)
+        search_result = find_brp_class(_class_config, schedule)
         if search_result is not None:
-            if fsc_class is None:
-                fsc_class = search_result
+            if brp_class is None:
+                brp_class = search_result
             else:
                 # Check if class has closer booking date than any already found class
                 now = datetime.now().astimezone()
@@ -85,22 +85,22 @@ def try_find_fsc_class(
                     now - datetime.fromisoformat(search_result.bookingOpensAt)
                 )
                 existing_booking_delta = abs(
-                    now - datetime.fromisoformat(fsc_class.bookingOpensAt)
+                    now - datetime.fromisoformat(brp_class.bookingOpensAt)
                 )
                 if new_booking_delta < existing_booking_delta:
-                    fsc_class = search_result
+                    brp_class = search_result
                 else:
                     break
         from_date += timedelta(days=batch_size)
         attempts += 1
-    if fsc_class is None:
+    if brp_class is None:
         err.log("Could not find class matching criteria")
-    return fsc_class
+    return brp_class
 
 
-def find_fsc_class(
+def find_brp_class(
     _class_config: Class,
-    schedule: List[FscClass],
+    schedule: List[BrpClass],
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
     if not 0 <= _class_config.weekday < len(WEEKDAYS):
         err.log(f"Invalid weekday number ({_class_config.weekday=})")
@@ -110,7 +110,7 @@ def find_fsc_class(
         if c.groupActivityProduct.id != _class_config.activity:
             continue
         localized_start_time = datetime.fromisoformat(
-            tz_aware_iso_from_fsc_date_str(c.duration.start)
+            tz_aware_iso_from_brp_date_str(c.duration.start)
         ).astimezone(pytz.timezone("Europe/Oslo"))
         time_matches = (
             localized_start_time.hour == _class_config.time.hour
@@ -133,11 +133,11 @@ def find_fsc_class(
             search_feedback += " (missing instructor)"
         search_feedback += f" at {c.duration.start}"
         print(search_feedback)
-        return rezervo_class_from_fsc_class(c)
+        return rezervo_class_from_brp_class(c)
     return result
 
 
-def book_fsc_class(auth_result: BrpAuthResult, class_id: int) -> bool:
+def book_brp_class(auth_result: BrpAuthResult, class_id: int) -> bool:
     response = requests.post(
         booking_url(auth_result),
         json={"groupActivity": class_id, "allowWaitingList": True},
@@ -152,7 +152,7 @@ def book_fsc_class(auth_result: BrpAuthResult, class_id: int) -> bool:
     return True
 
 
-def try_book_fsc_class(
+def try_book_brp_class(
     integration_user: IntegrationUser, _class: RezervoClass, config: ConfigValue
 ) -> Union[None, BookingError, AuthenticationError]:
     max_attempts = config.booking.max_attempts
@@ -167,7 +167,7 @@ def try_book_fsc_class(
     booked = False
     attempts = 0
     while not booked:
-        booked = book_fsc_class(auth_result, _class.id)
+        booked = book_brp_class(auth_result, _class.id)
         attempts += 1
         if booked:
             break
@@ -190,7 +190,7 @@ def try_book_fsc_class(
     return None
 
 
-def cancel_fsc_booking(
+def cancel_brp_booking(
     auth_result: BrpAuthResult, booking_reference: int, booking_type: BookingType
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
@@ -207,7 +207,7 @@ def cancel_fsc_booking(
     return True
 
 
-def try_cancel_fsc_booking(
+def try_cancel_brp_booking(
     integration_user: IntegrationUser, _class: RezervoClass, config: ConfigValue
 ) -> Union[None, BookingError, AuthenticationError]:
     if config.booking.max_attempts < 1:
@@ -248,7 +248,7 @@ def try_cancel_fsc_booking(
     cancelled = False
     attempts = 0
     while not cancelled:
-        cancelled = cancel_fsc_booking(auth_result, booking_id, booking_type)
+        cancelled = cancel_brp_booking(auth_result, booking_id, booking_type)
         attempts += 1
         if cancelled:
             break

@@ -57,7 +57,7 @@ class Slots(BaseModel):
     inWaitingList: int
 
 
-class FscClass(BaseModel):
+class BrpClass(BaseModel):
     id: int
     name: str
     duration: Duration
@@ -182,7 +182,7 @@ class UserDetails(BaseModel):
     lastPasswordChangedTime: str
 
 
-def session_state_from_fsc(booking_type: BookingType) -> SessionState:
+def session_state_from_brp(booking_type: BookingType) -> SessionState:
     match booking_type:
         case BookingType.GROUP_ACTIVITY:
             return SessionState.BOOKED
@@ -191,12 +191,12 @@ def session_state_from_fsc(booking_type: BookingType) -> SessionState:
     return SessionState.UNKNOWN
 
 
-def tz_aware_iso_from_fsc_date_str(date: str) -> str:
+def tz_aware_iso_from_brp_date_str(date: str) -> str:
     return pytz.UTC.localize(datetime.fromisoformat(date.replace("Z", ""))).isoformat()
 
 
 # TODO: this should be replaced when timezones are handled properly
-def human_iso_from_fsc_date_str(date: str) -> str:
+def human_iso_from_brp_date_str(date: str) -> str:
     return (
         pytz.UTC.localize(datetime.fromisoformat(date.replace("Z", "")))
         .astimezone(pytz.timezone("Europe/Oslo"))
@@ -206,26 +206,26 @@ def human_iso_from_fsc_date_str(date: str) -> str:
     )
 
 
-def rezervo_class_from_fsc_class(fsc_class: FscClass) -> RezervoClass:
+def rezervo_class_from_brp_class(brp_class: BrpClass) -> RezervoClass:
     return RezervoClass(
         integration=IntegrationIdentifier.TTT,
-        id=fsc_class.id,
-        name=fsc_class.groupActivityProduct.name,
-        activityId=fsc_class.groupActivityProduct.id,
-        from_field=human_iso_from_fsc_date_str(fsc_class.duration.start),
-        to=human_iso_from_fsc_date_str(fsc_class.duration.end),
-        instructors=[RezervoInstructor(name=s.name) for s in fsc_class.instructors],
+        id=brp_class.id,
+        name=brp_class.groupActivityProduct.name,
+        activityId=brp_class.groupActivityProduct.id,
+        from_field=human_iso_from_brp_date_str(brp_class.duration.start),
+        to=human_iso_from_brp_date_str(brp_class.duration.end),
+        instructors=[RezervoInstructor(name=s.name) for s in brp_class.instructors],
         studio=RezervoStudio(
-            id=fsc_class.businessUnit.id,
-            name=fsc_class.businessUnit.name,
+            id=brp_class.businessUnit.id,
+            name=brp_class.businessUnit.name,
         ),
         userStatus=None,
         bookable=datetime.fromisoformat(
-            tz_aware_iso_from_fsc_date_str(fsc_class.bookableEarliest)
+            tz_aware_iso_from_brp_date_str(brp_class.bookableEarliest)
         )
         < datetime.now().astimezone()
         < datetime.fromisoformat(
-            tz_aware_iso_from_fsc_date_str(fsc_class.bookableLatest)
+            tz_aware_iso_from_brp_date_str(brp_class.bookableLatest)
         ),
-        bookingOpensAt=tz_aware_iso_from_fsc_date_str(fsc_class.bookableEarliest),
+        bookingOpensAt=tz_aware_iso_from_brp_date_str(brp_class.bookableEarliest),
     )
