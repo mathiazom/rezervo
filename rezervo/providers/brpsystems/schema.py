@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime
 from enum import Enum
 from typing import List, Optional, Union
@@ -6,8 +7,11 @@ import pytz
 from pydantic import BaseModel
 
 from rezervo.models import SessionState
-from rezervo.schemas.config.user import IntegrationIdentifier
 from rezervo.schemas.schedule import RezervoClass, RezervoInstructor, RezervoStudio
+
+
+class BrpSubdomain(enum.Enum):
+    TTT = "3t"
 
 
 class BrpAuthResult(BaseModel):
@@ -206,9 +210,11 @@ def human_iso_from_brp_date_str(date: str) -> str:
     )
 
 
-def rezervo_class_from_brp_class(brp_class: BrpClass) -> RezervoClass:
+def rezervo_class_from_brp_class(
+    subdomain: BrpSubdomain, brp_class: BrpClass
+) -> RezervoClass:
     return RezervoClass(
-        integration=IntegrationIdentifier.TTT,
+        integration=subdomain,
         id=brp_class.id,
         name=brp_class.groupActivityProduct.name,
         activityId=brp_class.groupActivityProduct.id,

@@ -39,6 +39,10 @@ class IntegrationIdentifier(enum.Enum):
     TTT = "3t"
 
 
+class ProviderIdentifier(enum.Enum):
+    BRP = "brpsystems"
+
+
 class BaseIntegrationConfig(OrmBase):
     active: bool = True
     classes: list[Class]
