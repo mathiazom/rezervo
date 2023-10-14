@@ -1,12 +1,16 @@
-from rezervo.integrations.fsc.integration import integration as fsc_integration
-from rezervo.integrations.sit.integration import integration as sit_integration
-from rezervo.integrations.ttt.integration import integration as ttt_integration
-from rezervo.schemas.config.user import IntegrationIdentifier
+from rezervo.providers.active import get_provider
+from rezervo.schemas.config.user import IntegrationIdentifier, ProviderIdentifier
 
 ACTIVE_INTEGRATIONS = {
-    IntegrationIdentifier.SIT: sit_integration,
-    IntegrationIdentifier.FSC: fsc_integration,
-    IntegrationIdentifier.TTT: ttt_integration,
+    IntegrationIdentifier.SIT: get_provider(ProviderIdentifier.IBOOKING)(
+        IntegrationIdentifier.SIT
+    ),
+    IntegrationIdentifier.FSC: get_provider(ProviderIdentifier.BRP)(
+        IntegrationIdentifier.FSC, 8
+    ),
+    IntegrationIdentifier.TTT: get_provider(ProviderIdentifier.BRP)(
+        IntegrationIdentifier.TTT, 1
+    ),
 }
 
 
