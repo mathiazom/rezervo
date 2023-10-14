@@ -10,10 +10,10 @@ from rezervo import models
 from rezervo.consts import PLANNED_SESSIONS_NEXT_WHOLE_WEEKS
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
-from rezervo.integrations.ttt.auth import authenticate
-from rezervo.integrations.ttt.booking import booking_url
-from rezervo.integrations.ttt.schedule import fetch_fsc_schedule
-from rezervo.integrations.ttt.schema import (
+from rezervo.providers.brpsystems.auth import authenticate
+from rezervo.providers.brpsystems.booking import booking_url
+from rezervo.providers.brpsystems.schedule import fetch_fsc_schedule
+from rezervo.providers.brpsystems.schema import (
     BookingData,
     FscClass,
     rezervo_class_from_fsc_class,

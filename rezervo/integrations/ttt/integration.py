@@ -1,12 +1,12 @@
 from rezervo.integrations.integration import Integration
-from rezervo.integrations.ttt.booking import (
+from rezervo.providers.brpsystems.booking import (
     find_fsc_class_by_id,
     try_book_fsc_class,
     try_cancel_fsc_booking,
     try_find_fsc_class,
 )
-from rezervo.integrations.ttt.schema import rezervo_class_from_fsc_class
-from rezervo.integrations.ttt.sessions import fetch_fsc_sessions
+from rezervo.providers.brpsystems.schema import rezervo_class_from_fsc_class
+from rezervo.providers.brpsystems.sessions import fetch_fsc_sessions
 
 integration = Integration(
     find_authed_class_by_id=find_fsc_class_by_id,
