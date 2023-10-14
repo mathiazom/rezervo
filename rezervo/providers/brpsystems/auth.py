@@ -5,8 +5,8 @@ import requests
 from requests import Session
 
 from rezervo.errors import AuthenticationError
-from rezervo.integrations.ttt.consts import AUTH_URL
-from rezervo.integrations.ttt.schema import BrpAuthResult
+from rezervo.providers.brpsystems.consts import AUTH_URL
+from rezervo.providers.brpsystems.schema import BrpAuthResult
 from rezervo.utils.logging_utils import err
 
 

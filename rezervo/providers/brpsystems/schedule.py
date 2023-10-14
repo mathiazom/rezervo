@@ -4,8 +4,8 @@ from urllib.parse import urlencode
 
 import requests
 
-from rezervo.integrations.ttt.consts import CLASSES_SCHEDULE_URL
-from rezervo.integrations.ttt.schema import (
+from rezervo.providers.brpsystems.consts import CLASSES_SCHEDULE_URL
+from rezervo.providers.brpsystems.schema import (
     FscClass,
 )
 
