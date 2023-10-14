@@ -1,18 +1,14 @@
-from rezervo.integrations.fsc.booking import (
-    find_fsc_class,
-    find_fsc_class_by_id,
-    try_book_fsc_class,
-    try_cancel_fsc_booking,
-)
-from rezervo.integrations.fsc.schema import rezervo_class_from_fsc_class
-from rezervo.integrations.fsc.sessions import fetch_fsc_sessions
 from rezervo.integrations.integration import Integration
+from rezervo.providers.active import get_provider
+from rezervo.schemas.config.user import IntegrationIdentifier, ProviderIdentifier
+
+brp_provider = get_provider(ProviderIdentifier.BRP)(IntegrationIdentifier.FSC, 8)
 
 integration = Integration(
-    find_authed_class_by_id=find_fsc_class_by_id,
-    find_class=find_fsc_class,
-    book_class=try_book_fsc_class,
-    cancel_booking=try_cancel_fsc_booking,
-    fetch_sessions=fetch_fsc_sessions,
-    rezervo_class_from_class_data=rezervo_class_from_fsc_class,
+    find_authed_class_by_id=brp_provider.find_authed_class_by_id,
+    find_class=brp_provider.find_class,
+    book_class=brp_provider.book_class,
+    cancel_booking=brp_provider.cancel_booking,
+    fetch_sessions=brp_provider.fetch_sessions,
+    rezervo_class_from_class_data=brp_provider.rezervo_class_from_class_data,
 )
