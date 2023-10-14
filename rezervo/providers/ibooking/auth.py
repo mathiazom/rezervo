@@ -8,7 +8,11 @@ from requests import Session
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
-from rezervo.providers.ibooking.consts import AUTH_URL, BOOKING_URL, TOKEN_VALIDATION_URL
+from rezervo.providers.ibooking.consts import (
+    AUTH_URL,
+    BOOKING_URL,
+    TOKEN_VALIDATION_URL,
+)
 from rezervo.schemas.config.user import IntegrationUser
 from rezervo.utils.logging_utils import err, warn
 

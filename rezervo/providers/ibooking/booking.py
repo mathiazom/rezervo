@@ -8,6 +8,7 @@ from rezervo.consts import (
     WEEKDAYS,
 )
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.notify import notify_booking
 from rezervo.providers.ibooking.auth import fetch_public_token, try_authenticate
 from rezervo.providers.ibooking.consts import (
     ADD_BOOKING_URL,
@@ -15,9 +16,11 @@ from rezervo.providers.ibooking.consts import (
     CLASS_URL,
     ICAL_URL,
 )
-from rezervo.providers.ibooking.schedule import fetch_sit_schedule
-from rezervo.providers.ibooking.schema import SitClass, rezervo_class_from_sit_class
-from rezervo.notify.notify import notify_booking
+from rezervo.providers.ibooking.schedule import fetch_ibooking_schedule
+from rezervo.providers.ibooking.schema import (
+    IBookingClass,
+    rezervo_class_from_ibooking_class,
+)
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import Class, IntegrationUser
 from rezervo.schemas.schedule import RezervoClass
@@ -25,7 +28,7 @@ from rezervo.utils.logging_utils import err
 from rezervo.utils.str_utils import format_name_list_to_natural
 
 
-def book_sit_class(token, class_id) -> bool:
+def book_ibooking_class(token, class_id) -> bool:
     print(f"Booking class {class_id}")
     response = requests.post(ADD_BOOKING_URL, {"classId": class_id, "token": token})
     if response.status_code != requests.codes.OK:
@@ -36,7 +39,7 @@ def book_sit_class(token, class_id) -> bool:
     return True
 
 
-def cancel_sit_booking(token, class_id) -> bool:
+def cancel_ibooking_booking(token, class_id) -> bool:
     print(f"Cancelling booking of class {class_id}")
     res = requests.post(CANCEL_BOOKING_URL, {"classId": class_id, "token": token})
     if res.status_code != requests.codes.OK:
@@ -57,7 +60,7 @@ def cancel_sit_booking(token, class_id) -> bool:
 
 
 # Search the scheduled classes and return the first class matching the given arguments
-def find_public_sit_class(
+def find_public_ibooking_class(
     _class_config: Class,
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
     token = fetch_public_token()
@@ -65,7 +68,7 @@ def find_public_sit_class(
         err.log("Failed to fetch public token")
         return token
     print(f"Searching for class matching config: {_class_config}")
-    schedule = fetch_sit_schedule(token, 7, _class_config.studio)
+    schedule = fetch_ibooking_schedule(token, 7, _class_config.studio)
     if schedule is None:
         err.log("Schedule get request denied")
         return BookingError.ERROR
@@ -105,29 +108,29 @@ def find_public_sit_class(
             search_feedback += " (missing instructor)"
         search_feedback += f" at {c.from_field}"
         print(search_feedback)
-        return rezervo_class_from_sit_class(c)
+        return rezervo_class_from_ibooking_class(c)
     err.log("Could not find class matching criteria")
     if result is None:
         result = BookingError.CLASS_MISSING
     return result
 
 
-def find_authed_sit_class_by_id(
+def find_authed_ibooking_class_by_id(
     integration_user: IntegrationUser, config: ConfigValue, class_id: str
 ) -> Union[RezervoClass, None, BookingError, AuthenticationError]:
     token = try_authenticate(integration_user, config.auth.max_attempts)
     if isinstance(token, AuthenticationError):
-        err.log("Failed to authenticate to sit")
+        err.log("Failed to authenticate to iBooking")
         return token
     print(f"Searching for class by id: {class_id}")
     class_response = requests.get(f"{CLASS_URL}?token={token}&id={class_id}&lang=no")
     if class_response.status_code != requests.codes.OK:
         err.log("Class get request failed")
         return BookingError.ERROR
-    sit_class = SitClass(**class_response.json()["class"])
-    if sit_class is None:
+    ibooking_class = IBookingClass(**class_response.json()["class"])
+    if ibooking_class is None:
         return BookingError.CLASS_MISSING
-    return rezervo_class_from_sit_class(sit_class)
+    return rezervo_class_from_ibooking_class(ibooking_class)
 
 
 def cancel_booking(
@@ -147,7 +150,7 @@ def cancel_booking(
     cancelled = False
     attempts = 0
     while not cancelled:
-        cancelled = cancel_sit_booking(token, _class.id)
+        cancelled = cancel_ibooking_booking(token, _class.id)
         attempts += 1
         if cancelled:
             break
@@ -185,7 +188,7 @@ def book_class(
     booked = False
     attempts = 0
     while not booked:
-        booked = book_sit_class(token, _class.id)
+        booked = book_ibooking_class(token, _class.id)
         attempts += 1
         if booked:
             break
