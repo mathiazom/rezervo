@@ -12,16 +12,16 @@ from rezervo.consts import (
 )
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
-from rezervo.integrations.sit.auth import (
+from rezervo.providers.ibooking.auth import (
     USER_AGENT,
     authenticate_session,
     fetch_public_token,
 )
-from rezervo.integrations.sit.consts import (
+from rezervo.providers.ibooking.consts import (
     MY_SESSIONS_URL,
 )
-from rezervo.integrations.sit.schedule import fetch_sit_schedule
-from rezervo.integrations.sit.schema import (
+from rezervo.providers.ibooking.schedule import fetch_sit_schedule
+from rezervo.providers.ibooking.schema import (
     SitClass,
     SitSchedule,
     SitSession,

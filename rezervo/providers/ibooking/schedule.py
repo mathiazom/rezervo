@@ -4,11 +4,11 @@ from typing import Optional, Union
 
 import requests
 
-from rezervo.integrations.sit.consts import (
+from rezervo.providers.ibooking.consts import (
     CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH,
     CLASSES_SCHEDULE_URL,
 )
-from rezervo.integrations.sit.schema import SitDay, SitSchedule
+from rezervo.providers.ibooking.schema import SitDay, SitSchedule
 
 
 def fetch_single_batch_sit_schedule(

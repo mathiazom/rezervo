@@ -1,12 +1,12 @@
 from rezervo.integrations.integration import Integration
-from rezervo.integrations.sit.booking import (
+from rezervo.providers.ibooking.booking import (
     book_class,
     cancel_booking,
     find_authed_sit_class_by_id,
     find_public_sit_class,
 )
-from rezervo.integrations.sit.schema import rezervo_class_from_sit_class
-from rezervo.integrations.sit.sessions import fetch_sit_sessions
+from rezervo.providers.ibooking.schema import rezervo_class_from_sit_class
+from rezervo.providers.ibooking.sessions import fetch_sit_sessions
 
 integration = Integration(
     find_authed_class_by_id=find_authed_sit_class_by_id,
