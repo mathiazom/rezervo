@@ -12,6 +12,7 @@ from rezervo.providers.ibooking.sessions import fetch_ibooking_sessions
 from rezervo.providers.provider import Provider
 
 
+# TODO: make iBooking domain configurable
 def get_ibooking_provider(domain: IBookingDomain):
     return Provider(
         find_authed_class_by_id=find_authed_ibooking_class_by_id,
