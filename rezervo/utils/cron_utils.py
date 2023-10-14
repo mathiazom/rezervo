@@ -8,7 +8,7 @@ from crontab import CronItem, CronTab
 
 from rezervo import models
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.integrations.common import find_class
+from rezervo.providers.common import find_class
 from rezervo.schemas.config.config import Config, Cron
 from rezervo.schemas.config.user import Class, IntegrationConfig, IntegrationIdentifier
 from rezervo.settings import get_settings

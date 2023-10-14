@@ -6,7 +6,7 @@ from starlette.responses import Response
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.integrations.common import (
+from rezervo.providers.common import (
     book_class,
     cancel_booking,
     find_authed_class_by_id,

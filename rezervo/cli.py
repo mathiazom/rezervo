@@ -18,8 +18,8 @@ from rezervo.cron import refresh_cron
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.integrations.common import book_class, find_class
 from rezervo.notify.notify import notify_auth_failure, notify_booking_failure
+from rezervo.providers.common import book_class, find_class
 from rezervo.schemas.config.config import (
     read_app_config,
 )
