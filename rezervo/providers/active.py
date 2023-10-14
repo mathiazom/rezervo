@@ -1,7 +1,11 @@
 from rezervo.providers.brpsystems.provider import get_brp_provider
+from rezervo.providers.ibooking.provider import get_ibooking_provider
 from rezervo.schemas.config.user import ProviderIdentifier
 
-ACTIVE_PROVIDERS = {ProviderIdentifier.BRP: get_brp_provider}
+ACTIVE_PROVIDERS = {
+    ProviderIdentifier.BRP: get_brp_provider,
+    ProviderIdentifier.IBOOKING: get_ibooking_provider,
+}
 
 
 def get_provider(provider: ProviderIdentifier):

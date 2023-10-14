@@ -41,6 +41,7 @@ class IntegrationIdentifier(enum.Enum):
 
 class ProviderIdentifier(enum.Enum):
     BRP = "brpsystems"
+    IBOOKING = "ibooking"
 
 
 class BaseIntegrationConfig(OrmBase):

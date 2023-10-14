@@ -1,3 +1,4 @@
+import enum
 from datetime import datetime
 from typing import Optional
 
@@ -7,6 +8,10 @@ from pytz import timezone
 from rezervo.models import SessionState
 from rezervo.schemas.config.user import IntegrationIdentifier
 from rezervo.schemas.schedule import RezervoClass, RezervoInstructor, RezervoStudio
+
+
+class IBookingDomain(enum.Enum):
+    SIT = "sit"
 
 
 class IBookingInstructor(BaseModel):
