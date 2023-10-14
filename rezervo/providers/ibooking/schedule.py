@@ -8,12 +8,12 @@ from rezervo.providers.ibooking.consts import (
     CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH,
     CLASSES_SCHEDULE_URL,
 )
-from rezervo.providers.ibooking.schema import SitDay, SitSchedule
+from rezervo.providers.ibooking.schema import IBookingDay, IBookingSchedule
 
 
-def fetch_single_batch_sit_schedule(
+def fetch_single_batch_ibooking_schedule(
     token: str, studio: Optional[int] = None, from_iso: Optional[str] = None
-) -> Union[SitSchedule, None]:
+) -> Union[IBookingSchedule, None]:
     res = requests.get(
         f"{CLASSES_SCHEDULE_URL}"
         f"?token={token}"
@@ -23,20 +23,22 @@ def fetch_single_batch_sit_schedule(
     )
     if res.status_code != requests.codes.OK:
         return None
-    return SitSchedule(**res.json())
+    return IBookingSchedule(**res.json())
 
 
-def fetch_sit_schedule(
+def fetch_ibooking_schedule(
     token, days: int, studio: Optional[int] = None
-) -> Union[SitSchedule, None]:
-    schedule_days: list[SitDay] = []
+) -> Union[IBookingSchedule, None]:
+    schedule_days: list[IBookingDay] = []
     from_date = datetime.datetime.now().date()
     for _i in range(math.ceil(days / CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH)):
-        batch = fetch_single_batch_sit_schedule(token, studio, from_date.isoformat())
+        batch = fetch_single_batch_ibooking_schedule(
+            token, studio, from_date.isoformat()
+        )
         if batch is not None:
             # api actually returns 7 days, but the extra days are empty...
             schedule_days.extend(batch.days[:CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH])
         from_date = from_date + datetime.timedelta(
             days=CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH
         )
-    return SitSchedule(days=schedule_days[:days])
+    return IBookingSchedule(days=schedule_days[:days])
