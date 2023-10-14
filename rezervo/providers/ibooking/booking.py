@@ -8,15 +8,15 @@ from rezervo.consts import (
     WEEKDAYS,
 )
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.integrations.sit.auth import fetch_public_token, try_authenticate
-from rezervo.integrations.sit.consts import (
+from rezervo.providers.ibooking.auth import fetch_public_token, try_authenticate
+from rezervo.providers.ibooking.consts import (
     ADD_BOOKING_URL,
     CANCEL_BOOKING_URL,
     CLASS_URL,
     ICAL_URL,
 )
-from rezervo.integrations.sit.schedule import fetch_sit_schedule
-from rezervo.integrations.sit.schema import SitClass, rezervo_class_from_sit_class
+from rezervo.providers.ibooking.schedule import fetch_sit_schedule
+from rezervo.providers.ibooking.schema import SitClass, rezervo_class_from_sit_class
 from rezervo.notify.notify import notify_booking
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import Class, IntegrationUser
