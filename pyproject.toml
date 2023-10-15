@@ -5,11 +5,11 @@ build-backend = "poetry.core.masonry.api"
 [tool.poetry]
 name = "rezervo"
 version = "0.1.0"
-description = "Automatic booking of Sit Trening group classes"
+description = "Automatic booking of group classes"
 authors = ["Mathias Oterhals Myklebust <mathias@oterbust.no>"]
 readme = "README.md"
 packages = [{include = "rezervo"}]
-repository = "https://github.com/mathiazom/sit-rezervo"
+repository = "https://github.com/mathiazom/rezervo"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 [tool.poetry.urls]
-"Bug Tracker" = "https://github.com/mathiazom/sit-rezervo/issues"
+"Bug Tracker" = "https://github.com/mathiazom/rezervo/issues"
 
 [tool.poetry.scripts]
 rezervo = "rezervo.cli:cli"
