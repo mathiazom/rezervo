@@ -53,6 +53,8 @@ pywebpush = "^1.14.0"
 mypy = "^0.991"
 poethepoet = "^0.22.0"
 types-python-crontab = "^3.0.0.1"
+types-requests = "^2.31.0.9"
+types-pytz = "^2023.3.1.1"
 
 [tool.poe.tasks]
 fix = ["fmt", "lintfix"]
