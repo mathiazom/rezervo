@@ -15,6 +15,7 @@ from rezervo.providers.brpsystems.auth import authenticate
 from rezervo.providers.brpsystems.booking import booking_url
 from rezervo.providers.brpsystems.schedule import fetch_brp_schedule
 from rezervo.providers.brpsystems.schema import (
+    SUBDOMAIN_TO_INTEGRATION_IDENTIFIER,
     BookingData,
     BrpClass,
     BrpSubdomain,
@@ -42,7 +43,8 @@ def fetch_brp_sessions(
     )
     with SessionLocal() as db:
         db_brp_users_query = db.query(models.IntegrationUser).filter(
-            models.IntegrationUser.integration == subdomain
+            models.IntegrationUser.integration
+            == SUBDOMAIN_TO_INTEGRATION_IDENTIFIER[subdomain]
         )
         if user_id is not None:
             db_brp_users_query = db_brp_users_query.filter(
@@ -85,7 +87,7 @@ def fetch_brp_sessions(
                     continue
                 past_and_imminent_sessions.append(
                     UserSession(
-                        integration=subdomain,
+                        integration=SUBDOMAIN_TO_INTEGRATION_IDENTIFIER[subdomain],
                         class_id=s.groupActivity.id,
                         user_id=brp_user.user_id,
                         status=session_state_from_brp(s.type),
@@ -102,7 +104,7 @@ def fetch_brp_sessions(
             )
             user_sessions = past_and_imminent_sessions + [
                 UserSession(
-                    integration=subdomain,
+                    integration=SUBDOMAIN_TO_INTEGRATION_IDENTIFIER[subdomain],
                     class_id=p.id,
                     user_id=brp_user.user_id,
                     status=SessionState.PLANNED,

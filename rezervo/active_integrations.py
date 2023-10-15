@@ -1,15 +1,17 @@
 from rezervo.providers.active import get_provider
+from rezervo.providers.brpsystems.schema import BrpSubdomain
+from rezervo.providers.ibooking.schema import IBookingDomain
 from rezervo.schemas.config.user import IntegrationIdentifier, ProviderIdentifier
 
 ACTIVE_INTEGRATIONS = {
     IntegrationIdentifier.SIT: get_provider(ProviderIdentifier.IBOOKING)(
-        IntegrationIdentifier.SIT
+        IBookingDomain.SIT
     ),
     IntegrationIdentifier.FSC: get_provider(ProviderIdentifier.BRP)(
-        IntegrationIdentifier.FSC, 8
+        BrpSubdomain.FSC, 8
     ),
     IntegrationIdentifier.TTT: get_provider(ProviderIdentifier.BRP)(
-        IntegrationIdentifier.TTT, 1
+        BrpSubdomain.TTT, 1
     ),
 }
 
