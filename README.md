@@ -1,47 +1,29 @@
-<style>
-   .image-link-container {
-      display: flex;
-      flex-direction: row;
-      gap: 10px;
-      flex-wrap: wrap;
-   }
-   .image-link {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: #fff;
-      width: 100px;
-      padding: 5px;
-      border-radius: 5px;
-   }  
-</style>
-
 # 🏋🏿‍♂️ rezervo
 
 [![rezervo](https://img.shields.io/badge/ghcr.io-mathiazom%2Frezervo-blue?logo=docker)](https://github.com/users/mathiazom/packages/container/package/rezervo)
 
-Automatic booking of group classes.
+Automatic booking of group classes
 
-### ⚙️ Providers
+### 🧩 Integrations
 <div class="image-link-container">
-   <a href="https://www.ibooking.no" class="image-link">
-      <img src="./assets/providers/ibooking.png" alt="ibooking" height="30">
+   <a href="https://www.sit.no">
+      <img src="assets/badges/integrations/sit.svg" alt="sit" height="45">
    </a>
-   <a href="https://www.brpsystems.com" class="image-link">
-      <img src="./assets/providers/brpsystems.png" alt="brpsystems" height="30">
+   <a href="https://www.fsc.no">
+      <img src="assets/badges/integrations/fsc.svg" alt="fsc" height="45">
+   </a>
+   <a href="https://www.3t.no">
+      <img src="assets/badges/integrations/3t.svg" alt="3t" height="45">
    </a>
 </div>
 
-### 🤸 Integrations
+#### ⚙️ Providers
 <div class="image-link-container">
-   <a href="https://www.sit.no" class="image-link">
-      <img src="./assets/integrations/sit.svg" alt="sit" height="30">
+   <a href="https://www.ibooking.no">
+      <img src="assets/badges/providers/ibooking.svg" alt="ibooking" height="35">
    </a>
-   <a href="https://www.fsc.no" class="image-link">
-      <img src="./assets/integrations/fsc.svg" alt="fsc" height="30">
-   </a>
-   <a href="https://www.3t.no" class="image-link">
-      <img src="./assets/integrations/3t.png" alt="3t" height="30">
+   <a href="https://www.brpsystems.com">
+      <img src="assets/badges/providers/brpsystems.svg" alt="brpsystems" height="35">
    </a>
 </div>
 
