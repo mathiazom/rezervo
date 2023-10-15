@@ -7,11 +7,20 @@ import pytz
 from pydantic import BaseModel
 
 from rezervo.models import SessionState
+from rezervo.schemas.config.user import IntegrationIdentifier
 from rezervo.schemas.schedule import RezervoClass, RezervoInstructor, RezervoStudio
 
 
 class BrpSubdomain(enum.Enum):
     TTT = "3t"
+    FSC = "fsc"
+
+
+# TODO: remove dependency on IntegrationIdentifier in this provider
+SUBDOMAIN_TO_INTEGRATION_IDENTIFIER = {
+    BrpSubdomain.TTT: IntegrationIdentifier.TTT,
+    BrpSubdomain.FSC: IntegrationIdentifier.FSC,
+}
 
 
 class BrpAuthResult(BaseModel):
@@ -214,7 +223,7 @@ def rezervo_class_from_brp_class(
     subdomain: BrpSubdomain, brp_class: BrpClass
 ) -> RezervoClass:
     return RezervoClass(
-        integration=subdomain,
+        integration=SUBDOMAIN_TO_INTEGRATION_IDENTIFIER[subdomain],
         id=brp_class.id,
         name=brp_class.groupActivityProduct.name,
         activityId=brp_class.groupActivityProduct.id,
