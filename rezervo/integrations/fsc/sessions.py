@@ -78,7 +78,7 @@ def fetch_fsc_sessions(user_id: Optional[UUID] = None) -> dict[UUID, list[UserSe
                     continue
                 past_and_imminent_sessions.append(
                     UserSession(
-                        integration=IntegrationIdentifier.TTT,
+                        integration=IntegrationIdentifier.FSC,
                         class_id=s.groupActivity.id,
                         user_id=fsc_user.user_id,
                         status=session_state_from_fsc(s.type),
