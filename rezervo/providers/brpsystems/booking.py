@@ -19,6 +19,7 @@ from rezervo.providers.brpsystems.schema import (
     rezervo_class_from_brp_class,
     tz_aware_iso_from_brp_date_str,
 )
+from rezervo.providers.helpers import try_authenticate
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import Class, IntegrationUser
 from rezervo.schemas.schedule import RezervoClass
@@ -174,8 +175,10 @@ def try_book_brp_class(
         err.log("Max booking attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     print("Authenticating...")
-    auth_result = authenticate(
-        subdomain, integration_user.username, integration_user.password
+    auth_result = try_authenticate(
+        lambda iu: authenticate(subdomain, iu.username, iu.password),
+        integration_user,
+        config.auth.max_attempts,
     )
     if isinstance(auth_result, AuthenticationError):
         err.log("Authentication failed")
@@ -236,8 +239,10 @@ def try_cancel_brp_booking(
         err.log("Max booking cancellation attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     print("Authenticating...")
-    auth_result = authenticate(
-        subdomain, integration_user.username, integration_user.password
+    auth_result = try_authenticate(
+        lambda iu: authenticate(subdomain, iu.username, iu.password),
+        integration_user,
+        config.auth.max_attempts,
     )
     if isinstance(auth_result, AuthenticationError):
         err.log("Authentication failed")

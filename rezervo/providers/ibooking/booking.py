@@ -9,7 +9,8 @@ from rezervo.consts import (
 )
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.notify import notify_booking
-from rezervo.providers.ibooking.auth import fetch_public_token, try_authenticate
+from rezervo.providers.helpers import try_authenticate
+from rezervo.providers.ibooking.auth import authenticate_token, fetch_public_token
 from rezervo.providers.ibooking.consts import (
     ADD_BOOKING_URL,
     CANCEL_BOOKING_URL,
@@ -118,7 +119,9 @@ def find_public_ibooking_class(
 def find_authed_ibooking_class_by_id(
     integration_user: IntegrationUser, config: ConfigValue, class_id: str
 ) -> Union[RezervoClass, None, BookingError, AuthenticationError]:
-    token = try_authenticate(integration_user, config.auth.max_attempts)
+    token = try_authenticate(
+        authenticate_token, integration_user, config.auth.max_attempts
+    )
     if isinstance(token, AuthenticationError):
         err.log("Failed to authenticate to iBooking")
         return token
@@ -142,7 +145,9 @@ def cancel_booking(
     if config.booking.max_attempts < 1:
         err.log("Max booking cancellation attempts should be a positive number")
         return BookingError.INVALID_CONFIG
-    auth_result = try_authenticate(integration_user, config.auth.max_attempts)
+    auth_result = try_authenticate(
+        authenticate_token, integration_user, config.auth.max_attempts
+    )
     if isinstance(auth_result, AuthenticationError):
         err.log("Authentication failed")
         return auth_result
@@ -180,7 +185,9 @@ def book_class(
         err.log("Max booking attempts should be a positive number")
         return BookingError.INVALID_CONFIG
     print("Authenticating...")
-    auth_result = try_authenticate(integration_user, config.auth.max_attempts)
+    auth_result = try_authenticate(
+        authenticate_token, integration_user, config.auth.max_attempts
+    )
     if isinstance(auth_result, AuthenticationError):
         err.log("Authentication failed")
         return auth_result

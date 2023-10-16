@@ -1,5 +1,4 @@
 import re
-import time
 from typing import Optional, Union
 
 import requests
@@ -68,6 +67,10 @@ def authenticate_token(
     validation_error = validate_token(token_res)
     if validation_error is not None:
         return validation_error
+    with SessionLocal() as db:
+        crud.upsert_integration_user_token(
+            db, integration_user.user_id, integration_user.integration, token_res
+        )
     return token_res
 
 
@@ -99,43 +102,3 @@ def extract_token_from_session(session: Session) -> Union[str, AuthenticationErr
         return cdata_token_matches.group(1)
     except IndexError:
         return AuthenticationError.TOKEN_EXTRACTION_FAILED
-
-
-def try_authenticate(
-    integration_user: IntegrationUser, max_attempts: int
-) -> Union[str, AuthenticationError]:
-    if max_attempts < 1:
-        return AuthenticationError.ERROR
-    success = False
-    attempts = 0
-    result = None
-    while not success:
-        result = authenticate_token(integration_user)
-        success = not isinstance(result, AuthenticationError)
-        attempts += 1
-        if success:
-            break
-        if result == AuthenticationError.INVALID_CREDENTIALS:
-            err.log("Invalid credentials, aborting authentication to avoid lockout")
-            break
-        if result == AuthenticationError.AUTH_TEMPORARILY_BLOCKED:
-            err.log("Authentication temporarily blocked, aborting")
-            break
-        if attempts >= max_attempts:
-            break
-        sleep_seconds = 2**attempts
-        print(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
-        time.sleep(sleep_seconds)
-    if not success:
-        err.log(
-            f"Authentication failed after {attempts} attempt"
-            + ("s" if attempts != 1 else "")
-        )
-        return result
-    if result is None:
-        return AuthenticationError.ERROR
-    with SessionLocal() as db:
-        crud.upsert_integration_user_token(
-            db, integration_user.user_id, integration_user.integration, result
-        )
-    return result
