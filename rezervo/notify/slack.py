@@ -6,7 +6,6 @@ from requests import RequestException
 from slack_sdk import WebClient as SlackClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.signature import SignatureVerifier
-from slack_sdk.webhook import WebhookClient as SlackWebhookClient
 from starlette.datastructures import Headers
 
 from rezervo.consts import (
@@ -14,7 +13,9 @@ from rezervo.consts import (
     SLACK_ACTION_CANCEL_BOOKING,
     WEEKDAYS,
 )
+from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.models import SlackClassNotificationReceipt
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.schemas.slack import CancelBookingActionValue
@@ -29,9 +30,9 @@ def notify_slack(
     message: str,
     message_blocks: Optional[List[Dict[str, Any]]] = None,
     thread_ts: Optional[str] = None,
-):
+) -> Optional[str]:
     try:
-        SlackClient(token=slack_token).chat_postMessage(
+        response = SlackClient(token=slack_token).chat_postMessage(
             channel=channel,
             text=message,
             blocks=message_blocks,
@@ -39,10 +40,10 @@ def notify_slack(
             unfurl_links=False,
             unfurl_media=False,
         )
+        return response.get("ts")
     except SlackApiError as e:
         err.log(f"Could not post notification to Slack: {e.response['error']}")
-        return False
-    return True
+        return None
 
 
 def delete_scheduled_message_slack(
@@ -151,7 +152,7 @@ def notify_auth_failure_slack(
         f"<@{user_id}>{f'. *{AUTH_FAILURE_REASONS[error]}*' if error in AUTH_FAILURE_REASONS else ''}"
     )
     print(f"Posting auth {'check ' if check_run else ''}failure notification to Slack")
-    if not notify_slack(slack_token, channel, message, thread_ts=thread_ts):
+    if notify_slack(slack_token, channel, message, thread_ts=thread_ts) is None:
         err.log(
             f"Could not post auth {'check ' if check_run else ''}failure notification to Slack"
         )
@@ -196,7 +197,7 @@ def notify_booking_failure_slack(
             f"{f'. *{BOOKING_FAILURE_REASONS[error]}*' if error in BOOKING_FAILURE_REASONS else ''}"
         )
     print("Posting booking failure notification to Slack")
-    if not notify_slack(slack_token, channel, msg):
+    if notify_slack(slack_token, channel, msg) is None:
         err.log("Could not post booking failure notification to Slack")
         return
     print("Booking failure notification posted successfully to Slack.")
@@ -223,14 +224,15 @@ def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
         )
         print("'Working' reaction removed successfully from Slack message.")
     except SlackApiError as e:
+        if e.response["error"] == "no_reaction":
+            # reaction not present, assume success
+            return
         err.log(
             f"Could not remove 'working' reaction from Slack message: {e.response['error']}"
         )
 
 
-def notify_cancellation_slack(
-    slack_token: str, channel: str, source_ts: str, response_url: str
-):
+def notify_cancellation_slack(slack_token: str, channel: str, source_ts: str) -> bool:
     try:
         # Retrieve original message
         message = (
@@ -240,6 +242,10 @@ def notify_cancellation_slack(
             )
             .data["messages"][0]
         )
+        cancelled_text_prefix = "[AVBESTILT!]"
+        # If already cancelled, abort with success
+        if message["text"].startswith(cancelled_text_prefix):
+            return True
         # Remove booking emoji and strike out original text
         new_message = f'~{message["blocks"][0]["text"]["text"]}~'.replace(
             BOOKING_EMOJI, CANCELLATION_EMOJI, 1
@@ -248,10 +254,11 @@ def notify_cancellation_slack(
         # Remove all message actions
         message["blocks"] = [b for b in message["blocks"] if b["type"] != "actions"]
         # Update original message to reflect cancellation
-        SlackWebhookClient(response_url).send(
-            text=f'[AVBESTILT!] {message["text"]}',  # fallback text if 'blocks' don't work
+        SlackClient(token=slack_token).chat_update(
+            channel=channel,
+            ts=source_ts,
+            text=f'{cancelled_text_prefix} {message["text"]}',  # fallback text if 'blocks' don't work
             blocks=message["blocks"],
-            replace_original=True,
         )
         notify_not_working_slack(slack_token, channel, source_ts)
         # Notify in thread
@@ -362,12 +369,25 @@ def notify_booking_slack(
                 "Could not upload ical event to transfer.sh instance, skipping ical link in notification."
             )
     print("Posting booking notification to Slack")
-    if not notify_slack(
+    slack_notification_ts = notify_slack(
         slack_token, channel, message_blocks["message"], message_blocks["blocks"]
-    ):
+    )
+    if slack_notification_ts is None:
         err.log("Could not post booking notification to Slack")
         return
     print("Booking notification posted successfully to Slack.")
+    with SessionLocal() as db:
+        db.add(
+            SlackClassNotificationReceipt(
+                slack_user_id=user_id,
+                integration=booked_class.integration,
+                class_id=str(booked_class.id),
+                channel_id=channel,
+                message_id=slack_notification_ts,
+                scheduled_reminder_id=scheduled_reminder_id,
+            )
+        )
+        db.commit()
     return
 
 

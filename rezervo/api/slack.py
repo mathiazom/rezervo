@@ -19,9 +19,7 @@ from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.slack import (
-    delete_scheduled_dm_slack,
     notify_cancellation_failure_slack,
-    notify_cancellation_slack,
     notify_working_slack,
     show_unauthorized_action_modal_slack,
     verify_slack_request,
@@ -40,7 +38,6 @@ def handle_cancel_booking_slack_action(
     config: ConfigValue,
     action_value: CancelBookingActionValue,
     message_ts: str,
-    response_url: str,
 ):
     if config.notifications is None:
         warn.log("Notifications config not specified, no notifications will be sent!")
@@ -103,16 +100,6 @@ def handle_cancel_booking_slack_action(
                 cancellation_error,
             )
         return
-    if slack_config is not None:
-        if action_value.scheduled_reminder_id is not None:
-            delete_scheduled_dm_slack(
-                slack_config.bot_token,
-                slack_config.user_id,
-                action_value.scheduled_reminder_id,
-            )
-        notify_cancellation_slack(
-            slack_config.bot_token, slack_config.channel_id, message_ts, response_url
-        )
     pull_sessions(action_value.integration, user_id)
 
 
@@ -170,14 +157,12 @@ async def slack_action(
                     interaction.trigger_id,
                 )
             return Response("Nice try 👏", status_code=status.HTTP_403_FORBIDDEN)
-        message_ts = interaction.container.message_ts
         background_tasks.add_task(
             handle_cancel_booking_slack_action,
             user_config.user_id,
             config,
             action_value,
-            message_ts,
-            interaction.response_url,
+            interaction.container.message_ts,
         )
         return Response(status_code=status.HTTP_200_OK)
     return Response(

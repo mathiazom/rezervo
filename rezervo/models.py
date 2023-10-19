@@ -79,3 +79,20 @@ class Session(Base):
 
     def __repr__(self):
         return f"<Session (integration='{self.integration}' class_id='{self.class_id}' user_id='{self.user_id}' status='{self.status}' class_data={self.class_data})>"
+
+
+class SlackClassNotificationReceipt(Base):
+    __tablename__ = "slack_class_notification_receipts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    slack_user_id = Column(String, nullable=False)
+    integration = Column(
+        Enum(IntegrationIdentifier, name="integration"), nullable=False
+    )
+    class_id = Column(String, nullable=False)
+    channel_id = Column(String, nullable=False)
+    message_id = Column(String, nullable=False)
+    scheduled_reminder_id = Column(String, nullable=True)
+
+    def __repr__(self):
+        return f"<SlackClassNotificationReceipt (id='{self.id}' user_id='{self.slack_user_id}' integration='{self.integration}' class_id='{self.class_id}' channel_id='{self.channel_id}' message_id='{self.message_id}'' scheduled_reminder_id='{self.scheduled_reminder_id}' )>"
