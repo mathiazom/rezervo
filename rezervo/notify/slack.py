@@ -69,9 +69,9 @@ def delete_scheduled_message_slack(
 def find_user_dm_channel_id(slack_token: str, user_id: str) -> Optional[str]:
     try:
         res = SlackClient(token=slack_token).conversations_open(users=user_id)
-        if not res.get("ok", False):
+        if res is None or not res.get("ok", False):
             err.log(
-                f"Could not find user direct message channel id on Slack: {res.get('error')}"
+                f"Could not find user direct message channel id on Slack{(': ' + res.get('error')) if res is not None else ''}"
             )
             return None
         channel_id = res.get("channel").get("id")

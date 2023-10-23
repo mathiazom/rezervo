@@ -82,6 +82,8 @@ def config_from_stored(
     for c in [preferences.dict(), admin_config.dict(), read_app_config().dict()]:
         CONFIG_MERGER.merge(merged_config, c)
     config_value = ConfigValue(**merged_config)
+    if config_value.notifications is None:
+        config_value.notifications = Notifications()
     config_value.notifications.push_notification_subscriptions = (
         push_notification_subscriptions
     )
