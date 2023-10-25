@@ -209,6 +209,8 @@ def get_user_config(db, user: models.User) -> Config:
 
 
 def get_user_config_by_slack_id(db, slack_id) -> Optional[Config]:
+    if slack_id is None:
+        return None
     for u in db.query(models.User).all():
         user_config = get_user_config(db, u)
         config = user_config.config

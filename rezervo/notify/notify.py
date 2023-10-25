@@ -30,7 +30,7 @@ def notify_auth_failure(
             notify_auth_failure_web_push(subscription, error, check_run)
             notified = True
     slack_config = notifications_config.slack
-    if slack_config is not None:
+    if slack_config is not None and slack_config.user_id is not None:
         notify_auth_failure_slack(
             slack_config.bot_token,
             slack_config.channel_id,
@@ -58,7 +58,7 @@ def notify_booking_failure(
             )
             notified = True
     slack_config = notifications_config.slack
-    if slack_config is not None:
+    if slack_config is not None and slack_config.user_id is not None:
         notify_booking_failure_slack(
             slack_config.bot_token,
             slack_config.channel_id,
@@ -86,7 +86,7 @@ def notify_booking(
             notify_booking_web_push(subscription, booked_class)
             notified = True
     slack_config = notifications_config.slack
-    if slack_config is not None:
+    if slack_config is not None and slack_config.user_id is not None:
         scheduled_reminder_id = None
         if notifications_config.reminder_hours_before is not None:
             scheduled_reminder_id = schedule_class_reminder(
@@ -115,7 +115,7 @@ def schedule_class_reminder(
     notifications_config: config.Notifications, booked_class: RezervoClass
 ) -> Optional[str]:
     slack_config = notifications_config.slack
-    if slack_config is not None:
+    if slack_config is not None and slack_config.user_id is not None:
         if notifications_config.reminder_hours_before is None:
             return None
         return schedule_class_reminder_slack(

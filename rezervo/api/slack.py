@@ -145,7 +145,7 @@ async def slack_action(
                 "Authentication failed", status_code=status.HTTP_401_UNAUTHORIZED
             )
         # This check should be performed before retrieving config, but then we wouldn't be able to display a funny modal
-        if action_value.user_id != interaction.user.id:
+        if action_value.user_id is None or action_value.user_id != interaction.user.id:
             warn.log("Detected cancellation attempt by an unauthorized user")
             if (
                 config.notifications is not None
@@ -171,6 +171,8 @@ async def slack_action(
 
 
 def find_config_by_slack_id(configs: list[Config], user_id: str) -> Optional[Config]:
+    if user_id is None:
+        return None
     for config in configs:
         if (
             config.config.notifications is None

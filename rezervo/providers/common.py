@@ -54,6 +54,8 @@ def cancel_booking(
 def update_slack_notifications_with_cancellation(
     integration: IntegrationIdentifier, _class: RezervoClass, slack_config: Slack
 ):
+    if slack_config.user_id is None:
+        return None
     with SessionLocal() as db:
         receipts = (
             db.query(models.SlackClassNotificationReceipt)

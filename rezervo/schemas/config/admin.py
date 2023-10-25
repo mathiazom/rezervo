@@ -4,7 +4,7 @@ from rezervo.schemas.base import OrmBase
 
 
 class Slack(OrmBase):
-    user_id: str
+    user_id: Optional[str] = None
 
 
 class Notifications(OrmBase):
