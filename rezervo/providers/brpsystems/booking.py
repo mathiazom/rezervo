@@ -84,7 +84,11 @@ def try_find_brp_class(
             err.log("Schedule get request denied")
             return BookingError.ERROR
         search_result = find_brp_class(subdomain, _class_config, schedule)
-        if search_result is not None:
+        if (
+            search_result is not None
+            and not isinstance(search_result, BookingError)
+            and not isinstance(search_result, AuthenticationError)
+        ):
             if brp_class is None:
                 brp_class = search_result
             else:
