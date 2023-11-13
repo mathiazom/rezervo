@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
 from uuid import UUID
 
@@ -40,6 +40,7 @@ def fetch_brp_sessions(
         subdomain,
         business_unit,
         days=total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS),
+        from_date=datetime.now() - timedelta(weeks=1),
     )
     with SessionLocal() as db:
         db_brp_users_query = db.query(models.IntegrationUser).filter(
@@ -62,7 +63,11 @@ def fetch_brp_sessions(
                 continue
             try:
                 res = requests.get(
-                    booking_url(subdomain, auth_result),
+                    booking_url(
+                        subdomain,
+                        auth_result,
+                        start_time_point=datetime.now() - timedelta(weeks=1),
+                    ),
                     headers={
                         "Authorization": f"Bearer {auth_result['access_token']}",
                     },
@@ -90,7 +95,7 @@ def fetch_brp_sessions(
                         integration=SUBDOMAIN_TO_INTEGRATION_IDENTIFIER[subdomain],
                         class_id=s.groupActivity.id,
                         user_id=brp_user.user_id,
-                        status=session_state_from_brp(s.type),
+                        status=session_state_from_brp(s.type, s.checkedIn),
                         class_data=rezervo_class_from_brp_class(subdomain, brp_class),
                     )
                 )

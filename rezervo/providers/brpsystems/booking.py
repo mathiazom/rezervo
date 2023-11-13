@@ -29,8 +29,10 @@ from rezervo.utils.str_utils import format_name_list_to_natural
 MAX_SEARCH_ATTEMPTS = 6
 
 
-def booking_url(subdomain: BrpSubdomain, auth_result: BrpAuthResult) -> str:
-    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities"
+def booking_url(
+    subdomain: BrpSubdomain, auth_result: BrpAuthResult, start_time_point: datetime
+) -> str:
+    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities?startTimePoint={start_time_point.strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
 
 
 def find_brp_class_by_id(
@@ -155,7 +157,7 @@ def book_brp_class(
     subdomain: BrpSubdomain, auth_result: BrpAuthResult, class_id: int
 ) -> bool:
     response = requests.post(
-        booking_url(subdomain, auth_result),
+        booking_url(subdomain, auth_result, datetime.now()),
         json={"groupActivity": class_id, "allowWaitingList": True},
         headers={
             "Content-Type": "application/json",
@@ -253,7 +255,7 @@ def try_cancel_brp_booking(
         return auth_result
     try:
         res = requests.get(
-            booking_url(subdomain, auth_result),
+            booking_url(subdomain, auth_result, datetime.now()),
             headers={
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {auth_result['access_token']}",
