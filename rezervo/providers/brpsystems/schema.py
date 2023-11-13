@@ -128,6 +128,7 @@ class BookingData(BaseModel):
     waitingListBooking: Optional[WaitingListBooking] = None
     groupActivityBooking: Optional[GroupActivityBooking] = None
     additionToEventBooking: Optional[object] = None
+    checkedIn: Optional[str] = None
 
 
 class Country(BaseModel):
@@ -195,7 +196,12 @@ class UserDetails(BaseModel):
     lastPasswordChangedTime: str
 
 
-def session_state_from_brp(booking_type: BookingType) -> SessionState:
+def session_state_from_brp(
+    booking_type: BookingType, checked_in: Optional[str]
+) -> SessionState:
+    if checked_in is not None:
+        return SessionState.CONFIRMED
+
     match booking_type:
         case BookingType.GROUP_ACTIVITY:
             return SessionState.BOOKED
