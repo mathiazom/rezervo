@@ -32,7 +32,7 @@ MAX_SEARCH_ATTEMPTS = 6
 def booking_url(
     subdomain: BrpSubdomain, auth_result: BrpAuthResult, start_time_point: datetime
 ) -> str:
-    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities?startTimePoint={start_time_point.strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
+    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities?startTimePoint={start_time_point.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
 
 
 def find_brp_class_by_id(
