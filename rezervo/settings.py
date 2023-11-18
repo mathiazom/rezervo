@@ -1,5 +1,6 @@
 from functools import lru_cache
 
+from dotenv import find_dotenv
 from pydantic import BaseSettings
 
 
@@ -27,5 +28,5 @@ class Settings(BaseSettings):
     WEB_PUSH_PRIVATE_KEY: str | None = None
 
     class Config:
-        env_file = ".env"
+        env_file = find_dotenv(".env")
         env_file_encoding = "utf-8"
