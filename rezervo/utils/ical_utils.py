@@ -5,6 +5,7 @@ from typing import Optional
 from icalendar import cal  # type: ignore[import]
 
 from rezervo.models import SessionState
+from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.schedule import UserSession
 from rezervo.utils.str_utils import format_name_list_to_natural
 
@@ -13,7 +14,9 @@ def generate_calendar_token():
     return secrets.token_urlsafe()
 
 
-def ical_event_from_session(session: UserSession) -> Optional[cal.Event]:
+def ical_event_from_session(
+    session: UserSession, config: ConfigValue
+) -> Optional[cal.Event]:
     _class = session.class_data
     if _class is None:
         return None
@@ -36,6 +39,14 @@ def ical_event_from_session(session: UserSession) -> Optional[cal.Event]:
         if session.status in [SessionState.BOOKED, SessionState.CONFIRMED]
         else "TENTATIVE",
     )
+    if (
+        config.notifications is not None
+        and config.notifications.reminder_hours_before is not None
+    ):
+        alarm = cal.Alarm()
+        minutes = round(config.notifications.reminder_hours_before * 60)
+        alarm.add("trigger", f"-PT{minutes}M")
+        event.add("action", "AUDIO")
     event.add(
         "sequence",
         # Not strictly compliant, but the status will generally follow this order (except UNKNOWN)
