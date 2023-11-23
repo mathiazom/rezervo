@@ -67,7 +67,7 @@ class Slots(BaseModel):
     leftToBook: int
     leftToBookIncDropin: int  # also known as leftToBookIncludingDropIn
     hasWaitingList: bool
-    inWaitingList: int
+    inWaitingList: Optional[int] = None
 
 
 class BrpClass(BaseModel):
