@@ -3,11 +3,13 @@ from typing import List, Union
 from urllib.parse import urlencode
 
 import requests
+from pydantic import ValidationError
 
 from rezervo.providers.brpsystems.schema import (
     BrpClass,
     BrpSubdomain,
 )
+from rezervo.utils.logging_utils import warn
 
 BRP_MAX_SCHEDULE_DAYS_PER_FETCH = 14
 
@@ -37,14 +39,17 @@ def fetch_brp_schedule(
         )
         if res.status_code != requests.codes.OK:
             raise Exception("Failed to fetch brp schedule")
-        classes.extend(
-            [
-                BrpClass(**item)
-                for item in res.json()
-                if item.get("bookableEarliest") is not None
-                and item.get("bookableLatest") is not None
-            ]
-        )
+        for item in res.json():
+            if (
+                item.get("bookableEarliest") is None
+                or item.get("bookableLatest") is None
+            ):
+                continue
+            try:
+                classes.append(BrpClass(**item))
+            except ValidationError:
+                warn.log("Failed to parse brp class", item)
+                continue
         from_date = to_date
     # TODO: handle unlikely duplicates (if somehow classes are included in multiple batches)
     return classes
