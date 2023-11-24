@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta
-from typing import List, Union
+from typing import List, Optional, Union
 
 import pytz
 import requests
@@ -30,9 +30,18 @@ MAX_SEARCH_ATTEMPTS = 6
 
 
 def booking_url(
-    subdomain: BrpSubdomain, auth_result: BrpAuthResult, start_time_point: datetime
+    subdomain: BrpSubdomain,
+    auth_result: BrpAuthResult,
+    start_time_point: Optional[datetime] = None,
 ) -> str:
-    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities?startTimePoint={start_time_point.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
+    return (
+        f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/customers/{auth_result['username']}/bookings/groupactivities"
+        + (
+            f"?startTimePoint={start_time_point.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
+            if start_time_point is not None
+            else ""
+        )
+    )
 
 
 def find_brp_class_by_id(
@@ -223,7 +232,7 @@ def cancel_brp_booking(
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
     res = requests.delete(
-        f"{booking_url(subdomain, auth_result, datetime.now())}/{booking_reference}?bookingType={booking_type}",
+        f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type}",
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {auth_result['access_token']}",
