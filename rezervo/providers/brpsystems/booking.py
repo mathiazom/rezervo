@@ -223,7 +223,7 @@ def cancel_brp_booking(
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
     res = requests.delete(
-        f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type}",
+        f"{booking_url(subdomain, auth_result, datetime.now())}/{booking_reference}?bookingType={booking_type}",
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {auth_result['access_token']}",
