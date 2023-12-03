@@ -36,7 +36,7 @@ def unsubscribe_from_push_notifications(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    deleted = crud.delete_push_notification_subscription(db, db_user.id, subscription)
+    deleted = crud.delete_push_notification_subscription(db, subscription, db_user.id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return None

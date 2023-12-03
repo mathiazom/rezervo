@@ -246,17 +246,15 @@ def upsert_push_notification_subscription(
 
 
 def delete_push_notification_subscription(
-    db, user_id: UUID, subscription: PushNotificationSubscription
+    db, subscription: PushNotificationSubscription, user_id: Optional[UUID] = None
 ) -> bool:
-    db_subscription = (
-        db.query(models.PushNotificationSubscription)
-        .filter_by(
-            user_id=user_id,
-            endpoint=subscription.endpoint,
-            keys=subscription.keys.dict(),
-        )
-        .one_or_none()
+    db_subscription_query = db.query(models.PushNotificationSubscription).filter_by(
+        endpoint=subscription.endpoint,
+        keys=subscription.keys.dict(),
     )
+    if user_id is not None:
+        db_subscription_query = db_subscription_query.filter_by(user_id=user_id)
+    db_subscription = db_subscription_query.one_or_none()
     if db_subscription is None:
         return False
     db.delete(db_subscription)

@@ -1,16 +1,19 @@
 import datetime
 import json
+import re
 from typing import Optional
 
 from pywebpush import WebPushException, webpush
 
 from rezervo.consts import WEEKDAYS
+from rezervo.database import crud
+from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.schemas.config.config import PushNotificationSubscription
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.settings import get_settings
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import err, warn
 
 AUTH_FAILURE_REASONS = {
     AuthenticationError.INVALID_CREDENTIALS: "Ugyldig brukernavn eller passord 🔐",
@@ -41,6 +44,10 @@ def notify_web_push(subscription: PushNotificationSubscription, message: str) ->
         err.log(
             f"Web push notification failed for endpoint {subscription.endpoint}: {e}"
         )
+        if re.search(r"(410 Gone)|(404 Not Found)", e.message) is not None:
+            warn.log("Removing expired or invalid web push subscription from database")
+            with SessionLocal() as db:
+                crud.delete_push_notification_subscription(db, subscription)
         return False
     return res.ok
 
