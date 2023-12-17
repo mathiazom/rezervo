@@ -57,7 +57,7 @@ def put_integration_user_creds(
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    background_tasks.add_task(refresh_cron)
+    background_tasks.add_task(refresh_cron, db_user.id, [integration])
     return updated_config
 
 
@@ -96,7 +96,7 @@ def put_integration_config(
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    background_tasks.add_task(refresh_cron)
+    background_tasks.add_task(refresh_cron, db_user.id, [integration])
     return updated_config
 
 
