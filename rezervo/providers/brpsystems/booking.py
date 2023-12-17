@@ -87,6 +87,7 @@ def try_find_brp_class(
     now_date = datetime.now()
     from_date = datetime(now_date.year, now_date.month, now_date.day)
     batch_size = 7
+    search_result = None
     while attempts < MAX_SEARCH_ATTEMPTS:
         schedule = fetch_brp_schedule(
             subdomain, business_unit, days=batch_size, from_date=from_date
@@ -119,6 +120,9 @@ def try_find_brp_class(
         attempts += 1
     if brp_class is None:
         err.log("Could not find class matching criteria")
+        if search_result is None:
+            return BookingError.CLASS_MISSING
+        return search_result
     return brp_class
 
 

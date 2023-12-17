@@ -74,8 +74,10 @@ def build_cron_job_for_class(
         pre_comment=True,
     )
     _class = find_class(IntegrationIdentifier(integration), _class_config)
-    if isinstance(_class, BookingError) or isinstance(
-        _class_config, AuthenticationError
+    if (
+        _class is None
+        or isinstance(_class, BookingError)
+        or isinstance(_class_config, AuthenticationError)
     ):
         print("Failed to fetch class info for booking schedule")
         return None
