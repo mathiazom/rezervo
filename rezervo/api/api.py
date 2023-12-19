@@ -5,6 +5,7 @@ from fastapi import (
 from rezervo.api import (
     booking,
     cal,
+    community,
     features,
     integration_config,
     preferences,
@@ -22,3 +23,4 @@ api.include_router(sessions.router, tags=["sessions"])
 api.include_router(cal.router, tags=["calendar"])
 api.include_router(slack.router, tags=["slack"])
 api.include_router(features.router, tags=["features"])
+api.include_router(community.router, tags=["community"])

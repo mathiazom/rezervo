@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy import delete
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from rezervo import models
 from rezervo.auth import auth0
 from rezervo.models import SessionState
+from rezervo.schemas.community import Community, CommunityUser, UserRelationship
 from rezervo.schemas.config import admin
 from rezervo.schemas.config.admin import AdminConfig
 from rezervo.schemas.config.config import (
@@ -274,3 +275,35 @@ def verify_push_notification_subscription(
         )
         .one_or_none()
     ) is not None
+
+
+def get_community(db: Session, user_id: UUID) -> Community:
+    users = (
+        db.query(models.User)
+        .filter(models.User.id != user_id)
+        .order_by(models.User.name)
+        .all()
+    )
+    integration_users = (
+        db.query(models.IntegrationUser)
+        .filter(models.IntegrationUser.user_id != user_id)
+        .all()
+    )
+
+    user_to_integration_map: Dict[UUID, List[str]] = {}
+    for integration_user in integration_users:
+        user_to_integration_map.setdefault(integration_user.user_id, []).append(
+            integration_user.integration.value
+        )
+
+    return Community(
+        users=[
+            CommunityUser(
+                name=user.name,
+                chains=user_to_integration_map.get(user.id, []),
+                # TODO: implement friendship system
+                relationship=UserRelationship.UNKNOWN,
+            )
+            for user in users
+        ]
+    )
