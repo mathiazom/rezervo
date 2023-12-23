@@ -1,3 +1,5 @@
+from rezervo.errors import AuthenticationError
+from rezervo.providers.ibooking.auth import authenticate_session
 from rezervo.providers.ibooking.booking import (
     book_class,
     cancel_booking,
@@ -21,4 +23,8 @@ def get_ibooking_provider(domain: IBookingDomain):
         cancel_booking=cancel_booking,
         fetch_sessions=fetch_ibooking_sessions,
         rezervo_class_from_class_data=rezervo_class_from_ibooking_class,
+        verify_authentication=lambda credentials: not isinstance(
+            authenticate_session(credentials.username, credentials.password),
+            AuthenticationError,
+        ),
     )

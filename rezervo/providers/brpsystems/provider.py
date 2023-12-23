@@ -1,3 +1,5 @@
+from rezervo.errors import AuthenticationError
+from rezervo.providers.brpsystems.auth import authenticate
 from rezervo.providers.brpsystems.booking import (
     find_brp_class_by_id,
     try_book_brp_class,
@@ -31,5 +33,9 @@ def get_brp_provider(subdomain: BrpSubdomain, business_unit: int):
         ),
         rezervo_class_from_class_data=lambda brp_class: rezervo_class_from_brp_class(
             subdomain, brp_class
+        ),
+        verify_authentication=lambda credentials: not isinstance(
+            authenticate(subdomain, credentials.username, credentials.password),
+            AuthenticationError,
         ),
     )

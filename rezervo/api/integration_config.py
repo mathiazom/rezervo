@@ -5,6 +5,7 @@ from starlette import status
 from starlette.background import BackgroundTasks
 
 from rezervo import models
+from rezervo.active_integrations import get_integration
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.cron import refresh_cron
@@ -52,6 +53,8 @@ def put_integration_user_creds(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    if not get_integration(integration).verify_authentication(integration_user_creds):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     updated_config = crud.upsert_integration_user(
         db, db_user.id, integration, integration_user_creds
     )

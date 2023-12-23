@@ -5,7 +5,11 @@ from pydantic import BaseModel
 
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.schemas.config.config import ConfigValue
-from rezervo.schemas.config.user import Class, IntegrationUser
+from rezervo.schemas.config.user import (
+    Class,
+    IntegrationUser,
+    IntegrationUserCredentials,
+)
 from rezervo.schemas.schedule import RezervoClass, UserSession
 
 
@@ -27,3 +31,4 @@ class Provider(BaseModel):
     ]
     fetch_sessions: Callable[[Optional[UUID]], dict[UUID, list[UserSession]]]
     rezervo_class_from_class_data: Callable[[Any], Optional[RezervoClass]]
+    verify_authentication: Callable[[IntegrationUserCredentials], bool]
