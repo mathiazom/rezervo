@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+import humanize
 import typer
 import uvicorn
 from crontab import CronItem, CronTab
@@ -188,6 +189,27 @@ def create_cron_sessions_job():
 @cron_cli.command(name="refresh")
 def refresh_cron_cli():
     refresh_cron()
+
+
+@cron_cli.command(name="list")
+def list_cron_jobs():
+    with CronTab(user=True) as crontab:
+        print_lines = []
+        for j in crontab:
+            if not j.is_valid():
+                print_lines.append((None, f"{j.comment} (invalid)"))
+                continue
+            if not j.is_enabled():
+                print_lines.append((None, f"{j.comment} (disabled)"))
+                continue
+            next_run: datetime = j.schedule(date_from=datetime.now()).get_next()  # type: ignore
+            if next_run is None:
+                print_lines.append((None, f"{j.comment} (next: failed to determine)"))
+                continue
+            print_lines.append((next_run, f"{j.comment} (next: {next_run}, {humanize.naturaltime(next_run)})"))
+        print_lines.sort(key=lambda x: x[0])
+        for _, line in print_lines:
+            print(line)
 
 
 @users_cli.command(name="create")

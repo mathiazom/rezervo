@@ -48,6 +48,8 @@ icalendar = "^5.0.7"
 black = "^23.7.0"
 ruff = "^0.0.285"
 pywebpush = "^1.14.0"
+croniter = "^2.0.1"
+humanize = "^4.9.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"
