@@ -204,7 +204,7 @@ def notify_booking_failure_slack(
     return
 
 
-WORKING_EMOJI_NAME = "sit-rezervo-working"
+WORKING_EMOJI_NAME = "rezervo-working"
 
 
 def notify_working_slack(slack_token: str, channel: str, message_ts: str):
