@@ -11,6 +11,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from rezervo.api.common import get_db
+from rezervo.chains.common import cancel_booking, find_authed_class_by_id
 from rezervo.consts import (
     SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
     SLACK_ACTION_CANCEL_BOOKING,
@@ -24,7 +25,6 @@ from rezervo.notify.slack import (
     show_unauthorized_action_modal_slack,
     verify_slack_request,
 )
-from rezervo.providers.common import cancel_booking, find_authed_class_by_id
 from rezervo.schemas.config.config import Config, ConfigValue
 from rezervo.schemas.slack import CancelBookingActionValue, Interaction
 from rezervo.sessions import pull_sessions
@@ -53,11 +53,9 @@ def handle_cancel_booking_slack_action(
                 slack_config.bot_token, slack_config.channel_id, message_ts
             )
     with SessionLocal() as db:
-        integration_user = crud.get_integration_user(
-            db, action_value.integration, user_id
-        )
-    if integration_user is None:
-        err.log("Integration user not found, abort!")
+        chain_user = crud.get_chain_user(db, action_value.chain_identifier, user_id)
+    if chain_user is None:
+        err.log("Chain user not found, abort!")
         if slack_config is not None:
             notify_cancellation_failure_slack(
                 slack_config.bot_token,
@@ -66,9 +64,8 @@ def handle_cancel_booking_slack_action(
                 AuthenticationError.ERROR,
             )
         return
-    _class_res = find_authed_class_by_id(
-        integration_user, config, action_value.class_id
-    )
+    # TODO: support brp by including location in payload
+    _class_res = find_authed_class_by_id(chain_user, config, action_value.class_id)
     match _class_res:
         case AuthenticationError():
             err.log("Authentication failed, abort!")
@@ -90,7 +87,7 @@ def handle_cancel_booking_slack_action(
                     _class_res,
                 )
             return
-    cancellation_error = cancel_booking(integration_user, _class_res, config)
+    cancellation_error = cancel_booking(chain_user, _class_res, config)
     if cancellation_error is not None:
         if slack_config is not None:
             notify_cancellation_failure_slack(
@@ -100,7 +97,7 @@ def handle_cancel_booking_slack_action(
                 cancellation_error,
             )
         return
-    pull_sessions(action_value.integration, user_id)
+    pull_sessions(action_value.chain_identifier, user_id)
 
 
 @router.post("/slackinteraction")
@@ -109,7 +106,7 @@ async def slack_action(
 ):
     raw_body = await request.body()  # must read body before retrieving form data
     payload = (await request.form())["payload"]
-    interaction: Interaction = pydantic.parse_raw_as(type_=Interaction, b=payload)
+    interaction: Interaction = pydantic.parse_raw_as(type_=Interaction, b=payload)  # type: ignore
     if interaction.type != "block_actions":
         return Response(
             f"Unsupported interaction type '{interaction.type}'",

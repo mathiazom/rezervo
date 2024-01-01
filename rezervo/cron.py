@@ -30,4 +30,6 @@ def refresh_cron(
                 ic = crud.get_chain_config(db, c.identifier, u.id)
                 if ic is not None:
                     upsert_booking_crontab(config, ic, u)
-                    rprint(f"✔ '{c.name}' crontab updated for '{u.name}'")
+                    rprint(
+                        f":heavy_check_mark: '{c.name}' crontab updated for '{u.name}'"
+                    )

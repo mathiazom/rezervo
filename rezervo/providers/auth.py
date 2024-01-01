@@ -2,15 +2,15 @@ import time
 from typing import Callable, TypeVar, Union
 
 from rezervo.errors import AuthenticationError
-from rezervo.schemas.config.user import IntegrationUser
+from rezervo.schemas.config.user import ChainUser
 from rezervo.utils.logging_utils import err
 
 T = TypeVar("T")
 
 
 def try_authenticate(
-    authenticate_fn: Callable[[IntegrationUser], Union[T, AuthenticationError]],
-    integration_user: IntegrationUser,
+    authenticate_fn: Callable[[ChainUser], Union[T, AuthenticationError]],
+    chain_user: ChainUser,
     max_attempts: int,
 ) -> Union[T, AuthenticationError]:
     if max_attempts < 1:
@@ -19,7 +19,7 @@ def try_authenticate(
     attempts = 0
     result = None
     while not success:
-        result = authenticate_fn(integration_user)
+        result = authenticate_fn(chain_user)
         success = not isinstance(result, AuthenticationError)
         attempts += 1
         if success:
@@ -40,7 +40,6 @@ def try_authenticate(
             f"Authentication failed after {attempts} attempt"
             + ("s" if attempts != 1 else "")
         )
-        return result
     if result is None:
         return AuthenticationError.ERROR
     return result

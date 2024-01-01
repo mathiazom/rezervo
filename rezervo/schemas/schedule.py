@@ -1,64 +1,80 @@
+import datetime
+import json
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from rezervo import models
 from rezervo.models import SessionState
 from rezervo.schemas.base import OrmBase
-from rezervo.schemas.config.user import IntegrationIdentifier
+from rezervo.schemas.camel import CamelModel
+from rezervo.schemas.config.user import ChainIdentifier
 
 
-class RezervoInstructor(BaseModel):
+class RezervoInstructor(CamelModel):
     name: str
 
 
-class RezervoStudio(BaseModel):
+class RezervoStudio(CamelModel):
     id: int
     name: str
 
 
-class RezervoClass(BaseModel):
-    integration: IntegrationIdentifier
-    id: int
+class RezervoLocation(CamelModel):
+    id: str
+    studio: str
+    room: str
+
+
+class RezervoActivity(CamelModel):
+    id: str
     name: str
-    activityId: int
-    from_field: str = Field(..., alias="from")
-    to: str
+    category: str
+    description: str
+    color: str
+    image: Optional[str] = None
+
+
+class BaseRezervoClass(CamelModel):
+    id: str
+    start_time: datetime.datetime
+    end_time: datetime.datetime
+    location: RezervoLocation
+    activity: RezervoActivity
     instructors: list[RezervoInstructor]
-    studio: RezervoStudio
-    userStatus: Optional[str] = None
-    bookable: bool
-    bookingOpensAt: str  # must be timezone aware in ISO8601 format
-
-    class Config:
-        allow_population_by_field_name = True
 
 
-class RezervoDay(BaseModel):
-    dayName: str
+class SessionRezervoClass(BaseRezervoClass):
+    pass
+
+
+class RezervoClass(BaseRezervoClass):
+    is_bookable: bool
+    is_cancelled: bool
+    total_slots: Optional[int]
+    available_slots: Optional[int]
+    waiting_list_count: Optional[int]
+    user_status: Optional[str]
+    booking_opens_at: datetime.datetime
+
+
+class RezervoDay(CamelModel):
+    day_name: str
     date: str
     classes: list[RezervoClass]
 
 
-class RezervoSchedule(BaseModel):
+class RezervoSchedule(CamelModel):
     days: list[RezervoDay]
 
 
-class RezervoSession(BaseModel):
-    class_field: RezervoClass = Field(..., alias="class")
-    status: str
-
-    class Config:
-        allow_population_by_field_name = True
-
-
 class UserSession(OrmBase):
-    integration: IntegrationIdentifier
+    chain: ChainIdentifier
     class_id: str
     user_id: UUID
     status: SessionState
-    class_data: RezervoClass
+    class_data: SessionRezervoClass
 
 
 class UserNameSessionStatus(BaseModel):
@@ -68,12 +84,10 @@ class UserNameSessionStatus(BaseModel):
 
 
 def session_model_from_user_session(user_session: UserSession):
-    data = user_session.class_data.dict()
-    data["integration"] = user_session.class_data.integration.value
     return models.Session(
         class_id=user_session.class_id,
         user_id=user_session.user_id,
         status=user_session.status,
-        class_data=data,
-        integration=user_session.integration,
+        class_data=json.loads(user_session.class_data.json()),
+        chain=user_session.chain,
     )

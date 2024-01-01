@@ -36,7 +36,7 @@ uvicorn = "^0.20.0"
 python-multipart = "^0.0.5"
 dataclass-wizard = {extras = ["yaml"], version = "^0.22.2"}
 pyjwt = {extras = ["crypto"], version = "^2.6.0"}
-sqlalchemy = "^2.0.4"
+sqlalchemy = {extras = ["mypy"], version = "^2.0.23"}
 alembic = "^1.9.4"
 psycopg2-binary = "^2.9.6"
 rich = "^13.3.1"
@@ -50,6 +50,7 @@ ruff = "^0.0.285"
 pywebpush = "^1.14.0"
 croniter = "^2.0.1"
 humanize = "^4.9.0"
+pyhumps = "^3.8.0"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"

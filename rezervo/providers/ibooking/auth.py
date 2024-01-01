@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Union
+from typing import Optional, TypeAlias, Union
 
 import requests
 from requests import Session
@@ -7,12 +7,12 @@ from requests import Session
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
-from rezervo.providers.ibooking.consts import (
+from rezervo.providers.ibooking.urls import (
     AUTH_URL,
     BOOKING_URL,
     TOKEN_VALIDATION_URL,
 )
-from rezervo.schemas.config.user import IntegrationUser
+from rezervo.schemas.config.user import ChainUser
 from rezervo.utils.logging_utils import err, warn
 
 USER_AGENT = (
@@ -49,15 +49,18 @@ def authenticate_session(
     return session
 
 
+IBookingAuthResult: TypeAlias = str
+
+
 def authenticate_token(
-    integration_user: IntegrationUser,
-) -> Union[str, AuthenticationError]:
-    if integration_user.auth_token is not None:
-        validation_error = validate_token(integration_user.auth_token)
+    chain_user: ChainUser,
+) -> Union[IBookingAuthResult, AuthenticationError]:
+    if chain_user.auth_token is not None:
+        validation_error = validate_token(chain_user.auth_token)
         if validation_error is None:
-            return integration_user.auth_token
+            return chain_user.auth_token
         warn.log("Authentication token validation failed, retrieving fresh token...")
-    result = authenticate_session(integration_user.username, integration_user.password)
+    result = authenticate_session(chain_user.username, chain_user.password)
     if isinstance(result, AuthenticationError):
         return result
     token_res = extract_token_from_session(result)
@@ -68,8 +71,8 @@ def authenticate_token(
     if validation_error is not None:
         return validation_error
     with SessionLocal() as db:
-        crud.upsert_integration_user_token(
-            db, integration_user.user_id, integration_user.integration, token_res
+        crud.upsert_chain_user_token(
+            db, chain_user.user_id, chain_user.chain, token_res
         )
     return token_res
 

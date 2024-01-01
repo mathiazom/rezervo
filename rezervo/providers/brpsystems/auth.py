@@ -10,7 +10,7 @@ from rezervo.utils.logging_utils import err
 
 
 def auth_url(subdomain: BrpSubdomain) -> str:
-    return f"https://{subdomain.value}.brpsystems.com/brponline/api/ver3/auth/login"
+    return f"https://{subdomain}.brpsystems.com/brponline/api/ver3/auth/login"
 
 
 def authenticate(
@@ -30,4 +30,4 @@ def authenticate(
     if invalid_credentials_matches is not None:
         err.log("Authentication failed, invalid credentials")
         return AuthenticationError.INVALID_CREDENTIALS
-    return auth_res.json()
+    return BrpAuthResult(**auth_res.json())

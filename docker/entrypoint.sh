@@ -12,12 +12,14 @@ echo "Migrating database to most recent alembic version"
 # Start pulling sessions data in the background
 rezervo sessions pull &
 
-rezervo cron sessionsjob
+rezervo cron add_pull_sessions_job
+
+rezervo cron add_slack_receipts_purging_job
 
 rezervo cron refresh
 
-echo "Starting cron service..."
+echo "⚙️ Starting cron service..."
 cron
 
-echo "Starting server..."
+echo "⚙️ Starting server..."
 rezervo api "$@"

@@ -1,26 +1,47 @@
 from typing import Optional
 from uuid import UUID
 
-from rezervo.active_integrations import ACTIVE_INTEGRATIONS, get_integration
+from rich import print as rprint
+
+from rezervo.chains.active import ACTIVE_CHAIN_IDENTIFIERS, get_chain
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
-from rezervo.schemas.config.user import IntegrationIdentifier
+from rezervo.schemas.config.user import ChainIdentifier
+from rezervo.schemas.schedule import UserSession
+from rezervo.utils.logging_utils import err
 
 
-def pull_integration_sessions(
-    integration: IntegrationIdentifier, user_id: Optional[UUID] = None
+def pull_chain_sessions(
+    chain_identifier: ChainIdentifier, user_id: Optional[UUID] = None
 ):
-    sessions = get_integration(integration).fetch_sessions(user_id)
+    if user_id is not None:
+        with SessionLocal() as db:
+            chain_user = crud.get_chain_user(db, chain_identifier, user_id)
+        if chain_user is None:
+            err.log(f"Chain user {user_id} not found for chain {chain_identifier}")
+            return
+        chain_users = [chain_user]
+    else:
+        with SessionLocal() as db:
+            chain_users = crud.get_chain_users(db, chain_identifier)
+    sessions: dict[UUID, list[UserSession]] = {}
+    for chain_user in chain_users:
+        rprint(
+            f":right_arrow_curving_down: Pulling user sessions from '{chain_identifier}' for '{chain_user.username}' ..."
+        )
+        sessions[chain_user.user_id] = get_chain(chain_identifier).fetch_sessions(
+            chain_user
+        )
     with SessionLocal() as db:
         for uid, user_sessions in sessions.items():
-            crud.upsert_user_integration_sessions(db, uid, integration, user_sessions)
+            crud.upsert_user_chain_sessions(db, uid, chain_identifier, user_sessions)
 
 
 def pull_sessions(
-    integration: Optional[IntegrationIdentifier] = None, user_id: Optional[UUID] = None
+    chain_identifier: Optional[ChainIdentifier] = None, user_id: Optional[UUID] = None
 ):
-    if integration is not None:
-        pull_integration_sessions(integration, user_id)
+    if chain_identifier is not None:
+        pull_chain_sessions(chain_identifier, user_id)
         return
-    for i in ACTIVE_INTEGRATIONS.keys():
-        pull_integration_sessions(i, user_id)
+    for i in ACTIVE_CHAIN_IDENTIFIERS:
+        pull_chain_sessions(i, user_id)

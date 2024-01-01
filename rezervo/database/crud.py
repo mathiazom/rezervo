@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -16,13 +17,15 @@ from rezervo.schemas.config.config import (
     config_from_stored,
 )
 from rezervo.schemas.config.user import (
-    IntegrationConfig,
-    IntegrationIdentifier,
-    IntegrationUser,
-    IntegrationUserCredentials,
-    IntegrationUserProfile,
+    ChainConfig,
+    ChainIdentifier,
+    ChainUser,
+    ChainUserCredentials,
+    ChainUserProfile,
+    Class,
+    ClassTime,
     UserPreferences,
-    get_integration_config_from_integration_user,
+    config_from_chain_user,
 )
 from rezervo.schemas.schedule import UserSession, session_model_from_user_session
 from rezervo.utils.ical_utils import generate_calendar_token
@@ -59,94 +62,165 @@ def create_user(db: Session, name: str, jwt_sub: str, slack_id: Optional[str] = 
     return db_user
 
 
-def upsert_integration_user(
+def upsert_chain_user_creds(
     db: Session,
     user_id: UUID,
-    integration: IntegrationIdentifier,
-    creds: IntegrationUserCredentials,
+    chain_identifier: ChainIdentifier,
+    creds: ChainUserCredentials,
 ):
-    db_integration_user = (
-        db.query(models.IntegrationUser)
-        .filter_by(user_id=user_id, integration=integration)
+    db_chain_user = (
+        db.query(models.ChainUser)
+        .filter_by(user_id=user_id, chain=chain_identifier)
         .one_or_none()
     )
-    if db_integration_user is None:
-        db_integration_user = models.IntegrationUser(
+    if db_chain_user is None:
+        db_chain_user = models.ChainUser(
             user_id=user_id,
-            integration=integration,
+            chain=chain_identifier,
             username=creds.username,
             password=creds.password,
         )
-        db.add(db_integration_user)
+        db.add(db_chain_user)
     else:
         if (
-            db_integration_user.username == creds.username
-            and db_integration_user.password == creds.password
+            db_chain_user.username == creds.username
+            and db_chain_user.password == creds.password
         ):
-            return db_integration_user
-        db_integration_user.auth_token = None  # forget token for previous credentials
-        db_integration_user.username = creds.username
-        db_integration_user.password = creds.password
+            return db_chain_user
+        db_chain_user.auth_token = None  # forget token for previous credentials
+        db_chain_user.username = creds.username
+        db_chain_user.password = creds.password
     db.commit()
-    db.refresh(db_integration_user)
-    return db_integration_user
+    db.refresh(db_chain_user)
+    return db_chain_user
 
 
-def upsert_integration_user_token(
-    db: Session, user_id: UUID, integration: IntegrationIdentifier, token: str
+def upsert_chain_user_token(
+    db: Session, user_id: UUID, chain_identifier: ChainIdentifier, token: str
 ):
-    db.query(models.IntegrationUser).filter_by(
-        user_id=user_id, integration=integration
+    db.query(models.ChainUser).filter_by(
+        user_id=user_id, chain=chain_identifier
     ).update({"auth_token": token})
     db.commit()
 
 
-def get_integration_user(
-    db: Session, integration: IntegrationIdentifier, user_id: UUID
-) -> Optional[IntegrationUser]:
-    db_integration_user = (
-        db.query(models.IntegrationUser)
-        .filter_by(user_id=user_id, integration=integration)
+def get_chain_user(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[ChainUser]:
+    db_chain_user = (
+        db.query(models.ChainUser)
+        .filter_by(user_id=user_id, chain=chain_identifier)
         .one_or_none()
     )
-    if db_integration_user is None:
+    if db_chain_user is None:
         return None
-    return IntegrationUser.from_orm(db_integration_user)
+    return _get_chain_user_from_db_model(db, db_chain_user)
 
 
-def get_integration_config(
-    db: Session, integration: IntegrationIdentifier, user_id: UUID
-) -> Optional[IntegrationConfig]:
-    user = get_integration_user(db, integration, user_id)
+def _get_chain_user_from_db_model(
+    db: Session, db_chain_user: models.ChainUser
+) -> ChainUser:
+    return ChainUser(
+        **db_chain_user.__dict__,
+        recurring_bookings=[
+            Class(
+                **db_booking.__dict__,
+                start_time=ClassTime(
+                    hour=db_booking.start_time_hour,
+                    minute=db_booking.start_time_minute,
+                ),
+            )
+            for db_booking in db.query(models.RecurringBooking).filter_by(
+                user_id=db_chain_user.user_id,
+                chain_id=db_chain_user.chain,
+            )
+        ],
+    )
+
+
+def get_chain_users(
+    db: Session, chain_identifier: ChainIdentifier, active_only: bool = False
+) -> list[ChainUser]:
+    return [
+        _get_chain_user_from_db_model(db, db_chain_user)
+        for db_chain_user in (
+            (db.query(models.ChainUser).filter_by(chain=chain_identifier, active=True))
+            if active_only
+            else db.query(models.ChainUser).filter_by(chain=chain_identifier)
+        )
+    ]
+
+
+def get_chain_config(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[ChainConfig]:
+    user = get_chain_user(db, chain_identifier, user_id)
     if user is None:
         return None
-    return get_integration_config_from_integration_user(user)
+    return config_from_chain_user(user)
 
 
-def get_integration_user_profile(
-    db: Session, integration: IntegrationIdentifier, user_id: UUID
-) -> Optional[IntegrationUserProfile]:
-    user = get_integration_user(db, integration, user_id)
+def get_chain_user_profile(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[ChainUserProfile]:
+    user = get_chain_user(db, chain_identifier, user_id)
     if user is None:
         return None
-    return IntegrationUserProfile.from_orm(user)
+    return ChainUserProfile(**user.dict())
 
 
-def update_integration_config(
-    db: Session, user_id: UUID, config: IntegrationConfig
-) -> Optional[models.IntegrationUser]:
-    db_integration_user = (
-        db.query(models.IntegrationUser)
-        .filter_by(user_id=user_id, integration=config.integration)
+def update_chain_config(
+    db: Session, user_id: UUID, config: ChainConfig
+) -> Optional[ChainConfig]:
+    db_chain_user: Optional[models.ChainUser] = (
+        db.query(models.ChainUser)
+        .filter_by(user_id=user_id, chain=config.chain)
         .one_or_none()
     )
-    if db_integration_user is None:
+    if db_chain_user is None:
         return None
-    db_integration_user.active = config.active
-    db_integration_user.classes = config.dict()["classes"]
+    db_chain_user.active = config.active
+    # keep track of which existing bookings are kept in the new config
+    # (the rest will be deleted, and any new ones will be added)
+    kept_recurring_booking_ids = []
+    for c in config.recurring_bookings:
+        db_booking = (
+            db.query(models.RecurringBooking)
+            .filter_by(
+                user_id=user_id,
+                chain_id=config.chain,
+                activity_id=c.activity_id,
+                weekday=c.weekday,
+                location_id=c.location_id,
+                start_time_hour=c.start_time.hour,
+                start_time_minute=c.start_time.minute,
+            )
+            .one_or_none()
+        )
+        if db_booking is None:
+            db.add(
+                models.RecurringBooking(
+                    user_id=user_id,
+                    chain_id=config.chain,
+                    activity_id=c.activity_id,
+                    weekday=c.weekday,
+                    location_id=c.location_id,
+                    start_time_hour=c.start_time.hour,
+                    start_time_minute=c.start_time.minute,
+                    display_name=c.display_name,
+                )
+            )
+        else:
+            db_booking.display_name = c.display_name
+            kept_recurring_booking_ids.append(db_booking.id)
+    # remove bookings not part of existing bookings for this user
+    db.query(models.RecurringBooking).filter_by(
+        user_id=user_id,
+        chain_id=config.chain,
+    ).filter(~models.RecurringBooking.id.in_(kept_recurring_booking_ids)).delete()
     db.commit()
-    db.refresh(db_integration_user)
-    return db_integration_user
+    db.refresh(db_chain_user)
+    return config_from_chain_user(_get_chain_user_from_db_model(db, db_chain_user))
 
 
 def delete_user(db: Session, user_id: UUID):
@@ -155,17 +229,17 @@ def delete_user(db: Session, user_id: UUID):
     db.commit()
 
 
-def upsert_user_integration_sessions(
+def upsert_user_chain_sessions(
     db: Session,
     user_id: UUID,
-    integration: IntegrationIdentifier,
+    chain_identifier: ChainIdentifier,
     user_sessions: list[UserSession],
 ):
     # delete unconfirmed sessions
     db.execute(
         delete(models.Session).where(
-            models.Session.user_id == user_id,
-            models.Session.integration == integration,
+            models.Session.user_id == user_id,  # type: ignore
+            models.Session.chain == chain_identifier,  # type: ignore
             models.Session.status != SessionState.CONFIRMED,
         )
     )
@@ -197,6 +271,20 @@ def get_user_push_notification_subscriptions(
             user_id=user_id
         )
     ]
+
+
+def update_last_used_push_notification_subscription(
+    db, subscription: PushNotificationSubscription
+):
+    db_subscription: models.PushNotificationSubscription = (
+        db.query(models.PushNotificationSubscription)
+        .filter_by(endpoint=subscription.endpoint)
+        .one_or_none()
+    )
+    if db_subscription is None:
+        return
+    db_subscription.last_used = datetime.now()
+    db.commit()
 
 
 def get_user_config(db, user: models.User) -> Config:
@@ -274,3 +362,13 @@ def verify_push_notification_subscription(
         )
         .one_or_none()
     ) is not None
+
+
+def purge_slack_receipts(db) -> int:
+    row_count = (
+        db.query(models.SlackClassNotificationReceipt)
+        .filter(models.SlackClassNotificationReceipt.expires_at < datetime.now())
+        .delete()
+    )
+    db.commit()
+    return row_count

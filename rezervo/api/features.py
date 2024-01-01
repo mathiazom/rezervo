@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.database import crud
 from rezervo.schemas.config.admin import AdminConfig
-from rezervo.schemas.features import Features
 from rezervo.settings import Settings, get_settings
 
 router = APIRouter()
+
+
+class Features(BaseModel):
+    class_reminder_notifications: bool
 
 
 @router.get("/features", response_model=Features)

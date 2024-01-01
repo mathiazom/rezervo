@@ -18,17 +18,20 @@ def ical_event_from_session(session: UserSession) -> Optional[cal.Event]:
     if _class is None:
         return None
     event = cal.Event()
-    event.add(
-        "uid", f"{session.integration.value}-{_class.id}-{session.user_id}@rezervo.no"
+    event.add("uid", f"{session.chain}-{_class.id}-{session.user_id}@rezervo.no")
+    event.add("summary", _class.activity.name)
+    instructors_str = (
+        f"med {format_name_list_to_natural([i.name for i in _class.instructors])}"
+        if len(_class.instructors) > 0
+        else ""
     )
-    event.add("summary", _class.name)
     event.add(
         "description",
-        f"{_class.name}{f' med {format_name_list_to_natural([i.name for i in _class.instructors])}' if len(_class.instructors) > 0 else ''}",
+        f"{_class.activity.name} {instructors_str}",
     )
-    event.add("location", _class.studio.name)
-    event.add("dtstart", datetime.fromisoformat(_class.from_field))
-    event.add("dtend", datetime.fromisoformat(_class.to))
+    event.add("location", f"{_class.location.studio} ({_class.location.room})")
+    event.add("dtstart", _class.start_time)
+    event.add("dtend", _class.end_time)
     event.add("dtstamp", datetime.now())
     event.add(
         "status",

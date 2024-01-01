@@ -1,21 +1,24 @@
 import re
 from datetime import datetime, timedelta
 from re import Pattern
-from typing import AnyStr
 from uuid import UUID
 
 from crontab import CronItem, CronTab
 
 from rezervo import models
+from rezervo.chains.common import find_class
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.providers.common import find_class
 from rezervo.schemas.config.config import Config, Cron
-from rezervo.schemas.config.user import Class, IntegrationConfig, IntegrationIdentifier
+from rezervo.schemas.config.user import (
+    ChainConfig,
+    ChainIdentifier,
+    Class,
+)
 from rezervo.settings import get_settings
 
 
 def upsert_jobs_by_comment(
-    crontab: CronTab, comment: str | Pattern[AnyStr], jobs: list[CronItem]
+    crontab: CronTab, comment: str | Pattern[str], jobs: list[CronItem]
 ):
     crontab.remove_all(comment=comment)
     for j in jobs:
@@ -23,12 +26,12 @@ def upsert_jobs_by_comment(
 
 
 def build_cron_jobs_from_config(
-    conf: Config, integration_config: IntegrationConfig, user: models.User
+    conf: Config, chain_config: ChainConfig, user: models.User
 ) -> list[CronItem]:
-    if not integration_config.active or integration_config.classes is None:
+    if not chain_config.active or chain_config.recurring_bookings is None:
         return []
     jobs = []
-    for i, c in enumerate(integration_config.classes):
+    for i, c in enumerate(chain_config.recurring_bookings):
         if (
             conf.config.cron.precheck_hours is not None
             and conf.config.cron.precheck_hours > 0
@@ -36,54 +39,57 @@ def build_cron_jobs_from_config(
             p = build_cron_job_for_class(
                 i,
                 c,
-                integration_config.integration,
+                chain_config.chain,
                 conf.config.cron,
                 user,
                 precheck=True,
             )
             if p is not None:
                 jobs.append(p)
-        j = build_cron_job_for_class(
-            i, c, integration_config.integration, conf.config.cron, user
-        )
+        # TODO: avoid fetching class data twice for precheck and booking cron jobs
+        j = build_cron_job_for_class(i, c, chain_config.chain, conf.config.cron, user)
         if j is not None:
             jobs.append(j)
     return jobs
 
 
-def build_cron_comment_prefix_for_user_integration(
-    user_id: UUID, integration: IntegrationIdentifier
+def build_cron_comment_prefix_for_user_chain(
+    user_id: UUID, chain_identifier: ChainIdentifier
 ):
-    return f"{get_settings().CRON_JOB_COMMENT_PREFIX}-{user_id}-{integration.value}"
+    return f"{build_cron_comment_prefix_for_user(user_id)}-{chain_identifier}"
+
+
+def build_cron_comment_prefix_for_user(user_id: UUID):
+    return f"{get_settings().CRON_JOB_COMMENT_PREFIX}-{user_id}"
 
 
 def build_cron_job_for_class(
     index: int,
     _class_config: Class,
-    integration: IntegrationIdentifier,
+    chain_identifier: ChainIdentifier,
     cron_config: Cron,
     user: models.User,
     precheck: bool = False,
 ):
     j = CronItem(
         command=generate_booking_command(
-            integration, index, cron_config, user.id, precheck
+            chain_identifier, index, cron_config, user.id, precheck
         ),
-        comment=f"{build_cron_comment_prefix_for_user_integration(user.id, integration)} --- {user.name} --- "
+        comment=f"{build_cron_comment_prefix_for_user_chain(user.id, chain_identifier)} --- {user.name} --- "
         f"{_class_config.display_name}{' --- [precheck]' if precheck else ''}",
         pre_comment=True,
     )
-    _class = find_class(IntegrationIdentifier(integration), _class_config)
+    _class = find_class(chain_identifier, _class_config)
     if (
         _class is None
         or isinstance(_class, BookingError)
-        or isinstance(_class_config, AuthenticationError)
+        or isinstance(_class, AuthenticationError)
     ):
         print("Failed to fetch class info for booking schedule")
         return None
     j.setall(
         *generate_booking_schedule(
-            datetime.fromisoformat(_class.bookingOpensAt),
+            _class.booking_opens_at,
             cron_config,
             precheck,
         )
@@ -120,7 +126,7 @@ def generate_booking_schedule(
 
 
 def generate_booking_command(
-    integration: IntegrationIdentifier,
+    chain_identifier: ChainIdentifier,
     index: int,
     cron_config: Cron,
     user_id: UUID,
@@ -128,7 +134,7 @@ def generate_booking_command(
 ) -> str:
     program_command = (
         f"cd {cron_config.rezervo_dir} || exit 1; "
-        f'{cron_config.python_path}/rezervo book {integration.value} "{user_id}"'
+        f'{cron_config.python_path}/rezervo book {chain_identifier} "{user_id}"'
     )
     output_redirection = f">> {cron_config.log_path} 2>&1"
     if precheck:
@@ -136,32 +142,47 @@ def generate_booking_command(
     return f"{program_command} {index} {output_redirection}"
 
 
+def generate_cron_cli_command_prefix(cron_config: Cron) -> str:
+    return f"cd {cron_config.rezervo_dir} || exit 1; {cron_config.python_path}/rezervo "
+
+
+def generate_cron_cli_command_logging_suffix(cron_config: Cron) -> str:
+    return f" >> {cron_config.log_path} 2>&1"
+
+
 def generate_pull_sessions_command(cron_config: Cron) -> str:
     return (
-        f"cd {cron_config.rezervo_dir} || exit 1; "
-        f"{cron_config.python_path}/rezervo sessions pull >> {cron_config.log_path} 2>&1"
+        f"{generate_cron_cli_command_prefix(cron_config)}"
+        f"sessions pull"
+        f"{generate_cron_cli_command_logging_suffix(cron_config)}"
+    )
+
+
+def generate_purge_slack_receipts_command(cron_config: Cron) -> str:
+    return (
+        f"{generate_cron_cli_command_prefix(cron_config)}"
+        f"purge_slack_receipts"
+        f"{generate_cron_cli_command_logging_suffix(cron_config)}"
     )
 
 
 def upsert_booking_crontab(
-    config: Config, integration_config: IntegrationConfig, user: models.User
+    config: Config, chain_config: ChainConfig, user: models.User
 ):
     with CronTab(user=True) as crontab:
         upsert_jobs_by_comment(
             crontab,
             re.compile(
-                f"^{build_cron_comment_prefix_for_user_integration(user.id, integration_config.integration)}.*$"
+                f"^{build_cron_comment_prefix_for_user_chain(user.id, chain_config.chain)}.*$"
             ),
-            build_cron_jobs_from_config(config, integration_config, user),
+            build_cron_jobs_from_config(config, chain_config, user),
         )
 
 
-def delete_booking_crontab(user_id: UUID, integration: IntegrationIdentifier):
+def delete_booking_crontab(user_id: UUID):
     with CronTab(user=True) as crontab:
         upsert_jobs_by_comment(
             crontab,
-            re.compile(
-                f"^{build_cron_comment_prefix_for_user_integration(user_id, integration)}.*$"
-            ),
+            re.compile(f"^{build_cron_comment_prefix_for_user(user_id)}.*$"),
             [],
         )

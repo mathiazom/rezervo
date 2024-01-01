@@ -13,7 +13,7 @@ from rezervo.notify.slack import (
     schedule_class_reminder_slack,
 )
 from rezervo.schemas.config import config
-from rezervo.schemas.config.user import Class
+from rezervo.schemas.config.user import ChainIdentifier, Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.utils.logging_utils import warn
 
@@ -76,6 +76,7 @@ def notify_booking_failure(
 
 def notify_booking(
     notifications_config: config.Notifications,
+    chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
     ical_url: Optional[str] = None,
 ) -> None:
@@ -90,7 +91,7 @@ def notify_booking(
         scheduled_reminder_id = None
         if notifications_config.reminder_hours_before is not None:
             scheduled_reminder_id = schedule_class_reminder(
-                notifications_config, booked_class
+                notifications_config, chain_identifier, booked_class
             )
         if notifications_config.transfersh is not None:
             transfersh_url = notifications_config.transfersh.url
@@ -101,6 +102,7 @@ def notify_booking(
             slack_config.channel_id,
             slack_config.user_id,
             notifications_config.host,
+            chain_identifier,
             booked_class,
             ical_url,
             transfersh_url,
@@ -112,7 +114,9 @@ def notify_booking(
 
 
 def schedule_class_reminder(
-    notifications_config: config.Notifications, booked_class: RezervoClass
+    notifications_config: config.Notifications,
+    chain_identifier: ChainIdentifier,
+    booked_class: RezervoClass,
 ) -> Optional[str]:
     slack_config = notifications_config.slack
     if slack_config is not None and slack_config.user_id is not None:
@@ -122,6 +126,7 @@ def schedule_class_reminder(
             slack_config.bot_token,
             slack_config.user_id,
             notifications_config.host,
+            chain_identifier,
             booked_class,
             notifications_config.reminder_hours_before,
         )

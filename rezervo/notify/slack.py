@@ -16,7 +16,7 @@ from rezervo.consts import (
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SlackClassNotificationReceipt
-from rezervo.schemas.config.user import Class
+from rezervo.schemas.config.user import ChainIdentifier, Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.schemas.slack import CancelBookingActionValue
 from rezervo.utils.logging_utils import err, warn
@@ -71,10 +71,11 @@ def find_user_dm_channel_id(slack_token: str, user_id: str) -> Optional[str]:
         res = SlackClient(token=slack_token).conversations_open(users=user_id)
         if res is None or not res.get("ok", False):
             err.log(
-                f"Could not find user direct message channel id on Slack{(': ' + res.get('error')) if res is not None else ''}"
+                f"Could not find user direct message channel id on Slack"
+                f"{(': ' + str(res.get('error'))) if res is not None else ''}"
             )
             return None
-        channel_id = res.get("channel").get("id")
+        channel_id = res.get("channel").get("id")  # type: ignore
         print(f"Located channel id of user direct message: {channel_id}")
         return channel_id
     except SlackApiError as e:
@@ -101,7 +102,7 @@ def schedule_dm_slack(
             unfurl_media=False,
         )
         print(f"Scheduled direct message to Slack: {res['message']['text']}")
-        return res.data["scheduled_message_id"]
+        return res.data["scheduled_message_id"]  # type: ignore
     except SlackApiError as e:
         err.log(f"Could not schedule direct message to Slack: {e.response['error']}")
         return None
@@ -121,13 +122,17 @@ def schedule_class_reminder_slack(
     slack_token: str,
     user_id: str,
     host: Optional[str],
+    chain_identifier: ChainIdentifier,
     _class: RezervoClass,
     hours_before: float,
 ) -> Optional[str]:
-    start_time = datetime.datetime.fromisoformat(_class.from_field)
-    reminder_time = start_time - datetime.timedelta(hours=hours_before)
+    reminder_time = _class.start_time - datetime.timedelta(hours=hours_before)
     reminder_timestamp = int(time.mktime(reminder_time.timetuple()))
-    message = f"Husk *{activity_url(host, _class)}* ({_class.from_field[:-3]}, *{_class.studio.name}*) om {hours_before:g} timer!"
+    message = (
+        f"Husk *{activity_url(host, chain_identifier, _class)}* "
+        f"({_class.start_time.isoformat(timespec='minutes')}, *{_class.location.studio}*) "
+        f"om {hours_before:g} time{'r' if hours_before > 1 else ''}!"
+    )
     return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
 
 
@@ -186,10 +191,14 @@ def notify_booking_failure_slack(
             f"for <@{user_id}>{f'. *{BOOKING_FAILURE_REASONS[error]}*' if error in BOOKING_FAILURE_REASONS else ''}"
         )
     else:
-        class_name = f"{_class_config.display_name if _class_config.display_name is not None else _class_config.activity}"
+        class_name = str(
+            _class_config.display_name
+            if _class_config.display_name is not None
+            else _class_config.activity_id
+        )
         class_time = (
             f"{WEEKDAYS[_class_config.weekday].lower()} "
-            f"{datetime.time(_class_config.time.hour, _class_config.time.minute).strftime('%H:%M')}"
+            f"{datetime.time(_class_config.start_time.hour, _class_config.start_time.minute).strftime('%H:%M')}"
         )
         msg = (
             f"{':warning: Forhåndssjekk feilet! Kan ikke booke' if check_run else ':dizzy_face: Klarte ikke å booke'} "
@@ -235,13 +244,10 @@ def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
 def notify_cancellation_slack(slack_token: str, channel: str, source_ts: str) -> bool:
     try:
         # Retrieve original message
-        message = (
-            SlackClient(token=slack_token)
-            .conversations_history(
-                channel=channel, latest=source_ts, limit=1, inclusive=True
-            )
-            .data["messages"][0]
+        conversation = SlackClient(token=slack_token).conversations_history(
+            channel=channel, latest=source_ts, limit=1, inclusive=True
         )
+        message: dict = conversation.data["messages"][0]  # type: ignore
         cancelled_text_prefix = "[AVBESTILT!]"
         # If already cancelled, abort with success
         if message["text"].startswith(cancelled_text_prefix):
@@ -291,10 +297,20 @@ def notify_cancellation_failure_slack(
     try:
         notify_not_working_slack(slack_token, channel, source_ts)
         # Notify failure in thread
+        cancellation_failure_text = (
+            f". {CANCELLATION_FAILURE_REASONS[error]}"
+            if isinstance(error, BookingError) and error in CANCELLATION_FAILURE_REASONS
+            else ""
+        )
+        auth_failure_text = (
+            f". {AUTH_FAILURE_REASONS[error]}"
+            if isinstance(error, AuthenticationError) and error in AUTH_FAILURE_REASONS
+            else ""
+        )
         message = (
             f":dizzy_face: Avbestilling feilet"
-            f"{f'. {CANCELLATION_FAILURE_REASONS[error]}' if error in CANCELLATION_FAILURE_REASONS else ''}"
-            f"{f'. {AUTH_FAILURE_REASONS[error]}' if error in AUTH_FAILURE_REASONS else ''}"
+            f"{cancellation_failure_text}"
+            f"{auth_failure_text}"
         )
         notify_slack(slack_token, channel, message, thread_ts=source_ts)
     except SlackApiError as e:
@@ -344,13 +360,14 @@ def notify_booking_slack(
     channel: str,
     user_id: str,
     host: Optional[str],
+    chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
     ical_url: Optional[str] = None,
     transfersh_url: Optional[str] = None,
     scheduled_reminder_id: Optional[str] = None,
 ) -> None:
     message_blocks = build_booking_message_blocks(
-        booked_class, user_id, host, None, scheduled_reminder_id
+        chain_identifier, booked_class, user_id, host, None, scheduled_reminder_id
     )
     if transfersh_url:
         filename = f"{booked_class.id}.ics"
@@ -362,7 +379,12 @@ def notify_booking_slack(
                 else None
             )
             message_blocks = build_booking_message_blocks(
-                booked_class, user_id, host, ical_tsh_url, scheduled_reminder_id
+                chain_identifier,
+                booked_class,
+                user_id,
+                host,
+                ical_tsh_url,
+                scheduled_reminder_id,
             )
         except RequestException:
             warn.log(
@@ -380,11 +402,12 @@ def notify_booking_slack(
         db.add(
             SlackClassNotificationReceipt(
                 slack_user_id=user_id,
-                integration=booked_class.integration,
-                class_id=str(booked_class.id),
+                chain=chain_identifier,
+                class_id=booked_class.id,
                 channel_id=channel,
                 message_id=slack_notification_ts,
                 scheduled_reminder_id=scheduled_reminder_id,
+                expires_at=booked_class.start_time,
             )
         )
         db.commit()
@@ -396,6 +419,7 @@ CANCELLATION_EMOJI = ":no_entry:"
 
 
 def build_booking_message_blocks(
+    chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
     user_id: str,
     host: Optional[str],
@@ -408,9 +432,9 @@ def build_booking_message_blocks(
             "action_id": SLACK_ACTION_CANCEL_BOOKING,
             "value": (
                 CancelBookingActionValue(
-                    integration=booked_class.integration,
+                    chain_identifier=chain_identifier,
                     user_id=user_id,
-                    class_id=str(booked_class.id),
+                    class_id=booked_class.id,
                     scheduled_reminder_id=scheduled_reminder_id,
                 ).json()
             ),
@@ -419,7 +443,9 @@ def build_booking_message_blocks(
                 "title": {"type": "plain_text", "text": "Er du sikker?"},
                 "text": {
                     "type": "plain_text",
-                    "text": f"Du er i ferd med å avbestille {booked_class.name} ({booked_class.from_field[:-3]}, *{booked_class.studio.name}*). "
+                    "text": f"Du er i ferd med å avbestille "
+                    f"{booked_class.activity.name} ({booked_class.start_time.isoformat(timespec='minutes')}, "
+                    f"*{booked_class.location.studio}*). "
                     f"Dette kan ikke angres!",
                 },
                 "confirm": {"type": "plain_text", "text": "Avbestill"},
@@ -438,7 +464,11 @@ def build_booking_message_blocks(
                 "url": ical_tsh_url,
             },
         )
-    message = f"{BOOKING_EMOJI} {activity_url(host, booked_class)} ({booked_class.from_field[:-3]}, *{booked_class.studio.name}*) er booket for <@{user_id}>"
+    message = (
+        f"{BOOKING_EMOJI} {activity_url(host, chain_identifier, booked_class)} "
+        f"({booked_class.start_time.isoformat(timespec='minutes')}, "
+        f"*{booked_class.location.studio}*) er booket for <@{user_id}>"
+    )
     blocks: list[dict[str, Any]] = [
         {"type": "section", "text": {"type": "mrkdwn", "text": message}}
     ]

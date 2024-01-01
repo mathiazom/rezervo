@@ -7,7 +7,7 @@ from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.database import crud
-from rezervo.schemas.config.user import IntegrationIdentifier
+from rezervo.schemas.config.user import ChainIdentifier
 from rezervo.schemas.schedule import UserNameSessionStatus, UserSession
 from rezervo.settings import Settings, get_settings
 
@@ -15,10 +15,11 @@ router = APIRouter()
 
 
 @router.get(
-    "/{integration}/sessions", response_model=dict[str, list[UserNameSessionStatus]]
+    "/{chain_identifier}/sessions",
+    response_model=dict[str, list[UserNameSessionStatus]],
 )
 def get_sessions_index(
-    integration: IntegrationIdentifier,
+    chain_identifier: ChainIdentifier,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -31,12 +32,12 @@ def get_sessions_index(
         db.query(models.Session)
         .filter(
             models.Session.status != models.SessionState.PLANNED,
-            models.Session.integration == integration,
+            models.Session.chain == chain_identifier,  # type: ignore
         )
         .all()
     )
     user_name_lookup = {
-        u.id: auth0_mgmt_client.users.get(u.jwt_sub)["name"]
+        u.id: auth0_mgmt_client.users.get(u.jwt_sub)["name"]  # type: ignore
         for u in db.query(models.User).all()
     }
     session_dict: dict[str, list[UserNameSessionStatus]] = {}

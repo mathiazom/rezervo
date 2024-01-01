@@ -29,11 +29,11 @@ def get_calendar_token(
 
 @router.get("/cal")
 def get_calendar(token: str, include_past: bool = True, db: Session = Depends(get_db)):
-    db_user = db.query(models.User).filter_by(cal_token=token).one_or_none()
+    db_user = db.query(models.User).filter_by(cal_token=token).one_or_none()  # type: ignore
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     sessions_query = (
-        db.query(models.Session)
+        db.query(models.Session)  # type: ignore
         .filter_by(user_id=db_user.id)
         .filter(models.Session.status != models.SessionState.UNKNOWN)
     )

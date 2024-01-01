@@ -1,26 +1,16 @@
-import enum
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union
+from typing import List, Optional, TypeAlias, Union
 
 import pytz
 from pydantic import BaseModel
 
 from rezervo.models import SessionState
-from rezervo.schemas.config.user import IntegrationIdentifier
-from rezervo.schemas.schedule import RezervoClass, RezervoInstructor, RezervoStudio
+
+BrpSubdomain: TypeAlias = str
 
 
-class BrpSubdomain(enum.Enum):
-    TTT = "3t"
-    FSC = "fsc"
-
-
-# TODO: remove dependency on IntegrationIdentifier in this provider
-SUBDOMAIN_TO_INTEGRATION_IDENTIFIER = {
-    BrpSubdomain.TTT: IntegrationIdentifier.TTT,
-    BrpSubdomain.FSC: IntegrationIdentifier.FSC,
-}
+BrpLocationIdentifier: TypeAlias = int
 
 
 class BrpAuthResult(BaseModel):
@@ -84,6 +74,31 @@ class BrpClass(BaseModel):
     internalMessage: Optional[str] = None
     cancelled: bool
     slots: Slots
+
+
+class BrpActivityAsset(BaseModel):
+    # reference: str
+    # \type: str
+    # contentType: str
+    contentUrl: str
+    # imageWidth: int
+    # imageHeight: int
+    # focalPointX: int
+    # focalPointY: int
+
+
+class BrpReceivedActivityDetails(BaseModel):
+    description: Optional[str] = None
+    assets: Optional[List[BrpActivityAsset]] = None
+
+
+class BrpActivityDetails(BaseModel):
+    description: str
+    image_url: Optional[str] = None
+
+
+class DetailedBrpClass(BrpClass):
+    activity_details: BrpActivityDetails
 
 
 class Customer(BaseModel):
@@ -212,41 +227,3 @@ def session_state_from_brp(
 
 def tz_aware_iso_from_brp_date_str(date: str) -> str:
     return pytz.UTC.localize(datetime.fromisoformat(date.replace("Z", ""))).isoformat()
-
-
-# TODO: this should be replaced when timezones are handled properly
-def human_iso_from_brp_date_str(date: str) -> str:
-    return (
-        pytz.UTC.localize(datetime.fromisoformat(date.replace("Z", "")))
-        .astimezone(pytz.timezone("Europe/Oslo"))
-        .replace(tzinfo=None)
-        .isoformat()
-        .replace("T", " ")
-    )
-
-
-def rezervo_class_from_brp_class(
-    subdomain: BrpSubdomain, brp_class: BrpClass
-) -> RezervoClass:
-    return RezervoClass(
-        integration=SUBDOMAIN_TO_INTEGRATION_IDENTIFIER[subdomain],
-        id=brp_class.id,
-        name=brp_class.groupActivityProduct.name,
-        activityId=brp_class.groupActivityProduct.id,
-        from_field=human_iso_from_brp_date_str(brp_class.duration.start),
-        to=human_iso_from_brp_date_str(brp_class.duration.end),
-        instructors=[RezervoInstructor(name=s.name) for s in brp_class.instructors],
-        studio=RezervoStudio(
-            id=brp_class.businessUnit.id,
-            name=brp_class.businessUnit.name,
-        ),
-        userStatus=None,
-        bookable=datetime.fromisoformat(
-            tz_aware_iso_from_brp_date_str(brp_class.bookableEarliest)
-        )
-        < datetime.now().astimezone()
-        < datetime.fromisoformat(
-            tz_aware_iso_from_brp_date_str(brp_class.bookableLatest)
-        ),
-        bookingOpensAt=tz_aware_iso_from_brp_date_str(brp_class.bookableEarliest),
-    )

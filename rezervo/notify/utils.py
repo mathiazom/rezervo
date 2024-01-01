@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 import requests
 
+from rezervo.schemas.config.user import ChainIdentifier
 from rezervo.schemas.schedule import RezervoClass
 
 
@@ -20,10 +21,12 @@ def transfersh_direct_url(url: str):
     return u._replace(path=f"/get{u.path}").geturl()
 
 
-def activity_url(host: Optional[str], _class: RezervoClass):
+def activity_url(
+    host: Optional[str], chain_identifier: ChainIdentifier, _class: RezervoClass
+):
     if host:
         return (
-            f"<{host}/{_class.integration.value}/?classId={_class.id}|*{_class.name}*>"
+            f"<{host}/{chain_identifier}/?classId={_class.id}|*{_class.activity.name}*>"
         )
 
-    return f"*{_class.name}*"
+    return f"*{_class.activity.name}*"

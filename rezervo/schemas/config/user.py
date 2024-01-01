@@ -1,27 +1,15 @@
 import enum
-from typing import Optional
+from typing import Optional, TypeAlias
 from uuid import UUID
 
 from pydantic import BaseModel
 
 from rezervo.schemas.base import OrmBase
+from rezervo.schemas.camel import CamelModel
 
 
 class Notifications(OrmBase):
     reminder_hours_before: Optional[float] = None
-
-
-class ClassTime(OrmBase):
-    hour: int
-    minute: int
-
-
-class Class(OrmBase):
-    activity: int
-    weekday: int
-    studio: int
-    time: ClassTime
-    display_name: Optional[str] = None
 
 
 class UserPreferences(OrmBase):
@@ -33,10 +21,7 @@ class UserNameWithIsSelf(BaseModel):
     user_name: str
 
 
-class IntegrationIdentifier(enum.Enum):
-    SIT = "sit"
-    FSC = "fsc"
-    TTT = "3t"
+ChainIdentifier: TypeAlias = str
 
 
 class ProviderIdentifier(enum.Enum):
@@ -44,31 +29,43 @@ class ProviderIdentifier(enum.Enum):
     IBOOKING = "ibooking"
 
 
-class BaseIntegrationConfig(OrmBase):
+class ClassTime(CamelModel):
+    hour: int
+    minute: int
+
+
+class Class(CamelModel):
+    activity_id: str
+    weekday: int
+    location_id: str
+    start_time: ClassTime
+    display_name: Optional[str] = None
+
+
+class RecurringBookings(CamelModel):
+    recurring_bookings: list[Class]
+
+
+class BaseChainConfig(RecurringBookings, CamelModel):
     active: bool = True
-    classes: list[Class]
 
 
-class IntegrationConfig(BaseIntegrationConfig):
-    integration: IntegrationIdentifier
+class ChainConfig(BaseChainConfig, CamelModel):
+    chain: ChainIdentifier
 
 
-class IntegrationUserProfile(OrmBase):
+class ChainUserProfile(CamelModel):
     username: str
 
 
-class IntegrationUserCredentials(IntegrationUserProfile):
+class ChainUserCredentials(ChainUserProfile, CamelModel):
     password: str
 
 
-class IntegrationUser(IntegrationConfig, IntegrationUserCredentials):
+class ChainUser(ChainConfig, ChainUserCredentials, CamelModel):
     user_id: UUID
     auth_token: Optional[str] = None
 
 
-def get_integration_config_from_integration_user(integration_user: IntegrationUser):
-    return IntegrationConfig(
-        integration=integration_user.integration,
-        active=integration_user.active,
-        classes=integration_user.classes,
-    )
+def config_from_chain_user(user: ChainUser):
+    return ChainConfig(**user.dict())

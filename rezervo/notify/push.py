@@ -3,7 +3,7 @@ import json
 import re
 from typing import Optional
 
-from pywebpush import WebPushException, webpush
+from pywebpush import WebPushException, webpush  # type: ignore
 
 from rezervo.consts import WEEKDAYS
 from rezervo.database import crud
@@ -49,6 +49,8 @@ def notify_web_push(subscription: PushNotificationSubscription, message: str) ->
             with SessionLocal() as db:
                 crud.delete_push_notification_subscription(db, subscription)
         return False
+    with SessionLocal() as db:
+        crud.update_last_used_push_notification_subscription(db, subscription)
     return res.ok
 
 
@@ -57,7 +59,8 @@ def notify_booking_web_push(
 ) -> None:
     if not notify_web_push(
         subscription,
-        f"{booked_class.name} ({booked_class.from_field[:-3]}, {booked_class.studio.name}) er booket",
+        f"{booked_class.activity.name} "
+        f"({booked_class.start_time.isoformat(timespec='minutes')}, {booked_class.location.studio}) er booket",
     ):
         err.log("Failed to send booking notification via web push")
         return
@@ -79,10 +82,14 @@ def notify_booking_failure_web_push(
             else ""
         )
     else:
-        class_name = f"{_class_config.display_name if _class_config.display_name is not None else _class_config.activity}"
+        class_name = str(
+            _class_config.display_name
+            if _class_config.display_name is not None
+            else _class_config.activity_id
+        )
         class_time = (
             f"{WEEKDAYS[_class_config.weekday].lower()} "
-            f"{datetime.time(_class_config.time.hour, _class_config.time.minute).strftime('%H:%M')}"
+            f"{datetime.time(_class_config.start_time.hour, _class_config.start_time.minute).strftime('%H:%M')}"
         )
         msg = (
             f"{'⚠️ Forhåndssjekk feilet! Kan ikke booke' if check_run else '😵 Klarte ikke å booke'} "
