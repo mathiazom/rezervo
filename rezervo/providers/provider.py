@@ -109,7 +109,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         raise NotImplementedError()
 
     @abstractmethod
-    def find_class(
+    async def find_class(
         self, _class_config: Class
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         # TODO: unified implementation using `find_class_in_schedule_by_config`
@@ -210,12 +210,12 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         )
         return None
 
-    def fetch_sessions(
+    async def fetch_sessions(
         self,
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> list[UserSession]:
-        schedule = self.fetch_schedule(
+        schedule = await self.fetch_schedule(
             datetime.combine(datetime.now(), datetime.min.time()),
             total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS),
             locations,
@@ -261,7 +261,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         raise NotImplementedError()
 
     @abstractmethod
-    def fetch_schedule(
+    async def fetch_schedule(
         self,
         from_date: datetime,
         days: int,
@@ -269,11 +269,11 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
     ) -> RezervoSchedule:
         raise NotImplementedError()
 
-    def fetch_week_schedule(
+    async def fetch_week_schedule(
         self,
         week_offset: int,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> RezervoSchedule:
-        return self.fetch_schedule(
+        return await self.fetch_schedule(
             first_date_of_week_by_offset(week_offset), 7, locations
         )

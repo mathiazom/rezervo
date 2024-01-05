@@ -42,7 +42,7 @@ class BookingPayload(BaseModel):
 
 
 @router.post("/{chain_identifier}/book")
-def book_class_api(
+async def book_class_api(
     chain_identifier: ChainIdentifier,
     payload: BookingPayload,
     token=Depends(token_auth_scheme),
@@ -72,7 +72,7 @@ def book_class_api(
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     # Pulling in foreground to have sessions up-to-date once the response is sent
-    pull_sessions(chain_identifier, chain_user.user_id)
+    await pull_sessions(chain_identifier, chain_user.user_id)
 
 
 class BookingCancellationPayload(BaseModel):
@@ -80,7 +80,7 @@ class BookingCancellationPayload(BaseModel):
 
 
 @router.post("/{chain_identifier}/cancel-booking")
-def cancel_booking_api(
+async def cancel_booking_api(
     chain_identifier: ChainIdentifier,
     payload: BookingCancellationPayload,
     token=Depends(token_auth_scheme),
@@ -110,4 +110,4 @@ def cancel_booking_api(
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     # Pulling in foreground to have sessions up-to-date once the response is sent
-    pull_sessions(chain_identifier, chain_user.user_id)
+    await pull_sessions(chain_identifier, chain_user.user_id)

@@ -33,7 +33,7 @@ from rezervo.utils.logging_utils import err, warn
 router = APIRouter()
 
 
-def handle_cancel_booking_slack_action(
+async def handle_cancel_booking_slack_action(
     user_id: UUID,
     config: ConfigValue,
     action_value: CancelBookingActionValue,
@@ -97,7 +97,7 @@ def handle_cancel_booking_slack_action(
                 cancellation_error,
             )
         return
-    pull_sessions(action_value.chain_identifier, user_id)
+    await pull_sessions(action_value.chain_identifier, user_id)
 
 
 @router.post("/slackinteraction")

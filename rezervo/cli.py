@@ -11,6 +11,7 @@ from rich import print as rprint
 
 from rezervo import models
 from rezervo.api import api
+from rezervo.async_cli import AsyncTyper
 from rezervo.chains.active import ACTIVE_CHAIN_IDENTIFIERS, get_chain
 from rezervo.chains.common import book_class, find_class
 from rezervo.consts import (
@@ -45,17 +46,17 @@ from rezervo.utils.logging_utils import err, stat
 from rezervo.utils.time_utils import readable_seconds
 
 # TODO: move subcommands to separate files
-cli = typer.Typer()
-users_cli = typer.Typer()
+cli = AsyncTyper()
+users_cli = AsyncTyper()
 cli.add_typer(users_cli, name="users", help="Manage rezervo users")
-cron_cli = typer.Typer()
+cron_cli = AsyncTyper()
 cli.add_typer(cron_cli, name="cron", help="Manage cron jobs for automatic booking")
-sessions_cli = typer.Typer()
+sessions_cli = AsyncTyper()
 cli.add_typer(sessions_cli, name="sessions", help="Manage user sessions")
 
 
 @cli.command()
-def book(
+async def book(
     chain_identifier: ChainIdentifier,
     user_id: UUID,
     class_id: int,
@@ -100,7 +101,7 @@ def book(
             )
         return
     with stat("Searching for class..."):
-        class_search_result = find_class(chain_identifier, _class_config)
+        class_search_result = await find_class(chain_identifier, _class_config)
         if isinstance(class_search_result, AuthenticationError):
             err.log("Abort!")
             if config.notifications is not None:
@@ -156,7 +157,7 @@ def book(
             )
         raise typer.Exit(1)
     with stat("Pulling sessions..."):
-        pull_sessions(chain_identifier, user_id)
+        await pull_sessions(chain_identifier, user_id)
 
 
 @cli.command(
@@ -226,8 +227,8 @@ def create_cron_add_slack_receipts_purging_job():
 
 
 @cron_cli.command(name="refresh")
-def refresh_cron_cli():
-    refresh_cron()
+async def refresh_cron_cli():
+    await refresh_cron()
 
 
 @cron_cli.callback(invoke_without_command=True)
@@ -317,7 +318,7 @@ def list_users(
 
 
 @sessions_cli.command(name="pull")
-def pull_sessions_cli(
+async def pull_sessions_cli(
     name: Optional[str] = typer.Option(None, help="Name of user to pull sessions for"),
     chain_identifier: Optional[ChainIdentifier] = typer.Option(
         None, "--chain", help="Identifier of chain to pull sessions from"
@@ -336,7 +337,7 @@ def pull_sessions_cli(
             if user is None:
                 rprint(f"User '{name}' not found")
                 raise typer.Exit(1)
-    pull_sessions(chain_identifier, user.id if user is not None else None)
+    await pull_sessions(chain_identifier, user.id if user is not None else None)
 
 
 @cli.command(name="purge_slack_receipts")

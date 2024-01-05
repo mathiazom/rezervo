@@ -51,6 +51,7 @@ pywebpush = "^1.14.0"
 croniter = "^2.0.1"
 humanize = "^4.9.0"
 pyhumps = "^3.8.0"
+asyncer = "^0.0.2"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^0.991"

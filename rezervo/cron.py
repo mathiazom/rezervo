@@ -12,7 +12,7 @@ from rezervo.utils.cron_utils import upsert_booking_crontab
 from rezervo.utils.logging_utils import err
 
 
-def refresh_cron(
+async def refresh_cron(
     user_id: Optional[UUID] = None,
     chain_identifiers: list[ChainIdentifier] = ACTIVE_CHAIN_IDENTIFIERS,
 ):
@@ -29,7 +29,7 @@ def refresh_cron(
             for c in chains:
                 ic = crud.get_chain_config(db, c.identifier, u.id)
                 if ic is not None:
-                    upsert_booking_crontab(config, ic, u)
+                    await upsert_booking_crontab(config, ic, u)
                     rprint(
                         f":heavy_check_mark: '{c.name}' crontab updated for '{u.name}'"
                     )

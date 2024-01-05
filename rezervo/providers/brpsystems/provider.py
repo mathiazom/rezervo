@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import re
 from abc import abstractmethod
@@ -91,10 +92,10 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             return BookingError.CLASS_MISSING
         return self.rezervo_class_from_brp_class(self.brp_subdomain, brp_class)
 
-    def find_class(
+    async def find_class(
         self, _class_config: Class
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-        _class = self.try_find_brp_class(
+        _class = await self.try_find_brp_class(
             self.brp_subdomain,
             _class_config,
         )
@@ -216,7 +217,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             )
         return past_and_imminent_sessions
 
-    def fetch_schedule(
+    async def fetch_schedule(
         self,
         from_date: datetime.datetime,
         days: int,
@@ -233,17 +234,21 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             is not None
         ]
         schedule: list[DetailedBrpClass] = []
-        for business_unit in business_units:
-            unit_schedule = fetch_detailed_brp_schedule(
-                self.brp_subdomain,
-                fetch_brp_schedule(
+        for async_res in asyncio.as_completed(
+            [
+                fetch_detailed_brp_schedule(
                     self.brp_subdomain,
-                    business_unit,
-                    days,
-                    from_date=from_date,
-                ),
-            )
-            schedule.extend(unit_schedule)
+                    await fetch_brp_schedule(
+                        self.brp_subdomain,
+                        business_unit,
+                        days,
+                        from_date=from_date,
+                    ),
+                )
+                for business_unit in business_units
+            ]
+        ):
+            schedule.extend(await async_res)
         days_map: dict[datetime.date, list[RezervoClass]] = {
             (from_date.date() + datetime.timedelta(days=i)): [] for i in range(days)
         }
@@ -327,7 +332,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         )
 
     # TODO: generalize
-    def try_find_brp_class(
+    async def try_find_brp_class(
         self,
         subdomain: BrpSubdomain,
         _class_config: Class,
@@ -349,7 +354,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         from_date = datetime.datetime(now_date.year, now_date.month, now_date.day)
         search_result = None
         while attempts < MAX_SCHEDULE_SEARCH_ATTEMPTS:
-            schedule = fetch_brp_schedule(
+            schedule = await fetch_brp_schedule(
                 subdomain,
                 business_unit,
                 days=SCHEDULE_SEARCH_ATTEMPT_DAYS,

@@ -24,10 +24,10 @@ def find_authed_class_by_id(
     return get_chain(chain_user.chain).find_class_by_id(class_id)
 
 
-def find_class(
+async def find_class(
     chain_identifier: ChainIdentifier, _class_config: Class
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-    return get_chain(chain_identifier).find_class(_class_config)
+    return await get_chain(chain_identifier).find_class(_class_config)
 
 
 def book_class(
@@ -85,7 +85,7 @@ def update_slack_notifications_with_cancellation(
         db.commit()
 
 
-def fetch_week_schedule(
+async def fetch_week_schedule(
     chain_identifier: ChainIdentifier,
     week_offset: int,
     branches: Optional[list[BranchIdentifier]] = None,
@@ -97,4 +97,4 @@ def fetch_week_schedule(
             if branch.identifier in branches:
                 locations = locations or []
                 locations.extend([location.identifier for location in branch.locations])
-    return chain.fetch_week_schedule(week_offset, locations=locations)
+    return await chain.fetch_week_schedule(week_offset, locations=locations)

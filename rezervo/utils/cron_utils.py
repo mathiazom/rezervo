@@ -25,7 +25,7 @@ def upsert_jobs_by_comment(
         crontab.append(j)
 
 
-def build_cron_jobs_from_config(
+async def build_cron_jobs_from_config(
     conf: Config, chain_config: ChainConfig, user: models.User
 ) -> list[CronItem]:
     if not chain_config.active or chain_config.recurring_bookings is None:
@@ -36,7 +36,7 @@ def build_cron_jobs_from_config(
             conf.config.cron.precheck_hours is not None
             and conf.config.cron.precheck_hours > 0
         ):
-            p = build_cron_job_for_class(
+            p = await build_cron_job_for_class(
                 i,
                 c,
                 chain_config.chain,
@@ -47,7 +47,9 @@ def build_cron_jobs_from_config(
             if p is not None:
                 jobs.append(p)
         # TODO: avoid fetching class data twice for precheck and booking cron jobs
-        j = build_cron_job_for_class(i, c, chain_config.chain, conf.config.cron, user)
+        j = await build_cron_job_for_class(
+            i, c, chain_config.chain, conf.config.cron, user
+        )
         if j is not None:
             jobs.append(j)
     return jobs
@@ -63,7 +65,7 @@ def build_cron_comment_prefix_for_user(user_id: UUID):
     return f"{get_settings().CRON_JOB_COMMENT_PREFIX}-{user_id}"
 
 
-def build_cron_job_for_class(
+async def build_cron_job_for_class(
     index: int,
     _class_config: Class,
     chain_identifier: ChainIdentifier,
@@ -79,7 +81,7 @@ def build_cron_job_for_class(
         f"{_class_config.display_name}{' --- [precheck]' if precheck else ''}",
         pre_comment=True,
     )
-    _class = find_class(chain_identifier, _class_config)
+    _class = await find_class(chain_identifier, _class_config)
     if (
         _class is None
         or isinstance(_class, BookingError)
@@ -174,7 +176,7 @@ def generate_purge_slack_receipts_command(cron_config: Cron) -> str:
     )
 
 
-def upsert_booking_crontab(
+async def upsert_booking_crontab(
     config: Config, chain_config: ChainConfig, user: models.User
 ):
     with CronTab(user=True) as crontab:
@@ -183,7 +185,7 @@ def upsert_booking_crontab(
             re.compile(
                 f"^{build_cron_comment_prefix_for_user_chain(user.id, chain_config.chain)}.*$"
             ),
-            build_cron_jobs_from_config(config, chain_config, user),
+            await build_cron_jobs_from_config(config, chain_config, user),
         )
 
 

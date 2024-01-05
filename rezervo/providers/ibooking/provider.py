@@ -81,7 +81,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             return BookingError.CLASS_MISSING
         return self.rezervo_class_from_ibooking_class(ibooking_class)
 
-    def find_class(
+    async def find_class(
         self, _class_config: Class
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         return self.find_public_ibooking_class(
@@ -150,7 +150,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         ]
         return past_and_booked_sessions
 
-    def fetch_schedule(
+    async def fetch_schedule(
         self,
         from_date: datetime,
         days: int,
