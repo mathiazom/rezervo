@@ -18,6 +18,8 @@ from rezervo.consts import (
     CRON_PULL_SESSIONS_SCHEDULE,
     CRON_PURGE_SLACK_RECEIPTS_JOB_COMMENT,
     CRON_PURGE_SLACK_RECEIPTS_SCHEDULE,
+    CRON_REFRESH_CRON_JOB_COMMENT,
+    CRON_REFRESH_CRON_SCHEDULE,
 )
 from rezervo.cron import refresh_cron
 from rezervo.database import crud
@@ -37,6 +39,7 @@ from rezervo.utils.cron_utils import (
     delete_booking_crontab,
     generate_pull_sessions_command,
     generate_purge_slack_receipts_command,
+    generate_refresh_cron_command,
 )
 from rezervo.utils.logging_utils import err, stat
 from rezervo.utils.time_utils import readable_seconds
@@ -188,6 +191,23 @@ def create_cron_sessions_job():
         crontab.remove_all(comment=comment)
         crontab.append(j)
     rprint(":heavy_check_mark: Cronjob created for sessions pulling")
+
+
+@cron_cli.command(name="add_refresh_cron_job")
+def create_cron_refresh_job():
+    comment = (
+        f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{CRON_REFRESH_CRON_JOB_COMMENT}]"
+    )
+    j = CronItem(
+        command=generate_refresh_cron_command(read_app_config().cron),
+        comment=comment,
+        pre_comment=True,
+    )
+    j.setall(CRON_REFRESH_CRON_SCHEDULE)
+    with CronTab(user=True) as crontab:
+        crontab.remove_all(comment=comment)
+        crontab.append(j)
+    rprint(":heavy_check_mark: Cronjob created for refreshing crontab")
 
 
 @cron_cli.command(name="add_slack_receipts_purging_job")

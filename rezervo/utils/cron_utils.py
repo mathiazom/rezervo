@@ -158,6 +158,14 @@ def generate_pull_sessions_command(cron_config: Cron) -> str:
     )
 
 
+def generate_refresh_cron_command(cron_config: Cron) -> str:
+    return (
+        f"{generate_cron_cli_command_prefix(cron_config)}"
+        f"cron refresh"
+        f"{generate_cron_cli_command_logging_suffix(cron_config)}"
+    )
+
+
 def generate_purge_slack_receipts_command(cron_config: Cron) -> str:
     return (
         f"{generate_cron_cli_command_prefix(cron_config)}"
