@@ -18,7 +18,7 @@ ACTIVITY_CATEGORIES = [
     RezervoCategory(
         name="Tilleggstjenester",
         color="#f4eded",
-        keywords=["barnepass", "kroppsanalyse"],
+        keywords=["tilleggstjenester", "barnepass", "kroppsanalyse"],
     ),
     RezervoCategory(
         name="Vannaerobic",
@@ -28,7 +28,7 @@ ACTIVITY_CATEGORIES = [
     RezervoCategory(
         name="Mosjon",
         color="#00B050",
-        keywords=["godt voksen", "mamma", "mor og barn", "senior", "baby"],
+        keywords=["mosjon", "godt voksen", "mamma", "mor og barn", "senior", "baby"],
     ),
     RezervoCategory(
         name="Dans",
@@ -39,6 +39,7 @@ ACTIVITY_CATEGORIES = [
         name="Body & Mind",
         color="#8BD4F0",
         keywords=[
+            "body & mind",
             "yoga",
             "pilates",
             "smidig",
@@ -61,6 +62,7 @@ ACTIVITY_CATEGORIES = [
         name="Kondisjon",
         color="#6AD3B4",
         keywords=[
+            "kondisjon",
             "step",
             "løp",
             "puls",
@@ -75,6 +77,7 @@ ACTIVITY_CATEGORIES = [
         name="Styrke & Utholdenhet",
         color="#F8A800",
         keywords=[
+            "utholdenhet",
             "pump",
             "styrke",
             "core",

@@ -47,6 +47,7 @@ from rezervo.schemas.schedule import (
     RezervoSchedule,
     UserSession,
 )
+from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err
 
 
@@ -199,7 +200,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             activity=RezervoActivity(
                 id=str(ibooking_class.activityId),
                 name=ibooking_class.name,
-                category=ibooking_class.category.name,
+                category=determine_activity_category(ibooking_class.category.name).name,
                 description=ibooking_class.description,
                 color=ibooking_class.color,
                 image=ibooking_class.image,
