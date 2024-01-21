@@ -1,9 +1,12 @@
 from pydantic.main import BaseModel
 
 
-class RezervoCategory(BaseModel):
+class RezervoBaseCategory(BaseModel):
     name: str
     color: str
+
+
+class RezervoCategory(RezervoBaseCategory):
     keywords: list[str]
 
 

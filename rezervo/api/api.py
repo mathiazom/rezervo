@@ -3,6 +3,7 @@ from fastapi import (
 )
 
 from rezervo.api import (
+    activity_categories,
     booking,
     cal,
     chain_config,
@@ -18,6 +19,7 @@ from rezervo.api.notifications import push
 api = FastAPI()
 api.include_router(chains.router, tags=["chains"])
 api.include_router(schedules.router, tags=["schedules"])
+api.include_router(activity_categories.router, tags=["activity categories"])
 api.include_router(chain_config.router, tags=["chain config"])
 api.include_router(preferences.router, tags=["preferences"])
 api.include_router(features.router, tags=["features"])
