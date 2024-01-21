@@ -94,6 +94,7 @@ def put_chain_config(
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    # TODO: debounce refresh to better handle burst updates
     background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])
     return updated_config
 
