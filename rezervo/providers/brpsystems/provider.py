@@ -221,11 +221,11 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         self,
         from_date: datetime.datetime,
         days: int,
-        locations: Optional[list[LocationIdentifier]] = None,
+        locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
         business_units = [
             b
-            for location in (locations if locations is not None else self.locations())
+            for location in locations
             if (
                 b := self.provider_location_identifier_from_location_identifier(
                     location

@@ -1,11 +1,11 @@
-from typing import Optional, Union
+from typing import Union
 
 from rezervo import models
 from rezervo.chains.active import get_chain
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.slack import delete_scheduled_dm_slack, notify_cancellation_slack
-from rezervo.providers.schema import BranchIdentifier, LocationIdentifier
+from rezervo.providers.schema import LocationIdentifier
 from rezervo.schemas.config.config import ConfigValue, Slack
 from rezervo.schemas.config.user import (
     ChainIdentifier,
@@ -88,13 +88,6 @@ def update_slack_notifications_with_cancellation(
 async def fetch_week_schedule(
     chain_identifier: ChainIdentifier,
     week_offset: int,
-    branches: Optional[list[BranchIdentifier]] = None,
-    locations: Optional[list[LocationIdentifier]] = None,
+    locations: list[LocationIdentifier],
 ) -> RezervoSchedule:
-    chain = get_chain(chain_identifier)
-    if branches is not None:
-        for branch in chain.branches:
-            if branch.identifier in branches:
-                locations = locations or []
-                locations.extend([location.identifier for location in branch.locations])
-    return await chain.fetch_week_schedule(week_offset, locations=locations)
+    return await get_chain(chain_identifier).fetch_week_schedule(week_offset, locations)

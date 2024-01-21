@@ -155,7 +155,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         self,
         from_date: datetime,
         days: int,
-        locations: Optional[list[LocationIdentifier]] = None,
+        locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
         return self.fetch_ibooking_schedule(
             self.ibooking_domain,
@@ -172,8 +172,6 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
                     )
                     is not None
                 ]
-                if locations is not None
-                else None
             ),
             from_date=from_date,
         )

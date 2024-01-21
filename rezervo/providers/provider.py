@@ -218,7 +218,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         schedule = await self.fetch_schedule(
             datetime.combine(datetime.now(), datetime.min.time()),
             total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS),
-            locations,
+            locations if locations is not None else self.locations(),
         )
         planned_sessions = self.fetch_planned_sessions(chain_user, schedule)
         past_and_booked_sessions = self._fetch_past_and_booked_sessions(
@@ -265,14 +265,14 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         self,
         from_date: datetime,
         days: int,
-        locations: Optional[list[LocationIdentifier]] = None,
+        locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
         raise NotImplementedError()
 
     async def fetch_week_schedule(
         self,
         week_offset: int,
-        locations: Optional[list[LocationIdentifier]] = None,
+        locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
         return await self.fetch_schedule(
             first_date_of_week_by_offset(week_offset), 7, locations
