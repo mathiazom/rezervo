@@ -88,27 +88,27 @@ class FscChain(Chain, BrpProvider):
         #         ),
         #     ],
         # ),
-        Branch(
-            identifier="drammen",
-            name="Drammen",
-            locations=[
-                Location(
-                    identifier="akropolis-assiden",
-                    name="Akropolis Assiden",
-                    provider_identifier=20901,
-                ),
-                Location(
-                    identifier="akropolis-lier",
-                    name="Akropolis Lier",
-                    provider_identifier=20902,
-                ),
-                Location(
-                    identifier="akropolis-marienlyst",
-                    name="Akropolis Marienlyst",
-                    provider_identifier=20903,
-                ),
-            ],
-        ),
+        # Branch(
+        #     identifier="drammen",
+        #     name="Drammen",
+        #     locations=[
+        #         Location(
+        #             identifier="akropolis-assiden",
+        #             name="Akropolis Assiden",
+        #             provider_identifier=20901,
+        #         ),
+        #         Location(
+        #             identifier="akropolis-lier",
+        #             name="Akropolis Lier",
+        #             provider_identifier=20902,
+        #         ),
+        #         Location(
+        #             identifier="akropolis-marienlyst",
+        #             name="Akropolis Marienlyst",
+        #             provider_identifier=20903,
+        #         ),
+        #     ],
+        # ),
         # Branch(
         #     identifier="city-nord",
         #     name="City Nord",
