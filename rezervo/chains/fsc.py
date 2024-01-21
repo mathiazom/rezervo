@@ -49,45 +49,45 @@ class FscChain(Chain, BrpProvider):
                 ),
             ],
         ),
-        Branch(
-            identifier="arendal",
-            name="Arendal",
-            locations=[
-                Location(
-                    identifier="arendal", name="Arendal", provider_identifier=8381
-                ),
-            ],
-        ),
-        Branch(
-            identifier="askim",
-            name="Askim",
-            locations=[
-                Location(identifier="askim", name="Askim", provider_identifier=19730),
-            ],
-        ),
-        Branch(
-            identifier="averoy",
-            name="Averøy",
-            locations=[
-                Location(identifier="averoy", name="Averøy", provider_identifier=21278),
-            ],
-        ),
-        Branch(
-            identifier="larvik",
-            name="Larvik",
-            locations=[
-                Location(
-                    identifier="langestrand",
-                    name="Langestrand",
-                    provider_identifier=8383,
-                ),
-                Location(
-                    identifier="torstrand",
-                    name="Torstrand",
-                    provider_identifier=8384,
-                ),
-            ],
-        ),
+        # Branch(
+        #     identifier="arendal",
+        #     name="Arendal",
+        #     locations=[
+        #         Location(
+        #             identifier="arendal", name="Arendal", provider_identifier=8381
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="askim",
+        #     name="Askim",
+        #     locations=[
+        #         Location(identifier="askim", name="Askim", provider_identifier=19730),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="averoy",
+        #     name="Averøy",
+        #     locations=[
+        #         Location(identifier="averoy", name="Averøy", provider_identifier=21278),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="larvik",
+        #     name="Larvik",
+        #     locations=[
+        #         Location(
+        #             identifier="langestrand",
+        #             name="Langestrand",
+        #             provider_identifier=8383,
+        #         ),
+        #         Location(
+        #             identifier="torstrand",
+        #             name="Torstrand",
+        #             provider_identifier=8384,
+        #         ),
+        #     ],
+        # ),
         Branch(
             identifier="drammen",
             name="Drammen",
@@ -109,15 +109,15 @@ class FscChain(Chain, BrpProvider):
                 ),
             ],
         ),
-        Branch(
-            identifier="city-nord",
-            name="City Nord",
-            locations=[
-                Location(
-                    identifier="city-nord", name="City Nord", provider_identifier=719
-                ),
-            ],
-        ),
+        # Branch(
+        #     identifier="city-nord",
+        #     name="City Nord",
+        #     locations=[
+        #         Location(
+        #             identifier="city-nord", name="City Nord", provider_identifier=719
+        #         ),
+        #     ],
+        # ),
         Branch(
             identifier="drobak",
             name="Drøbak",
@@ -125,65 +125,65 @@ class FscChain(Chain, BrpProvider):
                 Location(identifier="drobak", name="Drøbak", provider_identifier=11),
             ],
         ),
-        Branch(
-            identifier="fauske",
-            name="Fauske",
-            locations=[
-                Location(identifier="fauske", name="Fauske", provider_identifier=723),
-            ],
-        ),
-        Branch(
-            identifier="finnsnes",
-            name="Finnsnes",
-            locations=[
-                Location(
-                    identifier="finnsnes", name="Finnsnes", provider_identifier=735
-                ),
-            ],
-        ),
-        Branch(
-            identifier="harstad",
-            name="Harstad",
-            locations=[
-                Location(identifier="harstad", name="Harstad", provider_identifier=730),
-            ],
-        ),
-        Branch(
-            identifier="grimstad",
-            name="Grimstad",
-            locations=[
-                Location(
-                    identifier="grimstad", name="Grimstad", provider_identifier=8382
-                ),
-            ],
-        ),
-        Branch(
-            identifier="iseveien",
-            name="Iseveien",
-            locations=[
-                Location(
-                    identifier="iseveien", name="Iseveien", provider_identifier=19723
-                ),
-            ],
-        ),
-        Branch(
-            identifier="jensvoll",
-            name="Jensvoll",
-            locations=[
-                Location(
-                    identifier="jensvoll", name="Jensvoll", provider_identifier=712
-                ),
-            ],
-        ),
-        Branch(
-            identifier="key-norve",
-            name="Key Nørve",
-            locations=[
-                Location(
-                    identifier="key-norve", name="Key Nørve", provider_identifier=702
-                ),
-            ],
-        ),
+        # Branch(
+        #     identifier="fauske",
+        #     name="Fauske",
+        #     locations=[
+        #         Location(identifier="fauske", name="Fauske", provider_identifier=723),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="finnsnes",
+        #     name="Finnsnes",
+        #     locations=[
+        #         Location(
+        #             identifier="finnsnes", name="Finnsnes", provider_identifier=735
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="harstad",
+        #     name="Harstad",
+        #     locations=[
+        #         Location(identifier="harstad", name="Harstad", provider_identifier=730),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="grimstad",
+        #     name="Grimstad",
+        #     locations=[
+        #         Location(
+        #             identifier="grimstad", name="Grimstad", provider_identifier=8382
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="iseveien",
+        #     name="Iseveien",
+        #     locations=[
+        #         Location(
+        #             identifier="iseveien", name="Iseveien", provider_identifier=19723
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="jensvoll",
+        #     name="Jensvoll",
+        #     locations=[
+        #         Location(
+        #             identifier="jensvoll", name="Jensvoll", provider_identifier=712
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="key-norve",
+        #     name="Key Nørve",
+        #     locations=[
+        #         Location(
+        #             identifier="key-norve", name="Key Nørve", provider_identifier=702
+        #         ),
+        #     ],
+        # ),
         Branch(
             identifier="kristiansund",
             name="Kristiansund",
@@ -195,38 +195,38 @@ class FscChain(Chain, BrpProvider):
                 ),
             ],
         ),
-        Branch(
-            identifier="mjondalen",
-            name="Mjøndalen",
-            locations=[
-                Location(
-                    identifier="mjondalen", name="Mjøndalen", provider_identifier=1
-                ),
-            ],
-        ),
-        Branch(
-            identifier="mo-i-rana",
-            name="Mo i Rana",
-            locations=[
-                Location(
-                    identifier="mo-i-rana", name="Mo i Rana", provider_identifier=724
-                ),
-            ],
-        ),
-        Branch(
-            identifier="morkved",
-            name="Mørkved",
-            locations=[
-                Location(identifier="morkved", name="Mørkved", provider_identifier=716),
-            ],
-        ),
-        Branch(
-            identifier="orje",
-            name="Ørje",
-            locations=[
-                Location(identifier="orje", name="Ørje", provider_identifier=19729),
-            ],
-        ),
+        # Branch(
+        #     identifier="mjondalen",
+        #     name="Mjøndalen",
+        #     locations=[
+        #         Location(
+        #             identifier="mjondalen", name="Mjøndalen", provider_identifier=1
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="mo-i-rana",
+        #     name="Mo i Rana",
+        #     locations=[
+        #         Location(
+        #             identifier="mo-i-rana", name="Mo i Rana", provider_identifier=724
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="morkved",
+        #     name="Mørkved",
+        #     locations=[
+        #         Location(identifier="morkved", name="Mørkved", provider_identifier=716),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="orje",
+        #     name="Ørje",
+        #     locations=[
+        #         Location(identifier="orje", name="Ørje", provider_identifier=19729),
+        #     ],
+        # ),
         Branch(
             identifier="orsta",
             name="Ørsta",
@@ -234,51 +234,51 @@ class FscChain(Chain, BrpProvider):
                 Location(identifier="orsta", name="Ørsta", provider_identifier=21926),
             ],
         ),
-        Branch(
-            identifier="porsgrunn",
-            name="Porsgrunn",
-            locations=[
-                Location(
-                    identifier="porsgrunn", name="Porsgrunn", provider_identifier=21181
-                ),
-            ],
-        ),
-        Branch(
-            identifier="rakkestad",
-            name="Rakkestad",
-            locations=[
-                Location(
-                    identifier="rakkestad", name="Rakkestad", provider_identifier=19726
-                ),
-            ],
-        ),
-        Branch(
-            identifier="rogan",
-            name="Rogan",
-            locations=[
-                Location(identifier="rogan", name="Rogan", provider_identifier=721),
-            ],
-        ),
-        Branch(
-            identifier="skansegata",
-            name="Skansegata",
-            locations=[
-                Location(
-                    identifier="skansegata",
-                    name="Skansegata",
-                    provider_identifier=23270,
-                ),
-            ],
-        ),
-        Branch(
-            identifier="skarnes",
-            name="Skarnes",
-            locations=[
-                Location(
-                    identifier="skarnes", name="Skarnes", provider_identifier=19727
-                ),
-            ],
-        ),
+        # Branch(
+        #     identifier="porsgrunn",
+        #     name="Porsgrunn",
+        #     locations=[
+        #         Location(
+        #             identifier="porsgrunn", name="Porsgrunn", provider_identifier=21181
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="rakkestad",
+        #     name="Rakkestad",
+        #     locations=[
+        #         Location(
+        #             identifier="rakkestad", name="Rakkestad", provider_identifier=19726
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="rogan",
+        #     name="Rogan",
+        #     locations=[
+        #         Location(identifier="rogan", name="Rogan", provider_identifier=721),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="skansegata",
+        #     name="Skansegata",
+        #     locations=[
+        #         Location(
+        #             identifier="skansegata",
+        #             name="Skansegata",
+        #             provider_identifier=23270,
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="skarnes",
+        #     name="Skarnes",
+        #     locations=[
+        #         Location(
+        #             identifier="skarnes", name="Skarnes", provider_identifier=19727
+        #         ),
+        #     ],
+        # ),
         Branch(
             identifier="skien",
             name="Skien",
@@ -286,38 +286,38 @@ class FscChain(Chain, BrpProvider):
                 Location(identifier="skien", name="Skien", provider_identifier=21162),
             ],
         ),
-        Branch(
-            identifier="sykkylven",
-            name="Sykkylven",
-            locations=[
-                Location(
-                    identifier="sykkylven", name="Sykkylven", provider_identifier=705
-                ),
-            ],
-        ),
-        Branch(
-            identifier="sogne",
-            name="Søgne",
-            locations=[
-                Location(identifier="sogne", name="Søgne", provider_identifier=19728),
-            ],
-        ),
-        Branch(
-            identifier="tonsberg",
-            name="Tønsberg",
-            locations=[
-                Location(
-                    identifier="tonsberg", name="Tønsberg", provider_identifier=8377
-                ),
-            ],
-        ),
-        Branch(
-            identifier="vestby",
-            name="Vestby",
-            locations=[
-                Location(identifier="vestby", name="Vestby", provider_identifier=9),
-            ],
-        ),
+        # Branch(
+        #     identifier="sykkylven",
+        #     name="Sykkylven",
+        #     locations=[
+        #         Location(
+        #             identifier="sykkylven", name="Sykkylven", provider_identifier=705
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="sogne",
+        #     name="Søgne",
+        #     locations=[
+        #         Location(identifier="sogne", name="Søgne", provider_identifier=19728),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="tonsberg",
+        #     name="Tønsberg",
+        #     locations=[
+        #         Location(
+        #             identifier="tonsberg", name="Tønsberg", provider_identifier=8377
+        #         ),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="vestby",
+        #     name="Vestby",
+        #     locations=[
+        #         Location(identifier="vestby", name="Vestby", provider_identifier=9),
+        #     ],
+        # ),
         Branch(
             identifier="volda",
             name="Volda",
