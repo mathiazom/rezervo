@@ -6,8 +6,10 @@ from uuid import UUID
 import humanize
 import typer
 import uvicorn
+from cron_descriptor import CasingTypeEnum
 from crontab import CronItem, CronTab
 from rich import print as rprint
+from tabulate import tabulate
 
 from rezervo import models
 from rezervo.api import api
@@ -232,32 +234,47 @@ async def refresh_cron_cli():
 
 
 @cron_cli.callback(invoke_without_command=True)
-def list_cron_jobs(ctx: typer.Context):
+def list_cron_jobs(
+    ctx: typer.Context,
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Include more details about each cron job"
+    ),
+):
     if ctx.invoked_subcommand is not None:
         return
     with CronTab(user=True) as crontab:
-        print_lines: list[tuple[Optional[datetime], str]] = []
+        print_table_data: list[tuple[datetime, str, str]] = []
         for j in crontab:  # type: ignore
+            description = j.description(
+                use_24hour_time_format=True, casing_type=CasingTypeEnum.LowerCase
+            )
             if not j.is_valid():
-                print_lines.append((None, f"{j.comment} (invalid)"))
+                print_table_data.append((None, f"{j.comment} (invalid)", description))
                 continue
             if not j.is_enabled():
-                print_lines.append((None, f"{j.comment} (disabled)"))
+                print_table_data.append((None, f"{j.comment} (disabled)", description))
                 continue
             next_run: datetime = j.schedule(date_from=datetime.now()).get_next()  # type: ignore
             if next_run is None:
-                print_lines.append((None, f"{j.comment} (next: failed to determine)"))
+                print_table_data.append((None, j.comment, description))
                 continue
-            print_lines.append(
-                (
-                    next_run,
-                    f"{j.comment} (next: {next_run}, {humanize.naturaltime(next_run)})",
-                )
-            )
+            print_table_data.append((next_run, j.comment, description))
         # Sort by next run time, with jobs missing 'next_run' sorted last
-        print_lines.sort(key=lambda x: (x[0] is None, x[0]))
-        for _, line in print_lines:
-            print(line)
+        print_table_data.sort(key=lambda x: (x[0] is None, x[0]))
+        print_table = []
+        for next_run, comment, description in print_table_data:
+            row = [humanize.naturaltime(next_run) if next_run else None, comment]
+            print_table.append(row + [next_run, description] if verbose else row)
+        headers = ["until next run", "comment"]
+        if verbose:
+            headers.extend(["next run timestamp", "description"])
+        print(
+            tabulate(
+                print_table,
+                headers=headers,
+                tablefmt="rounded_outline",
+            )
+        )
 
 
 @users_cli.command(name="create")
