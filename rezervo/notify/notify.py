@@ -74,7 +74,7 @@ def notify_booking_failure(
         )
 
 
-def notify_booking(
+async def notify_booking(
     notifications_config: config.Notifications,
     chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
@@ -97,7 +97,7 @@ def notify_booking(
             transfersh_url = notifications_config.transfersh.url
         else:
             transfersh_url = None
-        notify_booking_slack(
+        await notify_booking_slack(
             slack_config.bot_token,
             slack_config.channel_id,
             slack_config.user_id,

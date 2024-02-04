@@ -355,7 +355,7 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
     print("Unauthorized action modal displayed successfully in Slack.")
 
 
-def notify_booking_slack(
+async def notify_booking_slack(
     slack_token: str,
     channel: str,
     user_id: str,
@@ -374,7 +374,7 @@ def notify_booking_slack(
         print(f"Uploading {filename} to {transfersh_url}")
         try:
             ical_tsh_url = (
-                upload_ical_to_transfersh(transfersh_url, ical_url, filename)
+                await upload_ical_to_transfersh(transfersh_url, ical_url, filename)
                 if ical_url is not None
                 else None
             )
@@ -466,7 +466,7 @@ def build_booking_message_blocks(
         )
     message = (
         f"{BOOKING_EMOJI} {activity_url(host, chain_identifier, booked_class)} "
-        f"({booked_class.start_time.isoformat(timespec='minutes')}, "
+        f"({booked_class.start_time.strftime('%Y-%m-%d %H:%M')}, "
         f"*{booked_class.location.studio}*) er booket for <@{user_id}>"
     )
     blocks: list[dict[str, Any]] = [

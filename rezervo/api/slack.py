@@ -11,7 +11,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from rezervo.api.common import get_db
-from rezervo.chains.common import cancel_booking, find_authed_class_by_id
+from rezervo.chains.common import cancel_booking, find_class_by_id
 from rezervo.consts import (
     SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
     SLACK_ACTION_CANCEL_BOOKING,
@@ -64,8 +64,7 @@ async def handle_cancel_booking_slack_action(
                 AuthenticationError.ERROR,
             )
         return
-    # TODO: support brp by including location in payload
-    _class_res = find_authed_class_by_id(chain_user, config, action_value.class_id)
+    _class_res = await find_class_by_id(chain_user, action_value.class_id)
     match _class_res:
         case AuthenticationError():
             err.log("Authentication failed, abort!")
@@ -87,7 +86,7 @@ async def handle_cancel_booking_slack_action(
                     _class_res,
                 )
             return
-    cancellation_error = cancel_booking(chain_user, _class_res, config)
+    cancellation_error = await cancel_booking(chain_user, _class_res, config)
     if cancellation_error is not None:
         if slack_config is not None:
             notify_cancellation_failure_slack(

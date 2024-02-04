@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Generic, Optional, Union
 
+from rich import print as rprint
+
 from rezervo.consts import PLANNED_SESSIONS_NEXT_WHOLE_WEEKS
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
@@ -60,12 +62,12 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         return None
 
     @abstractmethod
-    def _authenticate(
+    async def _authenticate(
         self, chain_user: ChainUser
     ) -> Union[AuthResult, AuthenticationError]:
         raise NotImplementedError()
 
-    def try_authenticate(
+    async def try_authenticate(
         self,
         chain_user: ChainUser,
         max_attempts: int,
@@ -76,7 +78,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         attempts = 0
         result = None
         while not success:
-            result = self._authenticate(chain_user)
+            result = await self._authenticate(chain_user)
             success = not isinstance(result, AuthenticationError)
             attempts += 1
             if success:
@@ -102,7 +104,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         return result
 
     @abstractmethod
-    def find_class_by_id(
+    async def find_class_by_id(
         self,
         class_id: str,
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
@@ -116,14 +118,14 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         raise NotImplementedError()
 
     @abstractmethod
-    def _book_class(
+    async def _book_class(
         self,
         auth_result: AuthResult,
         class_id: str,
     ) -> bool:
         raise NotImplementedError()
 
-    def try_book_class(
+    async def try_book_class(
         self, chain_user: ChainUser, _class: RezervoClass, config: ConfigValue
     ) -> Union[None, BookingError, AuthenticationError]:
         max_attempts = config.booking.max_attempts
@@ -131,7 +133,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
             err.log("Max booking attempts should be a positive number")
             return BookingError.INVALID_CONFIG
         print("Authenticating...")
-        auth_result = self.try_authenticate(chain_user, config.auth.max_attempts)
+        auth_result = await self.try_authenticate(chain_user, config.auth.max_attempts)
         if isinstance(auth_result, AuthenticationError):
             err.log("Authentication failed")
             return auth_result
@@ -139,7 +141,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         booked = False
         attempts = 0
         while not booked:
-            booked = self._book_class(token, _class.id)
+            booked = await self._book_class(token, _class.id)
             attempts += 1
             if booked:
                 break
@@ -160,18 +162,18 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         )
         if config.notifications:
             # ical_url = f"{ICAL_URL}/?id={_class.id}&token={token}"    # TODO: consider re-introducing ical
-            notify_booking(config.notifications, chain_user.chain, _class)
+            await notify_booking(config.notifications, chain_user.chain, _class)
         return None
 
     @abstractmethod
-    def _cancel_booking(
+    async def _cancel_booking(
         self,
         auth_result: AuthResult,
         class_id: str,
     ) -> bool:
         raise NotImplementedError()
 
-    def try_cancel_booking(
+    async def try_cancel_booking(
         self,
         chain_user: ChainUser,
         _class: RezervoClass,
@@ -181,7 +183,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
             err.log("Max booking cancellation attempts should be a positive number")
             return BookingError.INVALID_CONFIG
         print("Authenticating...")
-        auth_result = self.try_authenticate(chain_user, config.auth.max_attempts)
+        auth_result = await self.try_authenticate(chain_user, config.auth.max_attempts)
         if isinstance(auth_result, AuthenticationError):
             err.log("Authentication failed")
             return auth_result
@@ -189,7 +191,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         cancelled = False
         attempts = 0
         while not cancelled:
-            cancelled = self._cancel_booking(token, _class.id)
+            cancelled = await self._cancel_booking(token, _class.id)
             attempts += 1
             if cancelled:
                 break
@@ -215,13 +217,16 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> list[UserSession]:
+        rprint(
+            f":right_arrow_curving_down:  Pulling user sessions from '{chain_user.chain}' for '{chain_user.username}' ..."
+        )
         schedule = await self.fetch_schedule(
             datetime.combine(datetime.now(), datetime.min.time()),
             total_days_for_next_whole_weeks(PLANNED_SESSIONS_NEXT_WHOLE_WEEKS),
             locations if locations is not None else self.locations(),
         )
-        planned_sessions = self.fetch_planned_sessions(chain_user, schedule)
-        past_and_booked_sessions = self._fetch_past_and_booked_sessions(
+        planned_sessions = self.extract_planned_sessions(chain_user, schedule)
+        past_and_booked_sessions = await self._fetch_past_and_booked_sessions(
             chain_user, locations
         )
         if past_and_booked_sessions is None:
@@ -232,7 +237,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
                 sessions_by_class_id[session.class_id] = session
         return list(sessions_by_class_id.values())
 
-    def fetch_planned_sessions(
+    def extract_planned_sessions(
         self,
         chain_user: ChainUser,
         schedule: RezervoSchedule,
@@ -253,7 +258,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         ]
 
     @abstractmethod
-    def _fetch_past_and_booked_sessions(
+    async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,

@@ -7,8 +7,8 @@ from typing import List, Optional, Union
 import pydantic
 import pytz
 import requests
+from aiohttp import ClientSession
 from pydantic.tools import parse_obj_as
-from rich import print as rprint
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
@@ -62,14 +62,14 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
     def brp_subdomain(self) -> BrpSubdomain:
         raise NotImplementedError()
 
-    def _authenticate(
+    async def _authenticate(
         self, chain_user: ChainUser
     ) -> Union[BrpAuthResult, AuthenticationError]:
-        return authenticate(
+        return await authenticate(
             self.brp_subdomain, chain_user.username, chain_user.password
         )
 
-    def find_class_by_id(
+    async def find_class_by_id(
         self, class_id: str
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         locations = self.locations()
@@ -83,7 +83,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                 "Must be aware of at least one location to search for a class by id"
             )
         # `business_unit` can be any valid business unit, does not need to be the one actually hosting the class...
-        brp_class = fetch_brp_class(
+        brp_class = await fetch_brp_class(
             self.brp_subdomain,
             business_unit,
             class_id,
@@ -103,7 +103,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             return _class
         return BookingError.CLASS_MISSING
 
-    def _book_class(
+    async def _book_class(
         self,
         auth_result: BrpAuthResult,
         class_id: str,
@@ -114,9 +114,9 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         except ValueError:
             err.log(f"Invalid brp class id: {class_id}")
             return False
-        return book_brp_class(self.brp_subdomain, auth_result, brp_class_id)
+        return await book_brp_class(self.brp_subdomain, auth_result, brp_class_id)
 
-    def _cancel_booking(
+    async def _cancel_booking(
         self,
         auth_result: BrpAuthResult,
         class_id: str,
@@ -129,20 +129,25 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             return False
         # TODO: consider memoizing retrieval of booking reference and type
         try:
-            res = requests.get(
-                booking_url(self.brp_subdomain, auth_result, datetime.datetime.now()),
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {auth_result.access_token}",
-                },
-            )
+            async with ClientSession() as session:
+                async with session.get(
+                    booking_url(
+                        self.brp_subdomain, auth_result, datetime.datetime.now()
+                    ),
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {auth_result.access_token}",
+                    },
+                ) as res:
+                    bookings_response = parse_obj_as(
+                        List[BookingData], await res.json()
+                    )
         except requests.exceptions.RequestException as e:
             err.log(
                 f"Failed to retrieve booked classes for cancellation of class '{class_id}'",
                 e,
             )
             return False
-        bookings_response = parse_obj_as(List[BookingData], res.json())
         if bookings_response is None:
             return False
         booking_id = None
@@ -164,11 +169,11 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             booking_id,
             booking_type,
         )
-        return cancel_brp_booking(
+        return await cancel_brp_booking(
             self.brp_subdomain, auth_result, booking_id, booking_type
         )
 
-    def _fetch_past_and_booked_sessions(
+    async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
@@ -176,34 +181,35 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         start_time = datetime.datetime.combine(
             datetime.datetime.now(), datetime.datetime.min.time()
         ) - datetime.timedelta(weeks=3)
-        auth_result = self._authenticate(chain_user)
+        auth_result = await self._authenticate(chain_user)
         if isinstance(auth_result, AuthenticationError):
             err.log(f"Authentication failed for '{chain_user.username}'!")
             return None
         try:
-            res = requests.get(
-                booking_url(
-                    self.brp_subdomain,
-                    auth_result,
-                    start_time_point=start_time,
-                ),
-                headers={
-                    "Authorization": f"Bearer {auth_result.access_token}",
-                },
-            )
+            async with ClientSession() as session:
+                async with session.get(
+                    booking_url(
+                        self.brp_subdomain,
+                        auth_result,
+                        start_time_point=start_time,
+                    ),
+                    headers={
+                        "Authorization": f"Bearer {auth_result.access_token}",
+                    },
+                ) as res:
+                    bookings_response: List[BookingData] = await res.json()
         except requests.exceptions.RequestException as e:
             err.log(
                 f"Failed to retrieve sessions for '{chain_user.username}'",
                 e,
             )
             return None
-        bookings_response: List[BookingData] = res.json()
         brp_sessions = []
         for s in bookings_response:
             brp_sessions.append(pydantic.parse_obj_as(BookingData, s))
         past_and_imminent_sessions = []
         for s in brp_sessions:
-            _class = self.find_class_by_id(str(s.groupActivity.id))
+            _class = await self.find_class_by_id(str(s.groupActivity.id))
             if not isinstance(_class, RezervoClass):
                 continue
             past_and_imminent_sessions.append(
@@ -216,6 +222,17 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                 )
             )
         return past_and_imminent_sessions
+
+    async def _fetch_detailed_schedule(
+        self, business_unit: int, days: int, from_date: datetime.datetime
+    ) -> List[DetailedBrpClass]:
+        schedule = await fetch_brp_schedule(
+            self.brp_subdomain,
+            business_unit,
+            days,
+            from_date=from_date,
+        )
+        return await fetch_detailed_brp_schedule(self.brp_subdomain, schedule)
 
     async def fetch_schedule(
         self,
@@ -234,21 +251,13 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             is not None
         ]
         schedule: list[DetailedBrpClass] = []
-        for async_res in asyncio.as_completed(
-            [
-                fetch_detailed_brp_schedule(
-                    self.brp_subdomain,
-                    await fetch_brp_schedule(
-                        self.brp_subdomain,
-                        business_unit,
-                        days,
-                        from_date=from_date,
-                    ),
-                )
+        for res in await asyncio.gather(
+            *[
+                self._fetch_detailed_schedule(business_unit, days, from_date)
                 for business_unit in business_units
             ]
         ):
-            schedule.extend(await async_res)
+            schedule.extend(res)
         days_map: dict[datetime.date, list[RezervoClass]] = {
             (from_date.date() + datetime.timedelta(days=i)): [] for i in range(days)
         }
@@ -337,9 +346,6 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         subdomain: BrpSubdomain,
         _class_config: Class,
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-        rprint(
-            f":eight_spoked_asterisk: Searching for class matching config: {_class_config}"
-        )
         business_unit = self.provider_location_identifier_from_location_identifier(
             _class_config.location_id
         )
@@ -383,10 +389,18 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             from_date += datetime.timedelta(days=SCHEDULE_SEARCH_ATTEMPT_DAYS)
             attempts += 1
         if brp_class is None:
-            err.log("Could not find class matching criteria")
+            warn.log(f"Could not find class matching criteria: {_class_config}")
             if search_result is None:
                 return BookingError.CLASS_MISSING
             return search_result
+        if isinstance(brp_class, RezervoClass):
+            search_feedback = f'Found class: "{brp_class.activity.name}"'
+            if len(brp_class.instructors) > 0:
+                search_feedback += f" with {format_name_list_to_natural([i.name for i in brp_class.instructors])}"
+            else:
+                search_feedback += " (missing instructor)"
+            search_feedback += f" at {brp_class.start_time}"
+            print(search_feedback)
         return brp_class
 
     # TODO: generalize using find_class_in_schedule_by_config
@@ -416,13 +430,6 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             if localized_start_time.weekday() != _class_config.weekday:
                 result = BookingError.MISSING_SCHEDULE_DAY
                 continue
-            search_feedback = f'Found class: "{c.name}"'
-            if len(c.instructors) > 0:
-                search_feedback += f" with {format_name_list_to_natural([i.name for i in c.instructors])}"
-            else:
-                search_feedback += " (missing instructor)"
-            search_feedback += f" at {c.duration.start}"
-            print(search_feedback)
             return self.rezervo_class_from_brp_class(subdomain, c)
         if result is None:
             return BookingError.ERROR

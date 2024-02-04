@@ -38,6 +38,7 @@ from rezervo.schemas.config.user import (
 )
 from rezervo.sessions import pull_sessions
 from rezervo.settings import get_settings
+from rezervo.utils.config_utils import class_config_recurrent_id
 from rezervo.utils.cron_utils import (
     delete_booking_crontab,
     generate_pull_sessions_command,
@@ -61,7 +62,7 @@ cli.add_typer(sessions_cli, name="sessions", help="Manage user sessions")
 async def book(
     chain_identifier: ChainIdentifier,
     user_id: UUID,
-    class_id: int,
+    class_id: str,
     check_run: bool = typer.Option(
         False, "--check", help="Perform a dry-run to verify that booking is possible"
     ),
@@ -86,12 +87,14 @@ async def book(
                     check_run=check_run,
                 )
             return
-    if chain_user.recurring_bookings is None or not 0 <= class_id < len(
-        chain_user.recurring_bookings
-    ):
-        err.log("Class index out of bounds")
+    _class_config = None
+    for r in chain_user.recurring_bookings:
+        if class_config_recurrent_id(r) == class_id:
+            _class_config = r
+            break
+    if _class_config is None:
+        err.log(f"Recurring booking with id '{class_id}' not found")
         return
-    _class_config = chain_user.recurring_bookings[class_id]
     if config.booking.max_attempts < 1:
         err.log("Max booking attempts should be a positive number")
         if config.notifications is not None:
@@ -147,7 +150,7 @@ async def book(
         time.sleep(wait_time)
         print(f"Awoke at {datetime.now().astimezone()}")
     with stat("Booking class..."):
-        booking_result = book_class(chain_user, _class, config)
+        booking_result = await book_class(chain_user, _class, config)
     if isinstance(booking_result, AuthenticationError):
         if config.notifications is not None:
             notify_auth_failure(config.notifications, booking_result, check_run)

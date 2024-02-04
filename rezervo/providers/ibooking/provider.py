@@ -1,3 +1,4 @@
+import asyncio
 import math
 from abc import abstractmethod
 from datetime import datetime, timedelta
@@ -5,7 +6,7 @@ from typing import Optional, Union
 
 import pydantic
 import requests
-from rich import print as rprint
+from aiohttp import ClientSession
 
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.providers.ibooking.auth import (
@@ -57,27 +58,28 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
     def ibooking_domain(self) -> IBookingDomain:
         raise NotImplementedError()
 
-    def _authenticate(
+    async def _authenticate(
         self, chain_user: ChainUser
     ) -> Union[IBookingAuthResult, AuthenticationError]:
-        return authenticate_token(chain_user)
+        return await authenticate_token(chain_user)
 
-    def find_class_by_id(
+    async def find_class_by_id(
         self, class_id: str
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-        token = fetch_public_token()
+        token = await fetch_public_token()
         if isinstance(token, AuthenticationError):
             err.log("Failed to authenticate to iBooking")
             return token
         print(f"Searching for class by id: {class_id}")
         # TODO: handle different domains
-        class_response = requests.get(
-            f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
-        )
-        if class_response.status_code != requests.codes.OK:
-            err.log("Class get request failed")
-            return BookingError.ERROR
-        ibooking_class = IBookingClass(**class_response.json()["class"])
+        async with ClientSession() as session:
+            async with session.get(
+                f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
+            ) as class_response:
+                if class_response.status != requests.codes.OK:
+                    err.log("Class get request failed")
+                    return BookingError.ERROR
+                ibooking_class = IBookingClass(**(await class_response.json())["class"])
         if ibooking_class is None:
             return BookingError.CLASS_MISSING
         return self.rezervo_class_from_ibooking_class(ibooking_class)
@@ -85,12 +87,12 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
     async def find_class(
         self, _class_config: Class
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-        return self.find_public_ibooking_class(
+        return await self.find_public_ibooking_class(
             self.ibooking_domain,
             _class_config,
         )
 
-    def _book_class(
+    async def _book_class(
         self,
         auth_result: IBookingAuthResult,
         class_id: str,
@@ -101,9 +103,11 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         except ValueError:
             err.log(f"Invalid ibooking class id: {class_id}")
             return False
-        return book_ibooking_class(self.ibooking_domain, auth_result, ibooking_class_id)
+        return await book_ibooking_class(
+            self.ibooking_domain, auth_result, ibooking_class_id
+        )
 
-    def _cancel_booking(
+    async def _cancel_booking(
         self,
         auth_result: IBookingAuthResult,
         class_id: str,
@@ -114,26 +118,33 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         except ValueError:
             err.log(f"Invalid ibooking class id: {class_id}")
             return False
-        return cancel_booking(self.ibooking_domain, auth_result, ibooking_class_id)
+        return await cancel_booking(
+            self.ibooking_domain, auth_result, ibooking_class_id
+        )
 
-    def _fetch_past_and_booked_sessions(
+    async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> Optional[list[UserSession]]:
-        auth_session = authenticate_session(chain_user.username, chain_user.password)
-        if isinstance(auth_session, AuthenticationError):
-            err.log(f"Authentication failed for '{chain_user.username}'!")
-            return None
-        try:
-            res = auth_session.get(MY_SESSIONS_URL, headers={"User-Agent": USER_AGENT})
-        except requests.exceptions.RequestException as e:
-            err.log(
-                f"Failed to retrieve sessions for '{chain_user.username}'",
-                e,
+        async with ClientSession() as session:
+            auth_session = await authenticate_session(
+                session, chain_user.username, chain_user.password
             )
-            return None
-        sessions_json = res.json()
+            if isinstance(auth_session, AuthenticationError):
+                err.log(f"Authentication failed for '{chain_user.username}'!")
+                return None
+            try:
+                async with auth_session.get(
+                    MY_SESSIONS_URL, headers={"User-Agent": USER_AGENT}
+                ) as res:
+                    sessions_json = await res.json()
+            except requests.exceptions.RequestException as e:
+                err.log(
+                    f"Failed to retrieve sessions for '{chain_user.username}'",
+                    e,
+                )
+                return None
         ibooking_sessions = []
         for s in sessions_json:
             if s["type"] != "groupclass":
@@ -157,9 +168,9 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         days: int,
         locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
-        return self.fetch_ibooking_schedule(
+        return await self.fetch_ibooking_schedule(
             self.ibooking_domain,
-            fetch_public_token(),
+            await fetch_public_token(),
             days,
             studios=(
                 [
@@ -212,7 +223,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             ),
         )
 
-    def fetch_single_batch_ibooking_schedule(
+    async def fetch_single_batch_ibooking_schedule(
         self,
         domain: IBookingDomain,
         token: str,
@@ -222,15 +233,17 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         # TODO: support different domains (not just sit.no)
         if domain != "sit":
             raise NotImplementedError()
-        res = requests.get(
-            f"{CLASSES_SCHEDULE_URL}"
-            f"?token={token}"
-            f"{f'&from={from_iso}' if from_iso is not None else ''}"
-            f"{('&studios=' + ','.join([str(s) for s in studios])) if studios else ''}"
-            f"&lang=no"
-        )
-        if res.status_code != requests.codes.OK:
-            return None
+        async with ClientSession() as session:
+            async with session.get(
+                f"{CLASSES_SCHEDULE_URL}"
+                f"?token={token}"
+                f"{f'&from={from_iso}' if from_iso is not None else ''}"
+                f"{('&studios=' + ','.join([str(s) for s in studios])) if studios else ''}"
+                f"&lang=no"
+            ) as res:
+                if res.status != requests.codes.OK:
+                    return None
+                json_res = await res.json()
         return RezervoSchedule(
             days=[
                 RezervoDay(
@@ -240,11 +253,11 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
                         self.rezervo_class_from_ibooking_class(c) for c in day.classes
                     ],
                 )
-                for day in IBookingSchedule(**res.json()).days
+                for day in IBookingSchedule(**json_res).days
             ]
         )
 
-    def fetch_ibooking_schedule(
+    async def fetch_ibooking_schedule(
         self,
         domain: IBookingDomain,
         token,
@@ -252,36 +265,38 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         from_date: datetime = datetime.combine(datetime.now(), datetime.min.time()),
         studios: Optional[list[int]] = None,
     ) -> RezervoSchedule:
-        schedule_days: list[RezervoDay] = []
+        schedule_tasks = []
         for _i in range(math.ceil(days / CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH)):
-            batch = self.fetch_single_batch_ibooking_schedule(
-                domain,
-                token,
-                studios,
-                from_date.isoformat(),
+            schedule_tasks.append(
+                self.fetch_single_batch_ibooking_schedule(
+                    domain,
+                    token,
+                    studios,
+                    from_date.isoformat(),
+                )
             )
-            if batch is not None:
-                # api actually returns 7 days, but the extra days are empty...
-                schedule_days.extend(batch.days[:CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH])
             from_date = from_date + timedelta(
                 days=CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH
             )
+        schedule_days: list[RezervoDay] = []
+        for batch in await asyncio.gather(*schedule_tasks):
+            if batch is None:
+                continue
+            # api actually returns 7 days, but the extra days are empty...
+            schedule_days.extend(batch.days[:CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH])
         return RezervoSchedule(days=schedule_days[:days])
 
     # Search the scheduled classes and return the first class matching the given arguments
-    def find_public_ibooking_class(
+    async def find_public_ibooking_class(
         self,
         domain: IBookingDomain,
         _class_config: Class,
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-        token = fetch_public_token()
+        token = await fetch_public_token()
         if isinstance(token, AuthenticationError):
             err.log("Failed to fetch public token")
             return token
-        rprint(
-            f":eight_spoked_asterisk: Searching for class matching config: {_class_config}"
-        )
-        schedule = self.fetch_ibooking_schedule(
+        schedule = await self.fetch_ibooking_schedule(
             domain,
             token,
             14,

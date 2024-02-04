@@ -1,4 +1,14 @@
 from rezervo.schemas.config.user import Class
+from rezervo.schemas.schedule import RezervoClass
+
+
+def class_recurrent_id(_class: RezervoClass):
+    return recurrent_class_id(
+        _class.activity.id,
+        _class.start_time.weekday(),
+        _class.start_time.hour,
+        _class.start_time.minute,
+    )
 
 
 def class_config_recurrent_id(class_config: Class):

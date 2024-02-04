@@ -16,12 +16,11 @@ from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
 from rezervo.utils.logging_utils import warn
 
 
-def find_authed_class_by_id(
+async def find_class_by_id(
     chain_user: ChainUser,
-    config: ConfigValue,
     class_id: str,
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-    return get_chain(chain_user.chain).find_class_by_id(class_id)
+    return await get_chain(chain_user.chain).find_class_by_id(class_id)
 
 
 async def find_class(
@@ -30,16 +29,18 @@ async def find_class(
     return await get_chain(chain_identifier).find_class(_class_config)
 
 
-def book_class(
+async def book_class(
     chain_user: ChainUser, _class: RezervoClass, config: ConfigValue
 ) -> Union[None, BookingError, AuthenticationError]:
-    return get_chain(chain_user.chain).try_book_class(chain_user, _class, config)
+    return await get_chain(chain_user.chain).try_book_class(chain_user, _class, config)
 
 
-def cancel_booking(
+async def cancel_booking(
     chain_user: ChainUser, _class: RezervoClass, config: ConfigValue
 ) -> Union[None, BookingError, AuthenticationError]:
-    res = get_chain(chain_user.chain).try_cancel_booking(chain_user, _class, config)
+    res = await get_chain(chain_user.chain).try_cancel_booking(
+        chain_user, _class, config
+    )
     if res is None:
         if config.notifications is not None and config.notifications.slack is not None:
             update_slack_notifications_with_cancellation(

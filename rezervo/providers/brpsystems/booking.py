@@ -3,6 +3,7 @@ from typing import Optional
 
 import pytz
 import requests
+from aiohttp import ClientSession
 
 from rezervo.providers.brpsystems.schema import (
     BookingType,
@@ -31,38 +32,40 @@ def booking_url(
     )
 
 
-def book_brp_class(
+async def book_brp_class(
     subdomain: BrpSubdomain, auth_result: BrpAuthResult, class_id: int
 ) -> bool:
-    response = requests.post(
-        booking_url(subdomain, auth_result, datetime.now()),
-        json={"groupActivity": class_id, "allowWaitingList": True},
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {auth_result.access_token}",
-        },
-    )
-    if response.status_code != 201:
-        err.log("Booking attempt failed: " + response.text)
-        return False
-    return True
+    async with ClientSession() as session:
+        async with session.post(
+            booking_url(subdomain, auth_result, datetime.now()),
+            json={"groupActivity": class_id, "allowWaitingList": True},
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {auth_result.access_token}",
+            },
+        ) as res:
+            if res.status != 201:
+                err.log("Booking attempt failed: " + (await res.text()))
+                return False
+            return True
 
 
-def cancel_brp_booking(
+async def cancel_brp_booking(
     subdomain: BrpSubdomain,
     auth_result: BrpAuthResult,
     booking_reference: int,
     booking_type: BookingType,
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
-    res = requests.delete(
-        f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type.value}",
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {auth_result.access_token}",
-        },
-    )
-    if res.status_code != requests.codes.NO_CONTENT:
-        err.log("Booking cancellation attempt failed: " + res.text)
+    async with ClientSession() as session:
+        res = await session.delete(
+            f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type.value}",
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {auth_result.access_token}",
+            },
+        )
+    if res.status != requests.codes.NO_CONTENT:
+        err.log("Booking cancellation attempt failed: " + (await res.text()))
         return False
     return True

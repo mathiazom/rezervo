@@ -8,7 +8,7 @@ from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.chains.common import (
     book_class,
     cancel_booking,
-    find_authed_class_by_id,
+    find_class_by_id,
 )
 from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
@@ -54,7 +54,7 @@ async def book_class_api(
         chain_identifier, db, settings, token
     )
     print("Searching for class...")
-    _class = find_authed_class_by_id(chain_user, config, payload.class_id)
+    _class = await find_class_by_id(chain_user, payload.class_id)
     match _class:
         case AuthenticationError():
             return Response(
@@ -63,7 +63,7 @@ async def book_class_api(
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     print("Booking class...")
-    booking_result = book_class(chain_user, _class, config)
+    booking_result = await book_class(chain_user, _class, config)
     match booking_result:
         case AuthenticationError():
             return Response(
@@ -92,7 +92,7 @@ async def cancel_booking_api(
         chain_identifier, db, settings, token
     )
     print("Searching for class...")
-    _class = find_authed_class_by_id(chain_user, config, payload.class_id)
+    _class = await find_class_by_id(chain_user, payload.class_id)
     match _class:
         case AuthenticationError():
             return Response(
@@ -101,7 +101,7 @@ async def cancel_booking_api(
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     print("Cancelling booking...")
-    cancellation_res = cancel_booking(chain_user, _class, config)
+    cancellation_res = await cancel_booking(chain_user, _class, config)
     match cancellation_res:
         case AuthenticationError():
             return Response(

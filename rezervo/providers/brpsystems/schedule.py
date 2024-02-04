@@ -31,21 +31,23 @@ def detailed_activity_url(subdomain: BrpSubdomain, activity_id: int) -> str:
     return f"https://{subdomain}.brpsystems.com/brponline/api/ver3/products/groupactivities/{activity_id}"
 
 
-def fetch_brp_class(
+async def fetch_brp_class(
     subdomain: BrpSubdomain,
     business_unit: int,
     class_id: str,
 ) -> Optional[BrpClass]:
-    res = requests.get(class_url(subdomain, business_unit, class_id))
-    if res.status_code != requests.codes.OK:
-        warn.log(
-            f"Failed to fetch brp class with id {class_id}, received status {res.status_code}"
-        )
-        return None
+    async with aiohttp.ClientSession() as session:
+        async with session.get(class_url(subdomain, business_unit, class_id)) as res:
+            if res.status != requests.codes.OK:
+                warn.log(
+                    f"Failed to fetch brp class with id {class_id}, received status {res.status}"
+                )
+                return None
+            json_result = await res.json()
     try:
-        return BrpClass(**res.json())
+        return BrpClass(**json_result)
     except ValidationError:
-        warn.log("Failed to parse brp class", res.json())
+        warn.log("Failed to parse brp class", json_result)
         return None
 
 
@@ -64,8 +66,7 @@ async def fetch_detailed_brp_schedule(
                     session.get(detailed_activity_url(subdomain, activity_id))
                 )
                 detected_activity_ids.add(activity_id)
-        for async_res in asyncio.as_completed(fetch_detailed_activity_tasks):
-            res = await async_res
+        for res in await asyncio.gather(*fetch_detailed_activity_tasks):
             if res.status != requests.codes.OK:
                 warn.log(
                     f"Failed to fetch class detail for {subdomain} class with id {activity_id}, "
@@ -116,8 +117,7 @@ async def fetch_brp_schedule(
                     f"{classes_schedule_url(subdomain, business_unit)}?{urlencode(query_params)}"
                 )
             )
-        for async_res in asyncio.as_completed(fetch_schedule_tasks):
-            res = await async_res
+        for res in await asyncio.gather(*fetch_schedule_tasks):
             if res.status != requests.codes.OK:
                 raise Exception("Failed to fetch brp schedule")
             for item in await res.json():

@@ -1,3 +1,4 @@
+import asyncio
 import re
 from datetime import datetime, timedelta
 from re import Pattern
@@ -12,9 +13,10 @@ from rezervo.schemas.config.config import Config, Cron
 from rezervo.schemas.config.user import (
     ChainConfig,
     ChainIdentifier,
-    Class,
 )
+from rezervo.schemas.schedule import RezervoClass
 from rezervo.settings import get_settings
+from rezervo.utils.config_utils import class_recurrent_id
 
 
 def upsert_jobs_by_comment(
@@ -31,27 +33,31 @@ async def build_cron_jobs_from_config(
     if not chain_config.active or chain_config.recurring_bookings is None:
         return []
     jobs = []
-    for i, c in enumerate(chain_config.recurring_bookings):
+    for _class in await asyncio.gather(
+        *[find_class(chain_config.chain, rb) for rb in chain_config.recurring_bookings]
+    ):
+        if (
+            _class is None
+            or isinstance(_class, BookingError)
+            or isinstance(_class, AuthenticationError)
+        ):
+            continue
         if (
             conf.config.cron.precheck_hours is not None
             and conf.config.cron.precheck_hours > 0
         ):
-            p = await build_cron_job_for_class(
-                i,
-                c,
-                chain_config.chain,
-                conf.config.cron,
-                user,
-                precheck=True,
+            jobs.append(
+                build_cron_job_for_class(
+                    _class,
+                    chain_config.chain,
+                    conf.config.cron,
+                    user,
+                    precheck=True,
+                )
             )
-            if p is not None:
-                jobs.append(p)
-        # TODO: avoid fetching class data twice for precheck and booking cron jobs
-        j = await build_cron_job_for_class(
-            i, c, chain_config.chain, conf.config.cron, user
+        jobs.append(
+            build_cron_job_for_class(_class, chain_config.chain, conf.config.cron, user)
         )
-        if j is not None:
-            jobs.append(j)
     return jobs
 
 
@@ -65,30 +71,25 @@ def build_cron_comment_prefix_for_user(user_id: UUID):
     return f"{get_settings().CRON_JOB_COMMENT_PREFIX}-{user_id}"
 
 
-async def build_cron_job_for_class(
-    index: int,
-    _class_config: Class,
+def build_cron_job_for_class(
+    _class: RezervoClass,
     chain_identifier: ChainIdentifier,
     cron_config: Cron,
     user: models.User,
     precheck: bool = False,
-):
+) -> CronItem:
     j = CronItem(
         command=generate_booking_command(
-            chain_identifier, index, cron_config, user.id, precheck
+            chain_identifier,
+            class_recurrent_id(_class),
+            cron_config,
+            user.id,
+            precheck,
         ),
         comment=f"{build_cron_comment_prefix_for_user_chain(user.id, chain_identifier)} --- {user.name} --- "
-        f"{_class_config.display_name}{' --- [precheck]' if precheck else ''}",
+        f"{_class.activity.name}{' --- [precheck]' if precheck else ''}",
         pre_comment=True,
     )
-    _class = await find_class(chain_identifier, _class_config)
-    if (
-        _class is None
-        or isinstance(_class, BookingError)
-        or isinstance(_class, AuthenticationError)
-    ):
-        print("Failed to fetch class info for booking schedule")
-        return None
     j.setall(
         *generate_booking_schedule(
             _class.booking_opens_at,
@@ -129,7 +130,7 @@ def generate_booking_schedule(
 
 def generate_booking_command(
     chain_identifier: ChainIdentifier,
-    index: int,
+    recurrent_booking_id: str,
     cron_config: Cron,
     user_id: UUID,
     precheck: bool,
@@ -140,8 +141,8 @@ def generate_booking_command(
     )
     output_redirection = f">> {cron_config.log_path} 2>&1"
     if precheck:
-        return f"{program_command} {index} --check {output_redirection}"
-    return f"{program_command} {index} {output_redirection}"
+        return f"{program_command} {recurrent_booking_id} --check {output_redirection}"
+    return f"{program_command} {recurrent_booking_id} {output_redirection}"
 
 
 def generate_cron_cli_command_prefix(cron_config: Cron) -> str:
