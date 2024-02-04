@@ -180,13 +180,14 @@ def generate_purge_slack_receipts_command(cron_config: Cron) -> str:
 async def upsert_booking_crontab(
     config: Config, chain_config: ChainConfig, user: models.User
 ):
+    jobs = await build_cron_jobs_from_config(config, chain_config, user)
     with CronTab(user=True) as crontab:
         upsert_jobs_by_comment(
             crontab,
             re.compile(
                 f"^{build_cron_comment_prefix_for_user_chain(user.id, chain_config.chain)}.*$"
             ),
-            await build_cron_jobs_from_config(config, chain_config, user),
+            jobs,
         )
 
 
