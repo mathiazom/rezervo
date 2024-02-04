@@ -16,6 +16,8 @@ rezervo cron add_pull_sessions_job
 
 rezervo cron add_slack_receipts_purging_job
 
+rezervo cron add_refresh_cron_job
+
 rezervo cron refresh
 
 echo "⚙️ Starting cron service..."
