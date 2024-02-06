@@ -60,7 +60,7 @@ def notify_booking_web_push(
     if not notify_web_push(
         subscription,
         f"{booked_class.activity.name} "
-        f"({booked_class.start_time.isoformat(timespec='minutes')}, {booked_class.location.studio}) er booket",
+        f"({booked_class.start_time.strftime('%Y-%m-%d %H:%M')}, {booked_class.location.studio}) er booket",
     ):
         err.log("Failed to send booking notification via web push")
         return
