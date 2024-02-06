@@ -118,6 +118,7 @@ async def fetch_brp_schedule(
                     f"{classes_schedule_url(subdomain, business_unit)}?{urlencode(query_params)}"
                 )
             )
+            from_date = to_date
         for res in await asyncio.gather(*fetch_schedule_tasks):
             if res.status != requests.codes.OK:
                 raise Exception("Failed to fetch brp schedule")
@@ -132,6 +133,5 @@ async def fetch_brp_schedule(
                 except ValidationError:
                     warn.log("Failed to parse brp class", item)
                     continue
-            from_date = to_date
     # TODO: handle unlikely duplicates (if somehow classes are included in multiple batches)
     return classes
