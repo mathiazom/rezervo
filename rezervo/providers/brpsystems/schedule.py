@@ -92,6 +92,17 @@ async def fetch_detailed_brp_schedule(
     ]
 
 
+def deduplicated_brp_schedule(classes: list[BrpClass]) -> list[BrpClass]:
+    seen_class_ids = set()
+    unique_classes = []
+    for _class in classes:
+        if _class.id in seen_class_ids:
+            continue
+        seen_class_ids.add(_class.id)
+        unique_classes.append(_class)
+    return unique_classes
+
+
 async def fetch_brp_schedule(
     subdomain: BrpSubdomain,
     business_unit: int,
@@ -133,5 +144,5 @@ async def fetch_brp_schedule(
                 except ValidationError:
                     warn.log("Failed to parse brp class", item)
                     continue
-    # TODO: handle unlikely duplicates (if somehow classes are included in multiple batches)
-    return classes
+    # remove any duplicates (if somehow classes are included in multiple batches)
+    return deduplicated_brp_schedule(classes)
