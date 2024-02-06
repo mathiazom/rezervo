@@ -77,7 +77,7 @@ async def fetch_detailed_brp_schedule(
             image_url = None
             if details.assets is not None and len(details.assets) > 0:
                 image_url = details.assets[min(2, len(details.assets) - 1)].contentUrl
-            class_details_map[activity_id] = BrpActivityDetails(
+            class_details_map[details.id] = BrpActivityDetails(
                 description=details.description
                 if details.description is not None
                 else "",
@@ -85,7 +85,8 @@ async def fetch_detailed_brp_schedule(
             )
     return [
         DetailedBrpClass(
-            **brp_class.dict(), activity_details=class_details_map[activity_id]
+            **brp_class.dict(),
+            activity_details=class_details_map[brp_class.groupActivityProduct.id],
         )
         for brp_class in schedule
     ]

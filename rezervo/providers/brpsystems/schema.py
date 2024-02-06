@@ -88,6 +88,7 @@ class BrpActivityAsset(BaseModel):
 
 
 class BrpReceivedActivityDetails(BaseModel):
+    id: int
     description: Optional[str] = None
     assets: Optional[List[BrpActivityAsset]] = None
 
