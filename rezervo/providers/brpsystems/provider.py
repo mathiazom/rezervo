@@ -270,7 +270,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         return RezervoSchedule(
             days=[
                 RezervoDay(
-                    day_name=day_name,
+                    day_name=WEEKDAYS[date.weekday()],
                     date=date.isoformat(),
                     classes=sorted(
                         day_classes,
@@ -278,7 +278,6 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                     ),
                 )
                 for date, day_classes in days_map.items()
-                for day_name in [date.strftime("%A")]
             ]
         )
 
