@@ -5,7 +5,6 @@ from rezervo.errors import BookingError
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
 from rezervo.utils.logging_utils import err, warn
-from rezervo.utils.str_utils import format_name_list_to_natural
 
 
 def find_class_in_schedule_by_config(
@@ -29,15 +28,8 @@ def find_class_in_schedule_by_config(
             if not time_matches:
                 result = BookingError.INCORRECT_START_TIME
                 continue
-            search_feedback = f'Found class: "{c.activity.name}"'
-            if len(c.instructors) > 0:
-                search_feedback += f" with {format_name_list_to_natural([i.name for i in c.instructors])}"
-            else:
-                search_feedback += " (missing instructor)"
-            search_feedback += f" at {c.start_time.isoformat()}"
-            print(search_feedback)
             return c
-    warn.log("Could not find class matching criteria")
+    warn.log(f"Could not find class matching criteria: {_class_config}")
     if result is None:
         result = BookingError.CLASS_MISSING
     return result
