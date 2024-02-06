@@ -411,7 +411,9 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                 continue
             localized_start_time = datetime.datetime.fromisoformat(
                 tz_aware_iso_from_brp_date_str(c.duration.start)
-            ).astimezone(pytz.timezone("Europe/Oslo"))
+            ).astimezone(
+                pytz.timezone("Europe/Oslo")
+            )  # TODO: clean this
             time_matches = (
                 localized_start_time.hour == _class_config.start_time.hour
                 and localized_start_time.minute == _class_config.start_time.minute

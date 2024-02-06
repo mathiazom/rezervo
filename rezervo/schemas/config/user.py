@@ -38,7 +38,7 @@ class Class(CamelModel):
     activity_id: str
     weekday: int
     location_id: str
-    start_time: ClassTime
+    start_time: ClassTime  # TODO: make sure time zones are handled...
     display_name: Optional[str] = None
 
 

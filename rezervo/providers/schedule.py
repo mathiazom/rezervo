@@ -1,5 +1,7 @@
 from typing import Union
 
+import pytz
+
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import BookingError
 from rezervo.schemas.config.user import Class
@@ -21,9 +23,12 @@ def find_class_in_schedule_by_config(
         for c in day.classes:
             if c.activity.id != _class_config.activity_id:
                 continue
+            localized_start_time = c.start_time.astimezone(
+                pytz.timezone("Europe/Oslo")
+            )  # TODO: clean this
             time_matches = (
-                c.start_time.hour == _class_config.start_time.hour
-                and c.start_time.minute == _class_config.start_time.minute
+                localized_start_time.hour == _class_config.start_time.hour
+                and localized_start_time.minute == _class_config.start_time.minute
             )
             if not time_matches:
                 result = BookingError.INCORRECT_START_TIME
