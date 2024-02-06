@@ -162,13 +162,6 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                 f"No sessions active matching the cancellation criteria for class '{class_id}'",
             )
             return False
-        print(
-            f"Cancelling booking of class '{brp_class_id}' (booking id: {booking_id})",
-            self.brp_subdomain,
-            auth_result,
-            booking_id,
-            booking_type,
-        )
         return await cancel_brp_booking(
             self.brp_subdomain, auth_result, booking_id, booking_type
         )
