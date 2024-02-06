@@ -13,10 +13,10 @@ from rezervo.schemas.config.config import Config, Cron
 from rezervo.schemas.config.user import (
     ChainConfig,
     ChainIdentifier,
+    Class,
 )
-from rezervo.schemas.schedule import RezervoClass
 from rezervo.settings import get_settings
-from rezervo.utils.config_utils import class_recurrent_id
+from rezervo.utils.config_utils import class_config_recurrent_id
 
 
 def upsert_jobs_by_comment(
@@ -27,14 +27,21 @@ def upsert_jobs_by_comment(
         crontab.append(j)
 
 
+async def find_class_with_config_task(chain: ChainIdentifier, class_config: Class):
+    return class_config, (await find_class(chain, class_config))
+
+
 async def build_cron_jobs_from_config(
     conf: Config, chain_config: ChainConfig, user: models.User
 ) -> list[CronItem]:
     if not chain_config.active or chain_config.recurring_bookings is None:
         return []
     jobs = []
-    for _class in await asyncio.gather(
-        *[find_class(chain_config.chain, rb) for rb in chain_config.recurring_bookings]
+    for class_config, _class in await asyncio.gather(
+        *[
+            find_class_with_config_task(chain_config.chain, rb)
+            for rb in chain_config.recurring_bookings
+        ]
     ):
         if (
             _class is None
@@ -47,16 +54,23 @@ async def build_cron_jobs_from_config(
             and conf.config.cron.precheck_hours > 0
         ):
             jobs.append(
-                build_cron_job_for_class(
-                    _class,
-                    chain_config.chain,
-                    conf.config.cron,
+                build_booking_cron_job(
                     user,
+                    chain_config.chain,
+                    class_config,
+                    _class.booking_opens_at,
+                    conf.config.cron,
                     precheck=True,
                 )
             )
         jobs.append(
-            build_cron_job_for_class(_class, chain_config.chain, conf.config.cron, user)
+            build_booking_cron_job(
+                user,
+                chain_config.chain,
+                class_config,
+                _class.booking_opens_at,
+                conf.config.cron,
+            )
         )
     return jobs
 
@@ -71,28 +85,29 @@ def build_cron_comment_prefix_for_user(user_id: UUID):
     return f"{get_settings().CRON_JOB_COMMENT_PREFIX}-{user_id}"
 
 
-def build_cron_job_for_class(
-    _class: RezervoClass,
-    chain_identifier: ChainIdentifier,
-    cron_config: Cron,
+def build_booking_cron_job(
     user: models.User,
+    chain_identifier: ChainIdentifier,
+    class_config: Class,
+    booking_opens_at: datetime,
+    cron_config: Cron,
     precheck: bool = False,
 ) -> CronItem:
     j = CronItem(
         command=generate_booking_command(
             chain_identifier,
-            class_recurrent_id(_class),
+            class_config_recurrent_id(class_config),
             cron_config,
             user.id,
             precheck,
         ),
         comment=f"{build_cron_comment_prefix_for_user_chain(user.id, chain_identifier)} --- {user.name} --- "
-        f"{_class.activity.name}{' --- [precheck]' if precheck else ''}",
+        f"{class_config.display_name}{' --- [precheck]' if precheck else ''}",
         pre_comment=True,
     )
     j.setall(
         *generate_booking_schedule(
-            _class.booking_opens_at,
+            booking_opens_at,
             cron_config,
             precheck,
         )
