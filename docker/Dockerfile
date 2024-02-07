@@ -1,6 +1,8 @@
 FROM python:3.10.9-bullseye
 
-RUN apt update && apt -y install cron
+RUN apt-get update && apt-get install -y \
+    cron \
+    figlet
 
 # Set local timezone (for cron)
 RUN ln -sf /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime

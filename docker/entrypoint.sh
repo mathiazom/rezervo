@@ -6,6 +6,8 @@ touch /var/log/rezervo.log
 # Start logging in background
 tail -f /var/log/rezervo.log &
 
+figlet rezervo
+
 echo "Migrating database to most recent alembic version"
 (cd rezervo && alembic upgrade head)
 
