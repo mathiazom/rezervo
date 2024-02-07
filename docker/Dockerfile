@@ -5,6 +5,10 @@ RUN apt update && apt -y install cron
 # Set local timezone (for cron)
 RUN ln -sf /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
 
+# Ensure sufficient resource limits (prevents 'Too many open files' for cron jobs)
+COPY docker/limits_mods.conf .
+RUN cat ./limits_mods.conf >> /etc/security/limits.conf
+
 WORKDIR /app
 
 RUN curl -sSL https://install.python-poetry.org | python3 - -y --version 1.3.1
