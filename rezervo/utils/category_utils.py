@@ -26,7 +26,7 @@ ACTIVITY_CATEGORIES = [
     RezervoCategory(
         name="Vannaerobic",
         color="#0047ab",
-        keywords=["vann"],
+        keywords=["vann", "aqua", "svøm", "basseng"],
     ),
     RezervoCategory(
         name="Mosjon",
@@ -36,7 +36,7 @@ ACTIVITY_CATEGORIES = [
     RezervoCategory(
         name="Dans",
         color="#E96179",
-        keywords=["dans", "dance", "sh'bam", "zumba"],
+        keywords=["dans", "dance", "sh'bam", "zumba", "beatz", "rytmer", "bodyjam"],
     ),
     RezervoCategory(
         name="Body & Mind",
@@ -54,18 +54,20 @@ ACTIVITY_CATEGORIES = [
             "soul",
             "breath",
             "grounding",
+            "bodybalance",
+            "ashtanga",
         ],
     ),
     RezervoCategory(
         name="Spinning",
         color="#4C2C7E",
-        keywords=["spin", "sykkel", "ride"],
+        keywords=["spin", "sykkel", "ride", "rpm"],
     ),
     RezervoCategory(
         name="Kondisjon",
         color="#6AD3B4",
         keywords=[
-            "kondisjon",
+            "kondis",
             "step",
             "løp",
             "puls",
@@ -74,6 +76,8 @@ ACTIVITY_CATEGORIES = [
             "tredemølle",
             "hiit",
             "aerobic",
+            "run",
+            "combat",
         ],
     ),
     RezervoCategory(
@@ -90,9 +94,16 @@ ACTIVITY_CATEGORIES = [
             "strength",
             "hardhausen",
             "slynge",
-            "crosstraining",
+            "cross",
+            "wod",
             "bodycross",
             "mrl",
+            "sirkeltrening",
+            "gjennomtrent",
+            "rumpe",
+            "booty",
+            "bootcamp",
+            "olympia",
         ],
     ),
 ]
