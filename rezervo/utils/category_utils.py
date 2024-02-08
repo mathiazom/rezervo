@@ -56,6 +56,7 @@ ACTIVITY_CATEGORIES = [
             "grounding",
             "bodybalance",
             "ashtanga",
+            "shapes",
         ],
     ),
     RezervoCategory(
