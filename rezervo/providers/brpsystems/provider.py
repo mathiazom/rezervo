@@ -286,7 +286,9 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         subdomain: BrpSubdomain,
         brp_class: BrpClass | DetailedBrpClass,
     ) -> RezervoClass:
-        category = determine_activity_category(brp_class.name)
+        category = determine_activity_category(
+            brp_class.name, brp_class.externalMessage is not None
+        )
         return RezervoClass(
             id=brp_class.id,  # TODO: check if unique across all subdomains
             start_time=datetime.datetime.fromisoformat(

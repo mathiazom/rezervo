@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic.main import BaseModel
 
 
@@ -110,7 +112,11 @@ ACTIVITY_CATEGORIES = [
 ]
 
 
-def determine_activity_category(activity_name: str) -> RezervoCategory:
+def determine_activity_category(
+    activity_name: str, has_additional_information: Optional[bool] = False
+) -> RezervoCategory:
+    if has_additional_information:
+        return OTHER_ACTIVITY_CATEGORY
     for category in ACTIVITY_CATEGORIES:
         for keyword in category.keywords:
             if keyword in activity_name.lower():
