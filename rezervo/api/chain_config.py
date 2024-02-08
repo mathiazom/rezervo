@@ -59,7 +59,7 @@ async def put_chain_user_creds(
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])
-    return {"username": updated_config.username}
+    return ChainUserProfile(username=updated_config.username)
 
 
 @router.get("/{chain_identifier}/config", response_model=BaseChainConfig)
