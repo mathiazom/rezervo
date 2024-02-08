@@ -6,6 +6,7 @@ from aiohttp import ClientSession
 
 from rezervo.errors import AuthenticationError
 from rezervo.providers.brpsystems.schema import BrpAuthResult, BrpSubdomain
+from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.logging_utils import err
 
 
@@ -16,10 +17,9 @@ def auth_url(subdomain: BrpSubdomain) -> str:
 async def authenticate(
     subdomain: BrpSubdomain, email: str, password: str
 ) -> Union[BrpAuthResult, AuthenticationError]:
-    async with ClientSession() as session:
+    async with ClientSession(connector=create_tcp_connector()) as session:
         async with session.post(
-            auth_url(subdomain),
-            json={"username": email, "password": password},
+            auth_url(subdomain), json={"username": email, "password": password}
         ) as auth_res:
             if auth_res.status != requests.codes.OK:
                 return AuthenticationError.ERROR

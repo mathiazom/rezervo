@@ -10,6 +10,7 @@ from rezervo.providers.brpsystems.schema import (
     BrpAuthResult,
     BrpSubdomain,
 )
+from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.logging_utils import err
 
 SCHEDULE_SEARCH_ATTEMPT_DAYS = 7
@@ -35,7 +36,7 @@ def booking_url(
 async def book_brp_class(
     subdomain: BrpSubdomain, auth_result: BrpAuthResult, class_id: int
 ) -> bool:
-    async with ClientSession() as session:
+    async with ClientSession(connector=create_tcp_connector()) as session:
         async with session.post(
             booking_url(subdomain, auth_result, datetime.now()),
             json={"groupActivity": class_id, "allowWaitingList": True},
@@ -57,7 +58,7 @@ async def cancel_brp_booking(
     booking_type: BookingType,
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
-    async with ClientSession() as session:
+    async with ClientSession(connector=create_tcp_connector()) as session:
         res = await session.delete(
             f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type.value}",
             headers={

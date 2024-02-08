@@ -48,6 +48,7 @@ from rezervo.schemas.schedule import (
     RezervoSchedule,
     UserSession,
 )
+from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err
 
@@ -72,7 +73,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             return token
         print(f"Searching for class by id: {class_id}")
         # TODO: handle different domains
-        async with ClientSession() as session:
+        async with ClientSession(connector=create_tcp_connector()) as session:
             async with session.get(
                 f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
             ) as class_response:
@@ -127,7 +128,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> Optional[list[UserSession]]:
-        async with ClientSession() as session:
+        async with ClientSession(connector=create_tcp_connector()) as session:
             auth_session = await authenticate_session(
                 session, chain_user.username, chain_user.password
             )
@@ -233,7 +234,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         # TODO: support different domains (not just sit.no)
         if domain != "sit":
             raise NotImplementedError()
-        async with ClientSession() as session:
+        async with ClientSession(connector=create_tcp_connector()) as session:
             async with session.get(
                 f"{CLASSES_SCHEDULE_URL}"
                 f"?token={token}"

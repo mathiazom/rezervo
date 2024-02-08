@@ -14,6 +14,7 @@ from rezervo.providers.brpsystems.schema import (
     BrpSubdomain,
     DetailedBrpClass,
 )
+from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.logging_utils import warn
 
 BRP_MAX_SCHEDULE_DAYS_PER_FETCH = 14
@@ -36,7 +37,7 @@ async def fetch_brp_class(
     business_unit: int,
     class_id: str,
 ) -> Optional[BrpClass]:
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=create_tcp_connector()) as session:
         async with session.get(class_url(subdomain, business_unit, class_id)) as res:
             if res.status != requests.codes.OK:
                 warn.log(
@@ -56,14 +57,16 @@ async def fetch_detailed_brp_schedule(
     schedule: List[BrpClass],
 ) -> List[DetailedBrpClass]:
     class_details_map: dict[int, BrpActivityDetails] = {}
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=create_tcp_connector()) as session:
         fetch_detailed_activity_tasks = []
         detected_activity_ids = set()
         for brp_class in schedule:
             activity_id = brp_class.groupActivityProduct.id
             if brp_class.groupActivityProduct.id not in detected_activity_ids:
                 fetch_detailed_activity_tasks.append(
-                    session.get(detailed_activity_url(subdomain, activity_id))
+                    session.get(
+                        detailed_activity_url(subdomain, activity_id),
+                    )
                 )
                 detected_activity_ids.add(activity_id)
         for res in await asyncio.gather(*fetch_detailed_activity_tasks):
@@ -114,7 +117,7 @@ async def fetch_brp_schedule(
         now = datetime.utcnow()
         from_date = datetime(now.year, now.month, now.day)
     days_left = days
-    async with aiohttp.ClientSession() as session:
+    async with aiohttp.ClientSession(connector=create_tcp_connector()) as session:
         fetch_schedule_tasks = []
         while days_left > 0:
             batch_size = min(BRP_MAX_SCHEDULE_DAYS_PER_FETCH, days_left)

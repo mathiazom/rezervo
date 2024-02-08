@@ -51,6 +51,7 @@ from rezervo.schemas.schedule import (
     RezervoSchedule,
     UserSession,
 )
+from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err, warn
 from rezervo.utils.str_utils import format_name_list_to_natural
@@ -129,7 +130,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             return False
         # TODO: consider memoizing retrieval of booking reference and type
         try:
-            async with ClientSession() as session:
+            async with ClientSession(connector=create_tcp_connector()) as session:
                 async with session.get(
                     booking_url(
                         self.brp_subdomain, auth_result, datetime.datetime.now()
@@ -179,7 +180,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             err.log(f"Authentication failed for '{chain_user.username}'!")
             return None
         try:
-            async with ClientSession() as session:
+            async with ClientSession(connector=create_tcp_connector()) as session:
                 async with session.get(
                     booking_url(
                         self.brp_subdomain,

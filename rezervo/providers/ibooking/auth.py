@@ -13,6 +13,7 @@ from rezervo.providers.ibooking.urls import (
     TOKEN_VALIDATION_URL,
 )
 from rezervo.schemas.config.user import ChainUser
+from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.logging_utils import err, warn
 
 USER_AGENT = (
@@ -22,7 +23,7 @@ USER_AGENT = (
 
 async def fetch_public_token() -> Union[str, AuthenticationError]:
     # use an unauthenticated session
-    async with ClientSession() as session:
+    async with ClientSession(connector=create_tcp_connector()) as session:
         return await extract_token_from_session(session)
 
 
@@ -60,7 +61,7 @@ async def authenticate_token(
         if validation_error is None:
             return chain_user.auth_token
         warn.log("Authentication token validation failed, retrieving fresh token...")
-    async with ClientSession() as session:
+    async with ClientSession(connector=create_tcp_connector()) as session:
         result = await authenticate_session(
             session, chain_user.username, chain_user.password
         )
@@ -81,7 +82,7 @@ async def authenticate_token(
 
 
 async def validate_token(token: str) -> Optional[AuthenticationError]:
-    async with ClientSession() as session:
+    async with ClientSession(connector=create_tcp_connector()) as session:
         async with session.post(
             TOKEN_VALIDATION_URL, data={"token": token}
         ) as token_validation:
