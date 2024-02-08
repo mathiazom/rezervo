@@ -40,6 +40,7 @@ from rezervo.providers.provider import Provider
 from rezervo.providers.schema import LocationIdentifier
 from rezervo.schemas.config.user import (
     ChainUser,
+    ChainUserCredentials,
     Class,
 )
 from rezervo.schemas.schedule import (
@@ -432,3 +433,11 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         if result is None:
             return BookingError.ERROR
         return result
+
+    async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
+        return not isinstance(
+            await authenticate(
+                self.brp_subdomain, credentials.username, credentials.password
+            ),
+            AuthenticationError,
+        )

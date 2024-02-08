@@ -38,7 +38,7 @@ from rezervo.providers.ibooking.urls import (
 from rezervo.providers.provider import Provider
 from rezervo.providers.schedule import find_class_in_schedule_by_config
 from rezervo.providers.schema import LocationIdentifier
-from rezervo.schemas.config.user import ChainUser, Class
+from rezervo.schemas.config.user import ChainUser, ChainUserCredentials, Class
 from rezervo.schemas.schedule import (
     RezervoActivity,
     RezervoClass,
@@ -314,3 +314,15 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             err.log("Schedule get request denied")
             return BookingError.ERROR
         return find_class_in_schedule_by_config(_class_config, schedule)
+
+    async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
+        async with ClientSession() as session:
+            auth_session = (
+                await authenticate_session(
+                    session, credentials.username, credentials.password
+                ),
+            )
+            return not isinstance(
+                auth_session[0],
+                AuthenticationError,
+            )

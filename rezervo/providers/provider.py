@@ -19,6 +19,7 @@ from rezervo.providers.sessions import get_user_planned_sessions_from_schedule
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import (
     ChainUser,
+    ChainUserCredentials,
     Class,
     config_from_chain_user,
 )
@@ -282,3 +283,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         return await self.fetch_schedule(
             first_date_of_week_by_offset(week_offset), 7, locations
         )
+
+    @abstractmethod
+    async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
+        raise NotImplementedError()
