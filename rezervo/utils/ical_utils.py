@@ -2,6 +2,7 @@ import secrets
 from datetime import datetime
 from typing import Optional
 
+import pytz
 from icalendar import cal  # type: ignore[import]
 
 from rezervo.models import SessionState
@@ -13,7 +14,7 @@ def generate_calendar_token():
     return secrets.token_urlsafe()
 
 
-def ical_event_from_session(session: UserSession) -> Optional[cal.Event]:
+def ical_event_from_session(session: UserSession, timezone: str) -> Optional[cal.Event]:
     _class = session.class_data
     if _class is None:
         return None
@@ -30,8 +31,10 @@ def ical_event_from_session(session: UserSession) -> Optional[cal.Event]:
         f"{_class.activity.name} {instructors_str}",
     )
     event.add("location", f"{_class.location.studio} ({_class.location.room})")
-    event.add("dtstart", _class.start_time)
-    event.add("dtend", _class.end_time)
+    # TODO: start and end times use a naughty timezone hack to make ical valid, check if any nicer solutions exists
+    tz = pytz.timezone(timezone)
+    event.add("dtstart", _class.start_time.astimezone(tz).replace(tzinfo=None))
+    event.add("dtend", _class.end_time.astimezone(tz).replace(tzinfo=None))
     event.add("dtstamp", datetime.now())
     event.add(
         "status",

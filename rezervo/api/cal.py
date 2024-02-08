@@ -41,12 +41,13 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
         sessions_query = sessions_query.filter(
             models.Session.status != models.SessionState.CONFIRMED
         )
+    timezone = read_app_config().booking.timezone
     ical = cal.Calendar()
     ical.add("prodid", "-//rezervo//rezervo.no//")
     ical.add("version", "2.0")
     ical.add("method", "PUBLISH")
     ical.add("calscale", "GREGORIAN")
-    ical.add("x-wr-timezone", read_app_config().booking.timezone)
+    ical.add("x-wr-timezone", timezone)
     ical.add("x-wr-calname", "rezervo")
     ical.add(
         "x-wr-caldesc",
@@ -55,7 +56,7 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
     for s in sessions_query.all():
         if s.class_data is None:
             continue
-        event = ical_event_from_session(UserSession.from_orm(s))
+        event = ical_event_from_session(UserSession.from_orm(s), timezone)
         if event is not None:
             ical.add_component(event)
     return Response(content=ical.to_ical(), media_type="text/calendar")
