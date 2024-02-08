@@ -320,6 +320,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                 description=brp_class.activity_details.description
                 if isinstance(brp_class, DetailedBrpClass)
                 else "",
+                additional_information=brp_class.externalMessage,
                 color=category.color,
                 image=brp_class.activity_details.image_url
                 if isinstance(brp_class, DetailedBrpClass)
