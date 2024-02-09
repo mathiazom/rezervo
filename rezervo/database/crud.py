@@ -1,5 +1,6 @@
+from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 from uuid import UUID
 
 from sqlalchemy import delete
@@ -386,9 +387,9 @@ def get_community(db: Session, user_id: UUID) -> Community:
         db.query(models.ChainUser).filter(models.ChainUser.user_id != user_id).all()
     )
 
-    user_to_chain_map: Dict[UUID, List[str]] = {}
+    user_to_chain_map: defaultdict[UUID, list[str]] = defaultdict(list)
     for chain_user in chain_users:
-        user_to_chain_map.setdefault(chain_user.user_id, []).append(chain_user.chain)
+        user_to_chain_map[chain_user.user_id].append(chain_user.chain)
 
     return Community(
         users=[
