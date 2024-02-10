@@ -7,13 +7,13 @@ Automatic booking of group classes
 ### 🧩 Chains
 <div class="image-link-container">
    <a href="https://www.sit.no">
-      <img src="assets/badges/integrations/sit.svg" alt="sit" height="45">
+      <img src="assets/badges/chains/sit.svg" alt="sit" height="45">
    </a>
    <a href="https://www.fsc.no">
-      <img src="assets/badges/integrations/fsc.svg" alt="fsc" height="45">
+      <img src="assets/badges/chains/fsc.svg" alt="fsc" height="45">
    </a>
    <a href="https://www.3t.no">
-      <img src="assets/badges/integrations/3t.svg" alt="3t" height="45">
+      <img src="assets/badges/chains/3t.svg" alt="3t" height="45">
    </a>
 </div>
 
