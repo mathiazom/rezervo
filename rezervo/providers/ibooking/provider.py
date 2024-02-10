@@ -317,12 +317,9 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
         async with ClientSession() as session:
-            auth_session = (
+            return not isinstance(
                 await authenticate_session(
                     session, credentials.username, credentials.password
                 ),
-            )
-            return not isinstance(
-                auth_session[0],
                 AuthenticationError,
             )
