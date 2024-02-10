@@ -25,11 +25,10 @@ def get_community(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    users = crud.get_community(db, db_user.id)
-    return users
+    return crud.get_community(db, db_user.id)
 
 
-@router.put("/community/update-relationship", response_model=UserRelationship)
+@router.put("/community/relationship", response_model=UserRelationship)
 def update_relationship(
     payload: UserRelationshipActionPayload,
     token=Depends(token_auth_scheme),
