@@ -316,7 +316,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         return find_class_in_schedule_by_config(_class_config, schedule)
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
-        async with ClientSession() as session:
+        async with ClientSession(connector=create_tcp_connector()) as session:
             return not isinstance(
                 await authenticate_session(
                     session, credentials.username, credentials.password
