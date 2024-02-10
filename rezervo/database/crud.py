@@ -383,6 +383,31 @@ def purge_slack_receipts(db) -> int:
     return row_count
 
 
+def get_user_relationship_index(db: Session, user_id: UUID):
+    relationships = (
+        db.query(UserRelation)
+        .filter((UserRelation.user_one == user_id) | (UserRelation.user_two == user_id))
+        .all()
+    )
+
+    user_relationship_index = {}
+    for relationship in relationships:
+        other_user_id = (
+            relationship.user_two
+            if relationship.user_one == user_id
+            else relationship.user_one
+        )
+        # Make sure the perspective of the friend request is correct
+        relationship_status = (
+            UserRelationship.REQUEST_RECEIVED
+            if relationship.user_two == user_id
+            and relationship.relationship == UserRelationship.REQUEST_SENT
+            else relationship.relationship
+        )
+        user_relationship_index[other_user_id] = relationship_status
+    return user_relationship_index
+
+
 def get_community(db: Session, user_id: UUID) -> Community:
     users = (
         db.query(models.User)
@@ -398,27 +423,7 @@ def get_community(db: Session, user_id: UUID) -> Community:
     for chain_user in chain_users:
         user_to_chain_map[chain_user.user_id].append(chain_user.chain)
 
-    relationships = (
-        db.query(UserRelation)
-        .filter((UserRelation.user_one == user_id) | (UserRelation.user_two == user_id))
-        .all()
-    )
-
-    user_to_relationship_map = {}
-    for relationship in relationships:
-        other_user_id = (
-            relationship.user_two
-            if relationship.user_one == user_id
-            else relationship.user_one
-        )
-        # Make sure the perspective of the friend request is correct
-        relationship_status = (
-            UserRelationship.REQUEST_RECEIVED
-            if relationship.user_two == user_id
-            and relationship.relationship == UserRelationship.REQUEST_SENT
-            else relationship.relationship
-        )
-        user_to_relationship_map[other_user_id] = relationship_status
+    user_relationship_index = get_user_relationship_index(db, user_id)
 
     return Community(
         users=[
@@ -426,7 +431,7 @@ def get_community(db: Session, user_id: UUID) -> Community:
                 user_id=user.id,
                 name=user.name,
                 chains=user_to_chain_map.get(user.id, []),
-                relationship=user_to_relationship_map.get(
+                relationship=user_relationship_index.get(
                     user.id, UserRelationship.UNKNOWN
                 ),
             )

@@ -7,6 +7,7 @@ from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.database import crud
+from rezervo.schemas.community import UserRelationship
 from rezervo.schemas.config.user import ChainIdentifier
 from rezervo.schemas.schedule import UserNameSessionStatus, UserSession
 from rezervo.settings import Settings, get_settings
@@ -36,12 +37,19 @@ def get_sessions_index(
         )
         .all()
     )
+    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)
+    friendly_db_sessions = [
+        dbs
+        for dbs in db_sessions
+        if dbs.user_id == db_user.id
+        or user_relationship_index.get(dbs.user_id) == UserRelationship.FRIEND
+    ]
     user_name_lookup = {
         u.id: auth0_mgmt_client.users.get(u.jwt_sub)["name"]  # type: ignore
         for u in db.query(models.User).all()
     }
     session_dict: dict[str, list[UserNameSessionStatus]] = {}
-    for db_session in db_sessions:
+    for db_session in friendly_db_sessions:
         session = UserSession.from_orm(db_session)
         class_id = session.class_id
         if class_id not in session_dict:
