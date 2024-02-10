@@ -4,7 +4,7 @@
 
 Automatic booking of group classes
 
-### 🧩 Integrations
+### 🧩 Chains
 <div class="image-link-container">
    <a href="https://www.sit.no">
       <img src="assets/badges/integrations/sit.svg" alt="sit" height="45">
@@ -73,8 +73,8 @@ Automatic booking of group classes
 poe fix
 ```
 
-#### 🔌 Support new integration
-Add your own integration by adding it to `ACTIVE_INTEGRATIONS` in [`rezervo/active_integrations.py`](rezervo/active_integrations.py).
+#### 🔌 Support new chain
+Add your own chain by adding it to `ACTIVE_CHAINS` in [`rezervo/chains/active.py`](rezervo/chains/active.py).
 
 ### 🚀 Deployment
 A template for a production deployment is given in [`docker-compose.template.yml`](docker/docker-compose.template.yml), which uses the most recent [`rezervo` Docker image](https://github.com/users/mathiazom/packages/container/package/rezervo).
