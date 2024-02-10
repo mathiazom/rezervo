@@ -6,6 +6,7 @@ from starlette.background import BackgroundTasks
 
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.auth.auth0 import get_auth0_management_client
+from rezervo.chains.active import get_chain
 from rezervo.cron import refresh_cron
 from rezervo.database import crud
 from rezervo.schemas.config.user import (
@@ -39,7 +40,7 @@ def get_chain_user_profile(
 
 
 @router.put("/{chain_identifier}/user", response_model=ChainUserProfile)
-def put_chain_user_creds(
+async def put_chain_user_creds(
     chain_identifier: ChainIdentifier,
     chain_user_creds: ChainUserCredentials,
     background_tasks: BackgroundTasks,
@@ -50,13 +51,15 @@ def put_chain_user_creds(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    if not await get_chain(chain_identifier).verify_authentication(chain_user_creds):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     updated_config = crud.upsert_chain_user_creds(
         db, db_user.id, chain_identifier, chain_user_creds
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])
-    return updated_config
+    return ChainUserProfile(username=updated_config.username)
 
 
 @router.get("/{chain_identifier}/config", response_model=BaseChainConfig)
