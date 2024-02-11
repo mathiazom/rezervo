@@ -2,10 +2,10 @@ import asyncio
 import datetime
 import re
 from abc import abstractmethod
+from collections import defaultdict
 from typing import List, Optional, Union
 
 import pydantic
-import pytz
 import requests
 from aiohttp import ClientSession
 from pydantic.tools import parse_obj_as
@@ -37,6 +37,7 @@ from rezervo.providers.brpsystems.schema import (
     tz_aware_iso_from_brp_date_str,
 )
 from rezervo.providers.provider import Provider
+from rezervo.providers.schedule import find_class_in_schedule_by_config
 from rezervo.providers.schema import LocationIdentifier
 from rezervo.schemas.config.user import (
     ChainUser,
@@ -229,40 +230,14 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         )
         return await fetch_detailed_brp_schedule(self.brp_subdomain, schedule)
 
-    async def fetch_schedule(
-        self,
-        from_date: datetime.datetime,
-        days: int,
-        locations: list[LocationIdentifier],
+    def _rezervo_schedule_from_brp_schedule(
+        self, schedule: List[BrpClass]
     ) -> RezervoSchedule:
-        business_units = [
-            b
-            for location in locations
-            if (
-                b := self.provider_location_identifier_from_location_identifier(
-                    location
-                )
-            )
-            is not None
-        ]
-        schedule: list[DetailedBrpClass] = []
-        for res in await asyncio.gather(
-            *[
-                self._fetch_detailed_schedule(business_unit, days, from_date)
-                for business_unit in business_units
-            ]
-        ):
-            schedule.extend(res)
-        days_map: dict[datetime.date, list[RezervoClass]] = {
-            (from_date.date() + datetime.timedelta(days=i)): [] for i in range(days)
-        }
+        days_map: defaultdict[datetime.date, list[RezervoClass]] = defaultdict(list)
         for _class in schedule:
             class_date = datetime.datetime.fromisoformat(
                 tz_aware_iso_from_brp_date_str(_class.duration.start)
             ).date()
-            if class_date not in days_map:
-                warn.log(f"Fetched class not in schedule range: {_class}")
-                continue
             days_map[class_date].append(
                 self.rezervo_class_from_brp_class(
                     self.brp_subdomain,
@@ -282,6 +257,28 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                 for date, day_classes in days_map.items()
             ]
         )
+
+    async def fetch_schedule(
+        self,
+        from_date: datetime.datetime,
+        days: int,
+        locations: list[LocationIdentifier],
+    ) -> RezervoSchedule:
+        schedule: list[DetailedBrpClass] = []
+        for res in await asyncio.gather(
+            *[
+                self._fetch_detailed_schedule(business_unit, days, from_date)
+                for location in locations
+                if (
+                    business_unit := self.provider_location_identifier_from_location_identifier(
+                        location
+                    )
+                )
+                is not None
+            ]
+        ):
+            schedule.extend(res)
+        return self._rezervo_schedule_from_brp_schedule(schedule)
 
     def rezervo_class_from_brp_class(
         self,
@@ -357,16 +354,18 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         from_date = datetime.datetime(now_date.year, now_date.month, now_date.day)
         search_result = None
         while attempts < MAX_SCHEDULE_SEARCH_ATTEMPTS:
-            schedule = await fetch_brp_schedule(
+            brp_schedule = await fetch_brp_schedule(
                 subdomain,
                 business_unit,
                 days=SCHEDULE_SEARCH_ATTEMPT_DAYS,
                 from_date=from_date,
             )
-            if schedule is None:
+            if brp_schedule is None:
                 err.log("Schedule get request denied")
                 return BookingError.ERROR
-            search_result = self.find_brp_class(subdomain, _class_config, schedule)
+            search_result = find_class_in_schedule_by_config(
+                _class_config, self._rezervo_schedule_from_brp_schedule(brp_schedule)
+            )
             if (
                 search_result is not None
                 and not isinstance(search_result, BookingError)
@@ -399,40 +398,6 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             search_feedback += f" at {brp_class.start_time}"
             print(search_feedback)
         return brp_class
-
-    # TODO: generalize using find_class_in_schedule_by_config
-    def find_brp_class(
-        self,
-        subdomain: BrpSubdomain,
-        _class_config: Class,
-        schedule: List[BrpClass],
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-        if not 0 <= _class_config.weekday < len(WEEKDAYS):
-            err.log(f"Invalid weekday number ({_class_config.weekday=})")
-            return BookingError.MALFORMED_SEARCH
-        result = None
-        for c in schedule:
-            if str(c.groupActivityProduct.id) != _class_config.activity_id:
-                continue
-            localized_start_time = datetime.datetime.fromisoformat(
-                tz_aware_iso_from_brp_date_str(c.duration.start)
-            ).astimezone(
-                pytz.timezone("Europe/Oslo")
-            )  # TODO: clean this
-            time_matches = (
-                localized_start_time.hour == _class_config.start_time.hour
-                and localized_start_time.minute == _class_config.start_time.minute
-            )
-            if not time_matches:
-                result = BookingError.INCORRECT_START_TIME
-                continue
-            if localized_start_time.weekday() != _class_config.weekday:
-                result = BookingError.MISSING_SCHEDULE_DAY
-                continue
-            return self.rezervo_class_from_brp_class(subdomain, c)
-        if result is None:
-            return BookingError.ERROR
-        return result
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
         return not isinstance(
