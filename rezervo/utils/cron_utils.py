@@ -17,6 +17,7 @@ from rezervo.schemas.config.user import (
 )
 from rezervo.settings import get_settings
 from rezervo.utils.config_utils import class_config_recurrent_id
+from rezervo.utils.logging_utils import err, warn
 
 
 def upsert_jobs_by_comment(
@@ -32,11 +33,15 @@ async def find_class_with_config_task(chain: ChainIdentifier, class_config: Clas
 
 
 async def build_cron_jobs_from_config(
-    conf: Config, chain_config: ChainConfig, user: models.User
+    conf: Config,
+    chain_config: ChainConfig,
+    user: models.User,
+    existing_jobs: list[CronItem],
 ) -> list[CronItem]:
     if not chain_config.active or chain_config.recurring_bookings is None:
         return []
     jobs = []
+    reusable_jobs = existing_jobs.copy()
     for class_config, _class in await asyncio.gather(
         *[
             find_class_with_config_task(chain_config.chain, rb)
@@ -48,6 +53,32 @@ async def build_cron_jobs_from_config(
             or isinstance(_class, BookingError)
             or isinstance(_class, AuthenticationError)
         ):
+            # find existing cron jobs matching the booking command (with and without precheck)
+            job_commands = [
+                generate_booking_command(
+                    chain_config.chain,
+                    class_config_recurrent_id(class_config),
+                    conf.config.cron,
+                    user.id,
+                    check,
+                )
+                for check in [True, False]
+            ]
+            reusing = False
+            for i in reversed(range(len(reusable_jobs))):
+                if reusable_jobs[i].command in job_commands:
+                    jobs.append(reusable_jobs.pop(i))
+                    reusing = True
+            if reusing:
+                warn.log(
+                    f"Keeping existing cron job for missing class to ensure failure notification\n"
+                    f"  (user='{user.name}' chain='{chain_config.chain}' {class_config})"
+                )
+            else:
+                err.log(
+                    f"Cron job could not be created for recurring booking!\n"
+                    f"  (user='{user.name}' chain='{chain_config.chain}' {class_config})"
+                )
             continue
         if (
             conf.config.cron.precheck_hours is not None
@@ -192,18 +223,15 @@ def generate_purge_slack_receipts_command(cron_config: Cron) -> str:
     )
 
 
-async def upsert_booking_crontab(
-    config: Config, chain_config: ChainConfig, user: models.User
+async def build_cron_jobs_from_config_task(
+    crontab: CronTab, config: Config, chain_config: ChainConfig, user: models.User
 ):
-    jobs = await build_cron_jobs_from_config(config, chain_config, user)
-    with CronTab(user=True) as crontab:
-        upsert_jobs_by_comment(
-            crontab,
-            re.compile(
-                f"^{build_cron_comment_prefix_for_user_chain(user.id, chain_config.chain)}.*$"
-            ),
-            jobs,
-        )
+    comment_pattern = re.compile(
+        f"^{build_cron_comment_prefix_for_user_chain(user.id, chain_config.chain)}.*$"
+    )
+    existing_jobs = list(crontab.find_comment(comment_pattern))
+    jobs = await build_cron_jobs_from_config(config, chain_config, user, existing_jobs)
+    return chain_config.chain, user.name, comment_pattern, jobs
 
 
 def delete_booking_crontab(user_id: UUID):
