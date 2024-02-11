@@ -6,7 +6,7 @@ from rezervo.consts import WEEKDAYS
 from rezervo.errors import BookingError
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import err
 
 
 def find_class_in_schedule_by_config(
@@ -34,7 +34,6 @@ def find_class_in_schedule_by_config(
                 result = BookingError.INCORRECT_START_TIME
                 continue
             return c
-    warn.log(f"Could not find class matching criteria: {_class_config}")
     if result is None:
         result = BookingError.CLASS_MISSING
     return result

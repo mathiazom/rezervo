@@ -55,7 +55,6 @@ from rezervo.schemas.schedule import (
 )
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err, warn
-from rezervo.utils.str_utils import format_name_list_to_natural
 
 
 class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
@@ -382,14 +381,6 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             if search_result is None:
                 return BookingError.CLASS_MISSING
             return search_result
-        if isinstance(brp_class, RezervoClass):
-            search_feedback = f'Found class: "{brp_class.activity.name}"'
-            if len(brp_class.instructors) > 0:
-                search_feedback += f" with {format_name_list_to_natural([i.name for i in brp_class.instructors])}"
-            else:
-                search_feedback += " (missing instructor)"
-            search_feedback += f" at {brp_class.start_time}"
-            print(search_feedback)
         return brp_class
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:

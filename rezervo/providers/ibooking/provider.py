@@ -49,7 +49,7 @@ from rezervo.schemas.schedule import (
     UserSession,
 )
 from rezervo.utils.category_utils import determine_activity_category
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import err, warn
 
 
 class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier]):
@@ -310,7 +310,10 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         if schedule is None:
             err.log("Schedule get request denied")
             return BookingError.ERROR
-        return find_class_in_schedule_by_config(_class_config, schedule)
+        _class = find_class_in_schedule_by_config(_class_config, schedule)
+        if isinstance(_class, BookingError):
+            warn.log(f"Could not find class matching criteria: {_class_config}")
+        return _class
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
         async with create_client_session() as session:
