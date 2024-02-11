@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.get("/schedule/{chain_identifier}/{week_offset}")
-async def get_branch_week_schedule(
+async def get_chain_week_schedule(
     chain_identifier: ChainIdentifier,
     week_offset: int,
     locations: Annotated[
@@ -25,13 +25,9 @@ async def get_branch_week_schedule(
     if locations is None:
         locations = []
     chain = get_chain(chain_identifier)
-    chain_location_identifiers = [
-        location.identifier  # TODO: verify type
-        for branch in chain.branches
-        for location in branch.locations
-    ]
+    chain_locations = chain.locations()
     for location in locations:
-        if location not in chain_location_identifiers:
+        if location not in chain_locations:
             raise HTTPException(
                 status_code=404, detail=f"Location '{location}' not recognized."
             )
