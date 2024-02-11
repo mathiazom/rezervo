@@ -53,6 +53,7 @@ class SessionRezervoClass(BaseRezervoClass):
 class RezervoClass(BaseRezervoClass):
     is_bookable: bool
     is_cancelled: bool
+    cancel_text: Optional[str]
     total_slots: Optional[int]
     available_slots: Optional[int]
     waiting_list_count: Optional[int]
