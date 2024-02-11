@@ -1,4 +1,5 @@
 import enum
+from datetime import datetime
 from typing import Optional, TypeAlias
 from uuid import UUID
 
@@ -65,6 +66,7 @@ class ChainUserCredentials(ChainUserProfile, CamelModel):
 class ChainUser(ChainConfig, ChainUserCredentials, CamelModel):
     user_id: UUID
     auth_token: Optional[str] = None
+    auth_lockout: Optional[datetime] = None
 
 
 def config_from_chain_user(user: ChainUser):

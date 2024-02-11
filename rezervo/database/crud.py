@@ -234,6 +234,19 @@ def update_chain_config(
     return config_from_chain_user(_get_chain_user_from_db_model(db, db_chain_user))
 
 
+def update_chain_user_auth_lockout(
+    db: Session,
+    chain_identifier: ChainIdentifier,
+    user_id: UUID,
+    lockout: Optional[datetime],
+):
+    # TODO: this will store datetime with local timezone (and no timezone info?)
+    db.query(models.ChainUser).filter_by(
+        user_id=user_id, chain=chain_identifier
+    ).update({"auth_lockout": lockout})
+    db.commit()
+
+
 def delete_user(db: Session, user_id: UUID):
     db_user = db.get(models.User, user_id)
     db.delete(db_user)

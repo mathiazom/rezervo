@@ -66,6 +66,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
     async def _authenticate(
         self, chain_user: ChainUser
     ) -> Union[BrpAuthResult, AuthenticationError]:
+        return AuthenticationError.AUTH_TEMPORARILY_BLOCKED
         return await authenticate(
             self.brp_subdomain, chain_user.username, chain_user.password
         )

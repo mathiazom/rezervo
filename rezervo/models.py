@@ -62,6 +62,7 @@ class ChainUser(Base):
     username = Column(String, nullable=False)
     password = Column(String, nullable=False)
     auth_token = Column(String, nullable=True)
+    auth_lockout = Column(DateTime, nullable=True)
     active = Column(Boolean, nullable=False, default=True)
 
     def __repr__(self):

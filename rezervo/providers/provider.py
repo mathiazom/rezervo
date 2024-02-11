@@ -1,11 +1,19 @@
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
+from math import floor
 from typing import Generic, Optional, Union
 
+import humanize
+import pytz
 from rich import print as rprint
 
-from rezervo.consts import PLANNED_SESSIONS_NEXT_WHOLE_WEEKS
+from rezervo.consts import (
+    AUTH_LOCKOUT_DURATION_MINUTES,
+    PLANNED_SESSIONS_NEXT_WHOLE_WEEKS,
+)
+from rezervo.database import crud
+from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
 from rezervo.notify.notify import notify_booking
@@ -24,7 +32,7 @@ from rezervo.schemas.config.user import (
     config_from_chain_user,
 )
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule, UserSession
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import err, warn
 from rezervo.utils.time_utils import (
     first_date_of_week_by_offset,
     total_days_for_next_whole_weeks,
@@ -75,6 +83,22 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
     ) -> Union[AuthResult, AuthenticationError]:
         if max_attempts < 1:
             return AuthenticationError.ERROR
+        if chain_user.auth_lockout is not None:
+            if floor((
+                datetime.now() - chain_user.auth_lockout
+            ).total_seconds() / 60) < AUTH_LOCKOUT_DURATION_MINUTES:
+                err.log(
+                    f"Authentication lockout {humanize.naturaltime(chain_user.auth_lockout)} ({chain_user.auth_lockout}), aborting"
+                )
+                return AuthenticationError.AUTH_TEMPORARILY_BLOCKED
+            else:
+                warn.log(
+                    f"Authentication lockout presumed lifted (lockout at {chain_user.auth_lockout})"
+                )
+                with SessionLocal() as db:
+                    crud.update_chain_user_auth_lockout(
+                        db, chain_user.chain, chain_user.user_id, None
+                    )
         success = False
         attempts = 0
         result = None
@@ -88,7 +112,13 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
                 err.log("Invalid credentials, aborting authentication to avoid lockout")
                 break
             if result == AuthenticationError.AUTH_TEMPORARILY_BLOCKED:
-                err.log("Authentication temporarily blocked, aborting")
+                err.log(
+                    "Authentication temporarily blocked, saving lockout timestamp and aborting"
+                )
+                with SessionLocal() as db:
+                    crud.update_chain_user_auth_lockout(
+                        db, chain_user.chain, chain_user.user_id, datetime.now().astimezone(pytz.UTC)
+                    )
                 break
             if attempts >= max_attempts:
                 break
