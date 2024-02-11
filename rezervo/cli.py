@@ -122,7 +122,7 @@ async def book(
                 )
             return
     if check_run:
-        print("Check complete, all seems fine.")
+        rprint(":heavy_check_mark: Check complete, all seems fine.")
         raise typer.Exit()
     _class = class_search_result
     if _class.is_bookable:
@@ -130,6 +130,17 @@ async def book(
     else:
         delta_to_opening = _class.booking_opens_at - datetime.now().astimezone()
         wait_time = delta_to_opening.total_seconds()
+        if wait_time < 0:
+            # booking is not open, and booking_opens_at is in the past, so we missed it
+            err.log("Booking is closed. Aborting.")
+            if config.notifications is not None:
+                notify_booking_failure(
+                    config.notifications,
+                    _class_config,
+                    BookingError.ERROR,
+                    check_run,
+                )
+            raise typer.Exit(1)
         wait_time_string = readable_seconds(wait_time)
         if wait_time > config.booking.max_waiting_minutes * 60:
             err.log(
