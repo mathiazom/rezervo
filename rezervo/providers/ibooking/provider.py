@@ -202,6 +202,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             ),
             is_bookable=ibooking_class.bookable,
             is_cancelled=ibooking_class.cancelText is not None,
+            cancel_text=ibooking_class.cancelText,
             total_slots=ibooking_class.capacity,
             available_slots=ibooking_class.available,
             waiting_list_count=ibooking_class.waitlist.count,
