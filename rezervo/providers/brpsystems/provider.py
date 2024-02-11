@@ -7,11 +7,11 @@ from typing import List, Optional, Union
 
 import pydantic
 import requests
-from aiohttp import ClientSession
 from pydantic.tools import parse_obj_as
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.http_client import HttpClient
 from rezervo.providers.brpsystems.auth import authenticate
 from rezervo.providers.brpsystems.booking import (
     MAX_SCHEDULE_SEARCH_ATTEMPTS,
@@ -53,7 +53,6 @@ from rezervo.schemas.schedule import (
     RezervoSchedule,
     UserSession,
 )
-from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err, warn
 from rezervo.utils.str_utils import format_name_list_to_natural
@@ -132,19 +131,14 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             return False
         # TODO: consider memoizing retrieval of booking reference and type
         try:
-            async with ClientSession(connector=create_tcp_connector()) as session:
-                async with session.get(
-                    booking_url(
-                        self.brp_subdomain, auth_result, datetime.datetime.now()
-                    ),
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {auth_result.access_token}",
-                    },
-                ) as res:
-                    bookings_response = parse_obj_as(
-                        List[BookingData], await res.json()
-                    )
+            async with HttpClient.singleton().get(
+                booking_url(self.brp_subdomain, auth_result, datetime.datetime.now()),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {auth_result.access_token}",
+                },
+            ) as res:
+                bookings_response = parse_obj_as(List[BookingData], await res.json())
         except requests.exceptions.RequestException as e:
             err.log(
                 f"Failed to retrieve booked classes for cancellation of class '{class_id}'",
@@ -182,18 +176,17 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             err.log(f"Authentication failed for '{chain_user.username}'!")
             return None
         try:
-            async with ClientSession(connector=create_tcp_connector()) as session:
-                async with session.get(
-                    booking_url(
-                        self.brp_subdomain,
-                        auth_result,
-                        start_time_point=start_time,
-                    ),
-                    headers={
-                        "Authorization": f"Bearer {auth_result.access_token}",
-                    },
-                ) as res:
-                    bookings_response: List[BookingData] = await res.json()
+            async with HttpClient.singleton().get(
+                booking_url(
+                    self.brp_subdomain,
+                    auth_result,
+                    start_time_point=start_time,
+                ),
+                headers={
+                    "Authorization": f"Bearer {auth_result.access_token}",
+                },
+            ) as res:
+                bookings_response: List[BookingData] = await res.json()
         except requests.exceptions.RequestException as e:
             err.log(
                 f"Failed to retrieve sessions for '{chain_user.username}'",

@@ -7,13 +7,13 @@ from aiohttp import ClientSession
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
+from rezervo.http_client import HttpClient, create_client_session
 from rezervo.providers.ibooking.urls import (
     AUTH_URL,
     BOOKING_URL,
     TOKEN_VALIDATION_URL,
 )
 from rezervo.schemas.config.user import ChainUser
-from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.logging_utils import err, warn
 
 USER_AGENT = (
@@ -23,8 +23,7 @@ USER_AGENT = (
 
 async def fetch_public_token() -> Union[str, AuthenticationError]:
     # use an unauthenticated session
-    async with ClientSession(connector=create_tcp_connector()) as session:
-        return await extract_token_from_session(session)
+    return await extract_token_from_session(HttpClient.singleton())
 
 
 async def authenticate_session(
@@ -61,7 +60,7 @@ async def authenticate_token(
         if validation_error is None:
             return chain_user.auth_token
         warn.log("Authentication token validation failed, retrieving fresh token...")
-    async with ClientSession(connector=create_tcp_connector()) as session:
+    async with create_client_session() as session:
         result = await authenticate_session(
             session, chain_user.username, chain_user.password
         )
@@ -82,16 +81,15 @@ async def authenticate_token(
 
 
 async def validate_token(token: str) -> Optional[AuthenticationError]:
-    async with ClientSession(connector=create_tcp_connector()) as session:
-        async with session.post(
-            TOKEN_VALIDATION_URL, data={"token": token}
-        ) as token_validation:
-            if token_validation.status != requests.codes.OK:
-                if token_validation.status != requests.codes.FORBIDDEN:
-                    err.log("Validation of authentication token failed")
-                    return AuthenticationError.TOKEN_VALIDATION_FAILED
-                return AuthenticationError.TOKEN_INVALID
-            token_info = await token_validation.json()
+    async with HttpClient.singleton().post(
+        TOKEN_VALIDATION_URL, data={"token": token}
+    ) as token_validation:
+        if token_validation.status != requests.codes.OK:
+            if token_validation.status != requests.codes.FORBIDDEN:
+                err.log("Validation of authentication token failed")
+                return AuthenticationError.TOKEN_VALIDATION_FAILED
+            return AuthenticationError.TOKEN_INVALID
+        token_info = await token_validation.json()
     if "info" in token_info and token_info["info"] == "client-readonly":
         err.log("Authentication failed, only acquired public readonly access")
         return AuthenticationError.TOKEN_INVALID

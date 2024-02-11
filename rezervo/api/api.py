@@ -15,8 +15,11 @@ from rezervo.api import (
     slack,
 )
 from rezervo.api.notifications import push
+from rezervo.http_client import HttpClient
 
-api = FastAPI()
+api = FastAPI(
+    on_startup=[HttpClient.singleton], on_shutdown=[HttpClient.close_singleton]
+)
 api.include_router(chains.router, tags=["chains"])
 api.include_router(schedules.router, tags=["schedules"])
 api.include_router(activity_categories.router, tags=["activity categories"])

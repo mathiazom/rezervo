@@ -6,9 +6,9 @@ from typing import Optional, Union
 
 import pydantic
 import requests
-from aiohttp import ClientSession
 
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.http_client import HttpClient, create_client_session
 from rezervo.providers.ibooking.auth import (
     USER_AGENT,
     IBookingAuthResult,
@@ -48,7 +48,6 @@ from rezervo.schemas.schedule import (
     RezervoSchedule,
     UserSession,
 )
-from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err
 
@@ -73,14 +72,13 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             return token
         print(f"Searching for class by id: {class_id}")
         # TODO: handle different domains
-        async with ClientSession(connector=create_tcp_connector()) as session:
-            async with session.get(
-                f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
-            ) as class_response:
-                if class_response.status != requests.codes.OK:
-                    err.log("Class get request failed")
-                    return BookingError.ERROR
-                ibooking_class = IBookingClass(**(await class_response.json())["class"])
+        async with HttpClient.singleton().get(
+            f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
+        ) as class_response:
+            if class_response.status != requests.codes.OK:
+                err.log("Class get request failed")
+                return BookingError.ERROR
+            ibooking_class = IBookingClass(**(await class_response.json())["class"])
         if ibooking_class is None:
             return BookingError.CLASS_MISSING
         return self.rezervo_class_from_ibooking_class(ibooking_class)
@@ -128,7 +126,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> Optional[list[UserSession]]:
-        async with ClientSession(connector=create_tcp_connector()) as session:
+        async with create_client_session() as session:
             auth_session = await authenticate_session(
                 session, chain_user.username, chain_user.password
             )
@@ -234,17 +232,16 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         # TODO: support different domains (not just sit.no)
         if domain != "sit":
             raise NotImplementedError()
-        async with ClientSession(connector=create_tcp_connector()) as session:
-            async with session.get(
-                f"{CLASSES_SCHEDULE_URL}"
-                f"?token={token}"
-                f"{f'&from={from_iso}' if from_iso is not None else ''}"
-                f"{('&studios=' + ','.join([str(s) for s in studios])) if studios else ''}"
-                f"&lang=no"
-            ) as res:
-                if res.status != requests.codes.OK:
-                    return None
-                json_res = await res.json()
+        async with HttpClient.singleton().get(
+            f"{CLASSES_SCHEDULE_URL}"
+            f"?token={token}"
+            f"{f'&from={from_iso}' if from_iso is not None else ''}"
+            f"{('&studios=' + ','.join([str(s) for s in studios])) if studios else ''}"
+            f"&lang=no"
+        ) as res:
+            if res.status != requests.codes.OK:
+                return None
+            json_res = await res.json()
         return RezervoSchedule(
             days=[
                 RezervoDay(
@@ -316,7 +313,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         return find_class_in_schedule_by_config(_class_config, schedule)
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
-        async with ClientSession(connector=create_tcp_connector()) as session:
+        async with create_client_session() as session:
             return not isinstance(
                 await authenticate_session(
                     session, credentials.username, credentials.password

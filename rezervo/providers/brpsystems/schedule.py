@@ -3,10 +3,10 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from urllib.parse import urlencode
 
-import aiohttp
 import requests
 from pydantic import ValidationError
 
+from rezervo.http_client import HttpClient
 from rezervo.providers.brpsystems.schema import (
     BrpActivityDetails,
     BrpClass,
@@ -14,7 +14,6 @@ from rezervo.providers.brpsystems.schema import (
     BrpSubdomain,
     DetailedBrpClass,
 )
-from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.logging_utils import warn
 
 BRP_MAX_SCHEDULE_DAYS_PER_FETCH = 14
@@ -37,14 +36,15 @@ async def fetch_brp_class(
     business_unit: int,
     class_id: str,
 ) -> Optional[BrpClass]:
-    async with aiohttp.ClientSession(connector=create_tcp_connector()) as session:
-        async with session.get(class_url(subdomain, business_unit, class_id)) as res:
-            if res.status != requests.codes.OK:
-                warn.log(
-                    f"Failed to fetch brp class with id {class_id}, received status {res.status}"
-                )
-                return None
-            json_result = await res.json()
+    async with HttpClient.singleton().get(
+        class_url(subdomain, business_unit, class_id)
+    ) as res:
+        if res.status != requests.codes.OK:
+            warn.log(
+                f"Failed to fetch brp class with id {class_id}, received status {res.status}"
+            )
+            return None
+        json_result = await res.json()
     try:
         return BrpClass(**json_result)
     except ValidationError:
@@ -57,35 +57,31 @@ async def fetch_detailed_brp_schedule(
     schedule: List[BrpClass],
 ) -> List[DetailedBrpClass]:
     class_details_map: dict[int, BrpActivityDetails] = {}
-    async with aiohttp.ClientSession(connector=create_tcp_connector()) as session:
-        fetch_detailed_activity_tasks = []
-        detected_activity_ids = set()
-        for brp_class in schedule:
-            activity_id = brp_class.groupActivityProduct.id
-            if brp_class.groupActivityProduct.id not in detected_activity_ids:
-                fetch_detailed_activity_tasks.append(
-                    session.get(
-                        detailed_activity_url(subdomain, activity_id),
-                    )
+    fetch_detailed_activity_tasks = []
+    detected_activity_ids = set()
+    for brp_class in schedule:
+        activity_id = brp_class.groupActivityProduct.id
+        if brp_class.groupActivityProduct.id not in detected_activity_ids:
+            fetch_detailed_activity_tasks.append(
+                HttpClient.singleton().get(
+                    detailed_activity_url(subdomain, activity_id),
                 )
-                detected_activity_ids.add(activity_id)
-        for res in await asyncio.gather(*fetch_detailed_activity_tasks):
-            if res.status != requests.codes.OK:
-                warn.log(
-                    f"Failed to fetch class detail for {subdomain} class with id {activity_id}, "
-                    f"received status {res.status}"
-                )
-                continue
-            details = BrpReceivedActivityDetails(**(await res.json()))
-            image_url = None
-            if details.assets is not None and len(details.assets) > 0:
-                image_url = details.assets[min(2, len(details.assets) - 1)].contentUrl
-            class_details_map[details.id] = BrpActivityDetails(
-                description=details.description
-                if details.description is not None
-                else "",
-                image_url=image_url,
             )
+            detected_activity_ids.add(activity_id)
+    for res in await asyncio.gather(*fetch_detailed_activity_tasks):
+        if res.status != requests.codes.OK:
+            warn.log(
+                f"Failed to fetch class detail for {subdomain}, received status {res.status}"
+            )
+            continue
+        details = BrpReceivedActivityDetails(**(await res.json()))
+        image_url = None
+        if details.assets is not None and len(details.assets) > 0:
+            image_url = details.assets[min(2, len(details.assets) - 1)].contentUrl
+        class_details_map[details.id] = BrpActivityDetails(
+            description=details.description if details.description is not None else "",
+            image_url=image_url,
+        )
     return [
         DetailedBrpClass(
             **brp_class.dict(),
@@ -117,35 +113,34 @@ async def fetch_brp_schedule(
         now = datetime.utcnow()
         from_date = datetime(now.year, now.month, now.day)
     days_left = days
-    async with aiohttp.ClientSession(connector=create_tcp_connector()) as session:
-        fetch_schedule_tasks = []
-        while days_left > 0:
-            batch_size = min(BRP_MAX_SCHEDULE_DAYS_PER_FETCH, days_left)
-            days_left -= batch_size
-            to_date = from_date + timedelta(days=batch_size)
-            query_params = {
-                "period.start": from_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
-                "period.end": to_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
-            }
-            fetch_schedule_tasks.append(
-                session.get(
-                    f"{classes_schedule_url(subdomain, business_unit)}?{urlencode(query_params)}"
-                )
+    fetch_schedule_tasks = []
+    while days_left > 0:
+        batch_size = min(BRP_MAX_SCHEDULE_DAYS_PER_FETCH, days_left)
+        days_left -= batch_size
+        to_date = from_date + timedelta(days=batch_size)
+        query_params = {
+            "period.start": from_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
+            "period.end": to_date.strftime("%Y-%m-%dT%H:%M:%S") + ".000Z",
+        }
+        fetch_schedule_tasks.append(
+            HttpClient.singleton().get(
+                f"{classes_schedule_url(subdomain, business_unit)}?{urlencode(query_params)}"
             )
-            from_date = to_date
-        for res in await asyncio.gather(*fetch_schedule_tasks):
-            if res.status != requests.codes.OK:
-                raise Exception("Failed to fetch brp schedule")
-            for item in await res.json():
-                if (
-                    item.get("bookableEarliest") is None
-                    or item.get("bookableLatest") is None
-                ):
-                    continue
-                try:
-                    classes.append(BrpClass(**item))
-                except ValidationError:
-                    warn.log("Failed to parse brp class", item)
-                    continue
+        )
+        from_date = to_date
+    for res in await asyncio.gather(*fetch_schedule_tasks):
+        if res.status != requests.codes.OK:
+            raise Exception("Failed to fetch brp schedule")
+        for item in await res.json():
+            if (
+                item.get("bookableEarliest") is None
+                or item.get("bookableLatest") is None
+            ):
+                continue
+            try:
+                classes.append(BrpClass(**item))
+            except ValidationError:
+                warn.log("Failed to parse brp class", item)
+                continue
     # remove any duplicates (if somehow classes are included in multiple batches)
     return deduplicated_brp_schedule(classes)

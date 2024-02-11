@@ -3,14 +3,13 @@ from typing import Optional
 
 import pytz
 import requests
-from aiohttp import ClientSession
 
+from rezervo.http_client import HttpClient
 from rezervo.providers.brpsystems.schema import (
     BookingType,
     BrpAuthResult,
     BrpSubdomain,
 )
-from rezervo.utils.aiohttp_utils import create_tcp_connector
 from rezervo.utils.logging_utils import err
 
 SCHEDULE_SEARCH_ATTEMPT_DAYS = 7
@@ -36,19 +35,18 @@ def booking_url(
 async def book_brp_class(
     subdomain: BrpSubdomain, auth_result: BrpAuthResult, class_id: int
 ) -> bool:
-    async with ClientSession(connector=create_tcp_connector()) as session:
-        async with session.post(
-            booking_url(subdomain, auth_result, datetime.now()),
-            json={"groupActivity": class_id, "allowWaitingList": True},
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {auth_result.access_token}",
-            },
-        ) as res:
-            if res.status != 201:
-                err.log("Booking attempt failed: " + (await res.text()))
-                return False
-            return True
+    async with HttpClient.singleton().post(
+        booking_url(subdomain, auth_result, datetime.now()),
+        json={"groupActivity": class_id, "allowWaitingList": True},
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {auth_result.access_token}",
+        },
+    ) as res:
+        if res.status != 201:
+            err.log("Booking attempt failed: " + (await res.text()))
+            return False
+        return True
 
 
 async def cancel_brp_booking(
@@ -58,15 +56,14 @@ async def cancel_brp_booking(
     booking_type: BookingType,
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
-    async with ClientSession(connector=create_tcp_connector()) as session:
-        res = await session.delete(
-            f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type.value}",
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {auth_result.access_token}",
-            },
-        )
-    if res.status != requests.codes.NO_CONTENT:
-        err.log("Booking cancellation attempt failed: " + (await res.text()))
-        return False
+    async with HttpClient.singleton().delete(
+        f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type.value}",
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {auth_result.access_token}",
+        },
+    ) as res:
+        if res.status != requests.codes.NO_CONTENT:
+            err.log("Booking cancellation attempt failed: " + (await res.text()))
+            return False
     return True
