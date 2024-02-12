@@ -14,7 +14,7 @@ class RezervoCategory(RezervoBaseCategory):
 
 OTHER_ACTIVITY_CATEGORY = RezervoCategory(
     name="Annet",
-    color="#FFFF66",
+    color="#FFEE00",
     keywords=["happening", "event"],
 )
 
@@ -22,7 +22,7 @@ ACTIVITY_CATEGORIES = [
     OTHER_ACTIVITY_CATEGORY,
     RezervoCategory(
         name="Tilleggstjenester",
-        color="#f4eded",
+        color="#CFCFCF",
         keywords=["tilleggstjenester", "barnepass", "kroppsanalyse"],
     ),
     RezervoCategory(
