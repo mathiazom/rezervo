@@ -170,7 +170,7 @@ class SlackClassNotificationReceipt(Base):
 
 
 class UserRelation(Base):
-    __tablename__ = "user_relation"
+    __tablename__ = "user_relations"
     id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
     user_one = Column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
