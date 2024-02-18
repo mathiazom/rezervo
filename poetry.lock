@@ -1498,14 +1498,14 @@ test = ["flaky", "pretend", "pytest (>=3.0.1)"]
 
 [[package]]
 name = "python-crontab"
-version = "2.7.1"
+version = "3.0.0"
 description = "Python Crontab API"
 category = "main"
 optional = false
 python-versions = "*"
 files = [
-    {file = "python-crontab-2.7.1.tar.gz", hash = "sha256:b21af4647c7bbb848fef2f020616c6b0289dcb9f94b4f991a55310ff9bec5749"},
-    {file = "python_crontab-2.7.1-py3-none-any.whl", hash = "sha256:9c374d1c9d401afdd8dd958f20077f74c158ab3fffb9604296802715e887fe48"},
+    {file = "python-crontab-3.0.0.tar.gz", hash = "sha256:79fb7465039ddfd4fb93d072d6ee0d45c1ac8bf1597f0686ea14fd4361dba379"},
+    {file = "python_crontab-3.0.0-py3-none-any.whl", hash = "sha256:6d5ba3c190ec76e4d252989a1644fcb233dbf53fbc8fceeb9febe1657b9fb1d4"},
 ]
 
 [package.dependencies]
@@ -2124,4 +2124,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "0c680185e21c4b584473bfe1d38adcbe0781311e215dc8c43ea95394a5bf9750"
+content-hash = "4dce3a0bf132efd60b909b0c488b8eb2cf2388be45af33cd2e4674a91a05b6a7"
