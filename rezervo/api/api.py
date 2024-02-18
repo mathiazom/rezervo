@@ -13,6 +13,7 @@ from rezervo.api import (
     schedules,
     sessions,
     slack,
+    user,
 )
 from rezervo.api.notifications import push
 from rezervo.http_client import HttpClient
@@ -31,3 +32,4 @@ api.include_router(sessions.router, tags=["sessions"])
 api.include_router(cal.router, tags=["calendar"])
 api.include_router(push.router, tags=["notifications"])
 api.include_router(slack.router, tags=["slack"])
+api.include_router(user.router, tags=["user"])
