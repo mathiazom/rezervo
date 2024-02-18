@@ -12,7 +12,7 @@ from rezervo.settings import Settings, get_settings
 router = APIRouter()
 
 
-@router.put("/user")
+@router.put("/user", status_code=status.HTTP_204_NO_CONTENT)
 def upsert_user(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
