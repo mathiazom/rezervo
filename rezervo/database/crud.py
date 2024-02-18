@@ -1,13 +1,22 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
 
+from fastapi import HTTPException
 from sqlalchemy import delete
 from sqlalchemy.orm import Session
+from starlette import status
 
 from rezervo import models
 from rezervo.auth import auth0
-from rezervo.models import SessionState
+from rezervo.models import SessionState, UserRelation
+from rezervo.schemas.community import (
+    Community,
+    CommunityUser,
+    UserRelationship,
+    UserRelationshipAction,
+)
 from rezervo.schemas.config import admin
 from rezervo.schemas.config.admin import AdminConfig
 from rezervo.schemas.config.config import (
@@ -372,3 +381,118 @@ def purge_slack_receipts(db) -> int:
     )
     db.commit()
     return row_count
+
+
+def get_user_relationship_index(db: Session, user_id: UUID):
+    relationships = (
+        db.query(UserRelation)
+        .filter((UserRelation.user_one == user_id) | (UserRelation.user_two == user_id))
+        .all()
+    )
+
+    user_relationship_index = {}
+    for relationship in relationships:
+        other_user_id = (
+            relationship.user_two
+            if relationship.user_one == user_id
+            else relationship.user_one
+        )
+        # Make sure the perspective of the friend request is correct
+        relationship_status = (
+            UserRelationship.REQUEST_RECEIVED
+            if relationship.user_two == user_id
+            and relationship.relationship == UserRelationship.REQUEST_SENT
+            else relationship.relationship
+        )
+        user_relationship_index[other_user_id] = relationship_status
+    return user_relationship_index
+
+
+def get_community(db: Session, user_id: UUID) -> Community:
+    users = (
+        db.query(models.User)
+        .filter(models.User.id != user_id)
+        .order_by(models.User.name)
+        .all()
+    )
+    chain_users = (
+        db.query(models.ChainUser).filter(models.ChainUser.user_id != user_id).all()
+    )
+
+    user_to_chain_map: defaultdict[UUID, list[str]] = defaultdict(list)
+    for chain_user in chain_users:
+        user_to_chain_map[chain_user.user_id].append(chain_user.chain)
+
+    user_relationship_index = get_user_relationship_index(db, user_id)
+
+    return Community(
+        users=[
+            CommunityUser(
+                user_id=user.id,
+                name=user.name,
+                chains=user_to_chain_map.get(user.id, []),
+                relationship=user_relationship_index.get(
+                    user.id, UserRelationship.UNKNOWN
+                ),
+            )
+            for user in users
+        ]
+    )
+
+
+def modify_user_relationship(
+    db: Session, user_id: UUID, other_user_id: UUID, action: UserRelationshipAction
+):
+    if not db.query(models.User).filter(models.User.id == other_user_id).first():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Other user not found"
+        )
+
+    existing_relation = (
+        db.query(UserRelation)
+        .filter(
+            (
+                (UserRelation.user_one == user_id)
+                & (UserRelation.user_two == other_user_id)
+            )
+            | (
+                (UserRelation.user_one == other_user_id)
+                & (UserRelation.user_two == user_id)
+            )
+        )
+        .first()
+    )
+
+    if action == UserRelationshipAction.ADD_FRIEND:
+        if existing_relation:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Relationship already exists",
+            )
+        new_relation = UserRelation(
+            user_one=user_id,
+            user_two=other_user_id,
+            relationship=UserRelationship.REQUEST_SENT,
+        )
+        db.add(new_relation)
+        db.commit()
+
+        return UserRelationship.REQUEST_SENT
+
+    if action in [
+        UserRelationshipAction.REMOVE_FRIEND,
+        UserRelationshipAction.DENY_FRIEND,
+    ]:
+        if existing_relation:
+            db.delete(existing_relation)
+            db.commit()
+        return UserRelationship.UNKNOWN
+
+    if action == UserRelationshipAction.ACCEPT_FRIEND:
+        if not existing_relation or existing_relation.user_two != user_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
+        existing_relation.relationship = UserRelationship.FRIEND
+        db.commit()
+        return UserRelationship.FRIEND
+
+    raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

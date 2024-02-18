@@ -8,6 +8,7 @@ from rezervo.api import (
     cal,
     chain_config,
     chains,
+    community,
     features,
     preferences,
     schedules,
@@ -33,3 +34,4 @@ api.include_router(cal.router, tags=["calendar"])
 api.include_router(push.router, tags=["notifications"])
 api.include_router(slack.router, tags=["slack"])
 api.include_router(user.router, tags=["user"])
+api.include_router(community.router, tags=["community"])

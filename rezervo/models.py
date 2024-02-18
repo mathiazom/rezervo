@@ -15,6 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 from rezervo.database.base_class import Base
+from rezervo.schemas.community import UserRelationship
 
 
 class User(Base):
@@ -165,4 +166,30 @@ class SlackClassNotificationReceipt(Base):
             f"class_id='{self.class_id}' channel_id='{self.channel_id}' message_id='{self.message_id}'' "
             f"scheduled_reminder_id='{self.scheduled_reminder_id}' "
             f"expires_at='{self.expires_at.isoformat() if self.expires_at is not None else None}')>"
+        )
+
+
+class UserRelation(Base):
+    __tablename__ = "user_relations"
+    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
+    user_one = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
+    )
+    user_two = Column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
+    )
+    relationship = Column(Enum(UserRelationship))
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_one",
+            "user_two",
+            name="unique_user_relation",
+        ),
+    )
+
+    def __repr__(self):
+        return (
+            f"<UserRelation (user_one='{self.user_one}' user_two='{self.user_two}' "
+            f"relationship='{self.relationship}')>"
         )

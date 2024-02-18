@@ -9,6 +9,7 @@ from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.chains.active import get_chain
 from rezervo.cron import refresh_cron
 from rezervo.database import crud
+from rezervo.schemas.community import UserRelationship
 from rezervo.schemas.config.user import (
     BaseChainConfig,
     ChainConfig,
@@ -117,8 +118,15 @@ def get_all_configs_index(
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     active_chain_users = crud.get_chain_users(db, chain_identifier, active_only=True)
+    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)
+    friendly_chain_users = [
+        cu
+        for cu in active_chain_users
+        if cu.user_id == db_user.id
+        or user_relationship_index.get(cu.user_id) == UserRelationship.FRIEND
+    ]
     user_configs_dict: dict[str, list[UserNameWithIsSelf]] = {}
-    for chain_user in active_chain_users:
+    for chain_user in friendly_chain_users:
         dbu = crud.get_user(db, chain_user.user_id)
         if dbu is None:
             continue

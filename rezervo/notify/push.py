@@ -127,3 +127,15 @@ def notify_auth_failure_web_push(
         f"Auth {'check ' if check_run else ''}failure notification posted successfully via web push"
     )
     return
+
+
+def notify_friend_request_web_push(
+    subscription: PushNotificationSubscription, sender_name: str
+) -> None:
+    if not notify_web_push(
+        subscription, f"{sender_name} har sendt deg en venneforespørsel"
+    ):
+        err.log("Failed to send friend request notification via web push")
+        return
+    print("Friend request notification posted successfully via web push")
+    return
