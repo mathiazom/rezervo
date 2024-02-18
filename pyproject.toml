@@ -45,8 +45,8 @@ python-crontab = "^2.7.1"
 deepmerge = "^1.1.0"
 auth0-python = "^4.7.0"
 icalendar = "^5.0.7"
-black = "^23.7.0"
-ruff = "^0.0.285"
+black = "^24.2.0"
+ruff = "^0.2.2"
 pywebpush = "^1.14.0"
 croniter = "^2.0.1"
 humanize = "^4.9.0"
@@ -88,7 +88,7 @@ help = "Lint code using ruff"
 cmd = "mypy rezervo"
 help = "Check typing using mypy"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = [
     "E",    # pycodestyle errors
     "W",    # pycodestyle warnings
@@ -104,7 +104,7 @@ ignore = [
     "C901",  # too complex
 ]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "rezervo/alembic/env.py" = ["E402"]
 
 [tool.mypy]

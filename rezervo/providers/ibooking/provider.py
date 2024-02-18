@@ -299,14 +299,16 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             domain,
             token,
             14,
-            studios=[studio]
-            if (
-                studio := self.provider_location_identifier_from_location_identifier(
-                    _class_config.location_id
+            studios=(
+                [studio]
+                if (
+                    studio := self.provider_location_identifier_from_location_identifier(
+                        _class_config.location_id
+                    )
                 )
-            )
-            is not None
-            else None,
+                is not None
+                else None
+            ),
         )
         if schedule is None:
             err.log("Schedule get request denied")

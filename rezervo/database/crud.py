@@ -59,9 +59,11 @@ def create_user(db: Session, name: str, jwt_sub: str, slack_id: Optional[str] = 
         jwt_sub=jwt_sub,
         cal_token=generate_calendar_token(),
         admin_config=admin.AdminConfig(
-            notifications=admin.Notifications(slack=admin.Slack(user_id=slack_id))
-            if slack_id is not None
-            else None,
+            notifications=(
+                admin.Notifications(slack=admin.Slack(user_id=slack_id))
+                if slack_id is not None
+                else None
+            ),
         ).dict(),
         preferences=UserPreferences().dict(),
     )

@@ -310,14 +310,18 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                 id=brp_class.groupActivityProduct.id,
                 name=re.sub(r"\s\(\d+\)$", "", brp_class.groupActivityProduct.name),
                 category=category.name,
-                description=brp_class.activity_details.description
-                if isinstance(brp_class, DetailedBrpClass)
-                else "",
+                description=(
+                    brp_class.activity_details.description
+                    if isinstance(brp_class, DetailedBrpClass)
+                    else ""
+                ),
                 additional_information=brp_class.externalMessage,
                 color=category.color,
-                image=brp_class.activity_details.image_url
-                if isinstance(brp_class, DetailedBrpClass)
-                else None,
+                image=(
+                    brp_class.activity_details.image_url
+                    if isinstance(brp_class, DetailedBrpClass)
+                    else None
+                ),
             ),
             instructors=[RezervoInstructor(name=s.name) for s in brp_class.instructors],
             user_status=None,

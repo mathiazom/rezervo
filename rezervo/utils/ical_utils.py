@@ -38,9 +38,11 @@ def ical_event_from_session(session: UserSession, timezone: str) -> Optional[cal
     event.add("dtstamp", datetime.now())
     event.add(
         "status",
-        "CONFIRMED"
-        if session.status in [SessionState.BOOKED, SessionState.CONFIRMED]
-        else "TENTATIVE",
+        (
+            "CONFIRMED"
+            if session.status in [SessionState.BOOKED, SessionState.CONFIRMED]
+            else "TENTATIVE"
+        ),
     )
     event.add(
         "sequence",
