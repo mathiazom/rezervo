@@ -184,9 +184,11 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                     chain=chain_user.chain,
                     class_id=_class.id,
                     user_id=chain_user.user_id,
-                    status=SessionState.WAITLIST
-                    if training.waitingListIndex > 0
-                    else SessionState.BOOKED,
+                    status=(
+                        SessionState.WAITLIST
+                        if training.waitingListIndex > 0
+                        else SessionState.BOOKED
+                    ),
                     class_data=SessionRezervoClass(**_class.__dict__),
                 )
                 user_sessions.append(user_session)
