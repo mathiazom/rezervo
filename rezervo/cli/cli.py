@@ -7,7 +7,7 @@ import uvicorn
 from rich import print as rprint
 
 from rezervo.api import api
-from rezervo.chains.common import book_class, find_class
+from rezervo.chains.common import authenticate, book_class, find_class
 from rezervo.cli.async_cli import AsyncTyper
 from rezervo.cli.cron import cron_cli
 from rezervo.cli.sessions import sessions_cli
@@ -77,6 +77,8 @@ async def book(
                 check_run,
             )
         return
+    print("Authenticating chain user...")
+    auth_result = await authenticate(chain_user, config.auth.max_attempts)
     print("Searching for class...")
     class_search_result = await find_class(chain_identifier, _class_config)
     if isinstance(class_search_result, AuthenticationError):
@@ -131,7 +133,7 @@ async def book(
         time.sleep(wait_time)
         print(f"Awoke at {datetime.now().astimezone()}")
     print("Booking class...")
-    booking_result = await book_class(chain_user, _class, config)
+    booking_result = await book_class(chain_user.chain, auth_result, _class, config)
     if isinstance(booking_result, AuthenticationError):
         if config.notifications is not None:
             notify_auth_failure(config.notifications, booking_result, check_run)

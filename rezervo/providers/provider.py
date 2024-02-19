@@ -18,6 +18,7 @@ from rezervo.providers.schema import (
 from rezervo.providers.sessions import get_user_planned_sessions_from_schedule
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import (
+    ChainIdentifier,
     ChainUser,
     ChainUserCredentials,
     Class,
@@ -127,16 +128,18 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         raise NotImplementedError()
 
     async def try_book_class(
-        self, chain_user: ChainUser, _class: RezervoClass, config: ConfigValue
+        self,
+        chain_identifier: ChainIdentifier,
+        auth_result: AuthResult,
+        _class: RezervoClass,
+        config: ConfigValue,
     ) -> Union[None, BookingError, AuthenticationError]:
         max_attempts = config.booking.max_attempts
         if max_attempts < 1:
             err.log("Max booking attempts should be a positive number")
             return BookingError.INVALID_CONFIG
-        print("Authenticating...")
-        auth_result = await self.try_authenticate(chain_user, config.auth.max_attempts)
         if isinstance(auth_result, AuthenticationError):
-            err.log("Authentication failed")
+            err.log("Invalid authentication")
             return auth_result
         token = auth_result
         booked = False
@@ -163,7 +166,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         )
         if config.notifications:
             # ical_url = f"{ICAL_URL}/?id={_class.id}&token={token}"    # TODO: consider re-introducing ical
-            await notify_booking(config.notifications, chain_user.chain, _class)
+            await notify_booking(config.notifications, chain_identifier, _class)
         return None
 
     @abstractmethod
@@ -175,18 +178,13 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         raise NotImplementedError()
 
     async def try_cancel_booking(
-        self,
-        chain_user: ChainUser,
-        _class: RezervoClass,
-        config: ConfigValue,
+        self, auth_result: AuthResult, _class: RezervoClass, config: ConfigValue
     ) -> Union[None, BookingError, AuthenticationError]:
         if config.booking.max_attempts < 1:
             err.log("Max booking cancellation attempts should be a positive number")
             return BookingError.INVALID_CONFIG
-        print("Authenticating...")
-        auth_result = await self.try_authenticate(chain_user, config.auth.max_attempts)
         if isinstance(auth_result, AuthenticationError):
-            err.log("Authentication failed")
+            err.log("Invalid authentication")
             return auth_result
         token = auth_result
         cancelled = False

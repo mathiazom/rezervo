@@ -5,7 +5,7 @@ from rezervo.chains.active import get_chain
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.slack import delete_scheduled_dm_slack, notify_cancellation_slack
-from rezervo.providers.schema import LocationIdentifier
+from rezervo.providers.schema import AuthResult, LocationIdentifier
 from rezervo.schemas.config.config import ConfigValue, Slack
 from rezervo.schemas.config.user import (
     ChainIdentifier,
@@ -29,22 +29,37 @@ async def find_class(
     return await get_chain(chain_identifier).find_class(_class_config)
 
 
+async def authenticate(
+    chain_user: ChainUser,
+    max_attempts: int,
+) -> Union[AuthResult, AuthenticationError]:
+    return await get_chain(chain_user.chain).try_authenticate(chain_user, max_attempts)
+
+
 async def book_class(
-    chain_user: ChainUser, _class: RezervoClass, config: ConfigValue
+    chain_identifier: ChainIdentifier,
+    auth_result: AuthResult,
+    _class: RezervoClass,
+    config: ConfigValue,
 ) -> Union[None, BookingError, AuthenticationError]:
-    return await get_chain(chain_user.chain).try_book_class(chain_user, _class, config)
+    return await get_chain(chain_identifier).try_book_class(
+        chain_identifier, auth_result, _class, config
+    )
 
 
 async def cancel_booking(
-    chain_user: ChainUser, _class: RezervoClass, config: ConfigValue
+    chain_identifier: ChainIdentifier,
+    auth_result: AuthResult,
+    _class: RezervoClass,
+    config: ConfigValue,
 ) -> Union[None, BookingError, AuthenticationError]:
-    res = await get_chain(chain_user.chain).try_cancel_booking(
-        chain_user, _class, config
+    res = await get_chain(chain_identifier).try_cancel_booking(
+        auth_result, _class, config
     )
     if res is None:
         if config.notifications is not None and config.notifications.slack is not None:
             update_slack_notifications_with_cancellation(
-                chain_user.chain, _class, config.notifications.slack
+                chain_identifier, _class, config.notifications.slack
             )
         else:
             warn.log(

@@ -11,7 +11,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 
 from rezervo.api.common import get_db
-from rezervo.chains.common import cancel_booking, find_class_by_id
+from rezervo.chains.common import authenticate, cancel_booking, find_class_by_id
 from rezervo.consts import (
     SLACK_ACTION_ADD_BOOKING_TO_CALENDAR,
     SLACK_ACTION_CANCEL_BOOKING,
@@ -86,7 +86,15 @@ async def handle_cancel_booking_slack_action(
                     _class_res,
                 )
             return
-    cancellation_error = await cancel_booking(chain_user, _class_res, config)
+    print("Authenticating chain user...")
+    auth_result = await authenticate(chain_user, config.auth.max_attempts)
+    if isinstance(auth_result, AuthenticationError):
+        return Response(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+        )
+    cancellation_error = await cancel_booking(
+        chain_user.chain, auth_result, _class_res, config
+    )
     if cancellation_error is not None:
         if slack_config is not None:
             notify_cancellation_failure_slack(
