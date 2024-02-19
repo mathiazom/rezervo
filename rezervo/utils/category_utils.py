@@ -33,7 +33,15 @@ ACTIVITY_CATEGORIES = [
     RezervoCategory(
         name="Mosjon",
         color="#00B050",
-        keywords=["mosjon", "godt voksen", "mamma", "mor og barn", "senior", "baby"],
+        keywords=[
+            "mosjon",
+            "godt voksen",
+            "mamma",
+            "mor og barn",
+            "senior",
+            "baby",
+            "mama",
+        ],
     ),
     RezervoCategory(
         name="Dans",
@@ -58,13 +66,14 @@ ACTIVITY_CATEGORIES = [
             "grounding",
             "bodybalance",
             "ashtanga",
-            "shapes",
+            "shape",
+            "flexibility",
         ],
     ),
     RezervoCategory(
         name="Spinning",
         color="#4C2C7E",
-        keywords=["spin", "sykkel", "ride", "rpm"],
+        keywords=["spin", "sykkel", "ride", "rpm", "cycling"],
     ),
     RezervoCategory(
         name="Kondisjon",
@@ -81,6 +90,7 @@ ACTIVITY_CATEGORIES = [
             "aerobic",
             "run",
             "combat",
+            "prformance",
         ],
     ),
     RezervoCategory(
@@ -107,6 +117,7 @@ ACTIVITY_CATEGORIES = [
             "booty",
             "bootcamp",
             "olympia",
+            "absolution",
         ],
     ),
 ]
