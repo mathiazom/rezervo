@@ -21,7 +21,7 @@ from rezervo.schemas.config.user import (
 )
 from rezervo.sessions import pull_sessions
 from rezervo.utils.config_utils import class_config_recurrent_id
-from rezervo.utils.logging_utils import err, stat
+from rezervo.utils.logging_utils import err
 from rezervo.utils.time_utils import readable_seconds
 
 cli = AsyncTyper()
@@ -42,23 +42,23 @@ async def book(
     """
     Book the class with config index matching the given class id
     """
-    with stat("Loading config..."):
-        with SessionLocal() as db:
-            user_config = crud.get_user_config_by_id(db, user_id)
-            chain_user = crud.get_chain_user(db, chain_identifier, user_id)
-        if user_config is None:
-            err.log("Failed to load config, aborted.")
-            return
-        config = user_config.config
-        if chain_user is None:
-            err.log(f"No {chain_identifier} user for given user id, aborted booking.")
-            if config.notifications is not None:
-                notify_auth_failure(
-                    config.notifications,
-                    error=AuthenticationError.ERROR,
-                    check_run=check_run,
-                )
-            return
+    print("Loading config...")
+    with SessionLocal() as db:
+        user_config = crud.get_user_config_by_id(db, user_id)
+        chain_user = crud.get_chain_user(db, chain_identifier, user_id)
+    if user_config is None:
+        err.log("Failed to load config, aborted.")
+        return
+    config = user_config.config
+    if chain_user is None:
+        err.log(f"No {chain_identifier} user for given user id, aborted booking.")
+        if config.notifications is not None:
+            notify_auth_failure(
+                config.notifications,
+                error=AuthenticationError.ERROR,
+                check_run=check_run,
+            )
+        return
     _class_config = None
     for r in chain_user.recurring_bookings:
         if class_config_recurrent_id(r) == class_id:
@@ -77,22 +77,20 @@ async def book(
                 check_run,
             )
         return
-    with stat("Searching for class..."):
-        class_search_result = await find_class(chain_identifier, _class_config)
-        if isinstance(class_search_result, AuthenticationError):
-            err.log("Abort!")
-            if config.notifications is not None:
-                notify_auth_failure(
-                    config.notifications, class_search_result, check_run
-                )
-            return
-        if isinstance(class_search_result, BookingError):
-            err.log("Abort!")
-            if config.notifications is not None:
-                notify_booking_failure(
-                    config.notifications, _class_config, class_search_result, check_run
-                )
-            return
+    print("Searching for class...")
+    class_search_result = await find_class(chain_identifier, _class_config)
+    if isinstance(class_search_result, AuthenticationError):
+        err.log("Abort!")
+        if config.notifications is not None:
+            notify_auth_failure(config.notifications, class_search_result, check_run)
+        return
+    if isinstance(class_search_result, BookingError):
+        err.log("Abort!")
+        if config.notifications is not None:
+            notify_booking_failure(
+                config.notifications, _class_config, class_search_result, check_run
+            )
+        return
     if check_run:
         rprint(":heavy_check_mark: Check complete, all seems fine.")
         raise typer.Exit()
@@ -132,8 +130,8 @@ async def book(
         )
         time.sleep(wait_time)
         print(f"Awoke at {datetime.now().astimezone()}")
-    with stat("Booking class..."):
-        booking_result = await book_class(chain_user, _class, config)
+    print("Booking class...")
+    booking_result = await book_class(chain_user, _class, config)
     if isinstance(booking_result, AuthenticationError):
         if config.notifications is not None:
             notify_auth_failure(config.notifications, booking_result, check_run)
@@ -144,8 +142,8 @@ async def book(
                 config.notifications, _class_config, booking_result, check_run
             )
         raise typer.Exit(1)
-    with stat("Pulling sessions..."):
-        await pull_sessions(chain_identifier, user_id)
+    print("Pulling sessions...")
+    await pull_sessions(chain_identifier, user_id)
 
 
 @cli.command(
