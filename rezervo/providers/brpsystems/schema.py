@@ -188,9 +188,9 @@ class UserDetails(BaseModel):
     ssn: Optional[str] = None
     birthDate: str
     shippingAddress: ShippingAddress
-    billingAddress: Optional[dict] = (
-        None  # You can create a separate BillingAddress class if needed
-    )
+    billingAddress: Optional[
+        dict
+    ] = None  # You can create a separate BillingAddress class if needed
     email: str
     mobilePhone: MobilePhone
     businessUnit: BusinessUnit  # Reusing existing BusinessUnit schema

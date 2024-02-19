@@ -1,0 +1,72 @@
+from typing import TypeAlias
+
+from pydantic import BaseModel
+
+SatsLocationIdentifier: TypeAlias = int
+
+
+class SatsClassImage(BaseModel):
+    alt: str
+    src: str
+
+
+class SatsClassDetail(BaseModel):
+    clubName: str
+    duration: int
+    durationText: str
+    instructor: str
+    name: str
+    startsAt: str
+
+
+class SatsClass(BaseModel):
+    id: str
+    hasWaitingList: bool
+    image: SatsClassImage
+    isBooked: bool
+    metadata: SatsClassDetail
+    text: str
+    waitingListCount: int
+
+
+class SatsDaySchedule(BaseModel):
+    date: str
+    events: list[SatsClass]
+
+
+class SatsWeekSchedule(BaseModel):
+    events: list[SatsDaySchedule]
+
+
+class SatsScheduleResponse(BaseModel):
+    schedule: SatsWeekSchedule
+
+
+class SatsBookingHiddenInput(BaseModel):
+    name: str
+    value: str
+
+
+class SatsBooking(BaseModel):
+    activityName: str
+    bookedCount: int
+    capacity: int
+    centerName: str
+    date: str
+    endTime: str
+    hiddenInput: list[SatsBookingHiddenInput]
+    instructor: str
+    startTime: str
+    waitingListIndex: int
+
+
+class SatsBookings(BaseModel):
+    trainings: list[SatsBooking]
+
+
+class SatsDayBookings(BaseModel):
+    upcomingTrainings: SatsBookings
+
+
+class SatsBookingsResponse(BaseModel):
+    myUpcomingTraining: list[SatsDayBookings]
