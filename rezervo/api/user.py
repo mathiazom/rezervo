@@ -29,7 +29,7 @@ def upsert_user(
     if not isinstance(jwt_sub, str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
-    name = auth0_mgmt_client.users.get(jwt_sub)["name"]  # type: ignore
+    name = auth0_mgmt_client.users.get(jwt_sub, ["name"])["name"]  # type: ignore
 
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:

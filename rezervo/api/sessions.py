@@ -45,7 +45,7 @@ def get_sessions_index(
         or user_relationship_index.get(dbs.user_id) == UserRelationship.FRIEND
     ]
     user_name_lookup = {
-        u.id: auth0_mgmt_client.users.get(u.jwt_sub)["name"]  # type: ignore
+        u.id: auth0_mgmt_client.users.get(u.jwt_sub, ["name"])["name"]  # type: ignore
         for u in db.query(models.User).all()
     }
     session_dict: dict[str, list[UserNameSessionStatus]] = {}
