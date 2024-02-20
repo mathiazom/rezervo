@@ -1,30 +1,30 @@
-import datetime
+import asyncio
 import re
+from datetime import datetime, timedelta
 from typing import Optional, Union
 
 from aiohttp import ClientSession, FormData
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.http_client import HttpClient, create_client_session
+from rezervo.http_client import create_client_session
 from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
 from rezervo.providers.sats.auth import authenticate_session
 from rezervo.providers.sats.helpers import retrive_sats_page_props
+from rezervo.providers.sats.schedule import (
+    fetch_sats_classes,
+)
 from rezervo.providers.sats.schema import (
     SatsBookingsResponse,
     SatsClass,
-    SatsDaySchedule,
     SatsLocationIdentifier,
-    SatsScheduleResponse,
-    SatsWeekSchedule,
 )
 from rezervo.providers.sats.urls import (
     BOOKING_URL,
     BOOKINGS_PATH,
     BOOKINGS_URL,
     UNBOOK_URL,
-    schedule_url,
 )
 from rezervo.providers.schema import LocationIdentifier
 from rezervo.schemas.config.user import (
@@ -66,7 +66,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
         )
         if location_id is None:
             raise BookingError.MALFORMED_CLASS
-        schedule = await self.fetch_schedule(datetime.datetime.now(), 14, [location_id])
+        schedule = await self.fetch_schedule(datetime.now(), 14, [location_id])
         for day in schedule.days:
             for _class in day.classes:
                 if _class.id == class_id:
@@ -77,7 +77,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
         self, _class_config: Class
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         schedule = await self.fetch_schedule(
-            datetime.datetime.now(), 14, [_class_config.location_id]
+            datetime.now(), 14, [_class_config.location_id]
         )
         for day in schedule.days:
             for _class in day.classes:
@@ -115,7 +115,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
 
         for day_bookings in sats_day_bookings:
             for booking in day_bookings.upcomingTrainings.trainings:
-                start_time = datetime.datetime.strptime(
+                start_time = datetime.strptime(
                     booking.date + " " + booking.startTime, "%Y-%m-%d %H:%M"
                 ).astimezone()
                 if (
@@ -154,7 +154,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
         user_sessions = []
         for day_booking in sats_day_bookings:
             for training in day_booking.upcomingTrainings.trainings:
-                start_time = datetime.datetime.strptime(
+                start_time = datetime.strptime(
                     training.date + " " + training.startTime, "%Y-%m-%d %H:%M"
                 )
                 provider_location_id_match = re.search(
@@ -197,7 +197,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
 
     async def fetch_schedule(
         self,
-        from_date: datetime.datetime,
+        from_date: datetime,
         days: int,
         locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
@@ -205,51 +205,37 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
             str(self.provider_location_identifier_from_location_identifier(loc) or "")
             for loc in locations
         ]
-        res = await HttpClient.singleton().get(schedule_url(club_ids))
-        sats_schedule = SatsScheduleResponse(
-            **retrive_sats_page_props(str(await res.read()))
-        ).schedule
-        return self._rezervo_schedule_from_sats_schedule(
-            SatsWeekSchedule(
-                events=[
-                    next(
-                        (
-                            day
-                            for day in (sats_schedule.events or [])
-                            if day.date
-                            == (from_date + datetime.timedelta(days=i)).strftime(
-                                "%Y-%m-%d"
-                            )
-                        ),
-                        SatsDaySchedule(
-                            date=(from_date + datetime.timedelta(days=i)).strftime(
-                                "%Y-%m-%d"
-                            ),
-                            events=[],
-                        ),
+
+        return RezervoSchedule(
+            days=await asyncio.gather(
+                *(
+                    self.fetch_sats_classes_as_rezervo_day(
+                        from_date + timedelta(days=i), club_ids
                     )
                     for i in range(days)
-                ]
+                )
             )
         )
 
-    def _rezervo_schedule_from_sats_schedule(
-        self, schedule: SatsWeekSchedule
-    ) -> RezervoSchedule:
-        return RezervoSchedule(
-            days=[
-                RezervoDay(
-                    day_name=WEEKDAYS[
-                        datetime.datetime.fromisoformat(day_schedule.date).weekday()
-                    ],
-                    date=datetime.datetime.fromisoformat(day_schedule.date).isoformat(),
-                    classes=[
-                        self.rezervo_class_from_sats_class(c)
-                        for c in day_schedule.events
-                    ],
-                )
-                for day_schedule in (schedule.events or [])
-            ]
+    async def fetch_sats_classes_as_rezervo_day(
+        self, date: datetime, club_ids: list[str]
+    ) -> RezervoDay:
+        # Sats only expose classes 14 days into the future
+        date_is_within_14_days = (
+            datetime.now().date()
+            <= date.date()
+            < (datetime.now() + timedelta(days=14)).date()
+        )
+        sats_classes = (
+            await fetch_sats_classes(club_ids, date) if date_is_within_14_days else []
+        )
+        return RezervoDay(
+            day_name=WEEKDAYS[date.weekday()],
+            date=date.isoformat(),
+            classes=[
+                self.rezervo_class_from_sats_class(sats_class)
+                for sats_class in sats_classes
+            ],
         )
 
     def rezervo_class_from_sats_class(
@@ -257,7 +243,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
         sats_class: SatsClass,
     ) -> RezervoClass:
         category = determine_activity_category(sats_class.metadata.name)
-        start_time = datetime.datetime.fromisoformat(sats_class.metadata.startsAt)
+        start_time = datetime.fromisoformat(sats_class.metadata.startsAt)
 
         location_id_match = re.search(r"(\d+)p", sats_class.id)
         if not location_id_match:
@@ -266,8 +252,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
         return RezervoClass(
             id=sats_class.id,
             start_time=start_time,
-            end_time=start_time
-            + datetime.timedelta(minutes=sats_class.metadata.duration),
+            end_time=start_time + timedelta(minutes=sats_class.metadata.duration),
             location=RezervoLocation(
                 id=self.location_from_provider_location_identifier(
                     int(location_id_match.group(1))
@@ -276,15 +261,15 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                 room="",  # Sats does not specify rooms
             ),
             is_bookable=start_time
-            - datetime.timedelta(days=7)  # https://www.sats.no/legal/bookingregler
-            < datetime.datetime.now().astimezone()
-            < start_time - datetime.timedelta(minutes=10),
+            - timedelta(days=7)  # https://www.sats.no/legal/bookingregler
+            < datetime.now().astimezone()
+            < start_time - timedelta(minutes=10),
             is_cancelled=False,  # Sats seemingly does not expose a class is canceled
             total_slots=None,
             available_slots=None,
             waiting_list_count=sats_class.waitingListCount,
             activity=RezervoActivity(
-                id=sats_class.metadata.name,  # Sats does not provide an activity ids
+                id=sats_class.metadata.name,  # Sats does not provide activity ids
                 name=sats_class.metadata.name,
                 category=category.name,
                 description=sats_class.text,
@@ -297,8 +282,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                 )
             ],
             user_status=None,
-            booking_opens_at=datetime.datetime.now().astimezone()
-            + datetime.timedelta(days=1),
+            booking_opens_at=datetime.now().astimezone() + timedelta(days=1),
         )
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
