@@ -32,27 +32,12 @@ class SatsChain(Chain, SatsProvider):
             ],
         ),
         Branch(
-            identifier="drammen",
-            name="Drammen",
-            locations=[
-                Location(identifier="drammen", name="Drammen", provider_identifier=106),
-            ],
-        ),
-        Branch(
             identifier="rogaland",
             name="Rogaland",
             locations=[
                 Location(identifier="bryne", name="Bryne", provider_identifier=232),
                 Location(identifier="sandnes", name="Sandnes", provider_identifier=171),
                 Location(identifier="hinna", name="Hinna", provider_identifier=267),
-            ],
-        ),
-        Branch(
-            identifier="tromsø",
-            name="Tromsø",
-            locations=[
-                Location(identifier="langnes", name="Langnes", provider_identifier=154),
-                Location(identifier="tromsø", name="Tromsø", provider_identifier=142),
             ],
         ),
     ]

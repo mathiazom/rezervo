@@ -11,7 +11,7 @@ from rezervo.http_client import create_client_session
 from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
 from rezervo.providers.sats.auth import authenticate_session
-from rezervo.providers.sats.helpers import retrive_sats_page_props
+from rezervo.providers.sats.helpers import create_id_hash, retrieve_sats_page_props
 from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
 )
@@ -58,15 +58,9 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
     async def find_class_by_id(
         self, class_id: str
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-        provider_location_id_match = re.search(r"(\d+)p", class_id)
-        if not provider_location_id_match:
-            raise BookingError.MALFORMED_CLASS
-        location_id = self.location_from_provider_location_identifier(
-            int(provider_location_id_match.group(1))
+        schedule = await self.fetch_schedule(
+            datetime.now(), 14, [self.extract_location_id(class_id)]
         )
-        if location_id is None:
-            raise BookingError.MALFORMED_CLASS
-        schedule = await self.fetch_schedule(datetime.now(), 14, [location_id])
         for day in schedule.days:
             for _class in day.classes:
                 if _class.id == class_id:
@@ -110,7 +104,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
             return False
         bookings_res = await auth_session.get(BOOKINGS_URL)
         sats_day_bookings = SatsBookingsResponse(
-            **retrive_sats_page_props(str(await bookings_res.read()))
+            **retrieve_sats_page_props(str(await bookings_res.read()))
         ).myUpcomingTraining
 
         for day_bookings in sats_day_bookings:
@@ -148,7 +142,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
             )
             bookings_res = await session.get(BOOKINGS_URL)
             sats_day_bookings = SatsBookingsResponse(
-                **retrive_sats_page_props(str(await bookings_res.read()))
+                **retrieve_sats_page_props(str(await bookings_res.read()))
             ).myUpcomingTraining
 
         user_sessions = []
@@ -157,21 +151,13 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                 start_time = datetime.strptime(
                     training.date + " " + training.startTime, "%Y-%m-%d %H:%M"
                 )
-                provider_location_id_match = re.search(
-                    r"(\d+)p", training.hiddenInput[0].value
-                )
-                if not provider_location_id_match:
-                    raise Exception("Could not retrieve location id from Sats booking")
-                location_id = self.location_from_provider_location_identifier(
-                    int(provider_location_id_match.group(1))
-                )
-                if location_id is None:
-                    raise BookingError.MALFORMED_CLASS
                 _class = await self.find_class(
                     Class(
-                        activity_id=training.activityName,
+                        activity_id=create_id_hash(training.activityName),
                         weekday=start_time.weekday(),
-                        location_id=location_id,
+                        location_id=self.extract_location_id(
+                            training.hiddenInput[0].value
+                        ),
                         start_time=ClassTime(
                             hour=start_time.hour, minute=start_time.minute
                         ),
@@ -245,20 +231,13 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
         category = determine_activity_category(sats_class.metadata.name)
         start_time = datetime.fromisoformat(sats_class.metadata.startsAt)
 
-        location_id_match = re.search(r"(\d+)p", sats_class.id)
-        if not location_id_match:
-            raise Exception("Could not retrieve location id from Sats class")
-
         return RezervoClass(
             id=sats_class.id,
             start_time=start_time,
             end_time=start_time + timedelta(minutes=sats_class.metadata.duration),
             location=RezervoLocation(
-                id=self.location_from_provider_location_identifier(
-                    int(location_id_match.group(1))
-                ),
+                id=self.extract_location_id(sats_class.id),
                 studio=sats_class.metadata.clubName,
-                room="",  # Sats does not specify rooms
             ),
             is_bookable=start_time
             - timedelta(days=7)  # https://www.sats.no/legal/bookingregler
@@ -269,7 +248,9 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
             available_slots=None,
             waiting_list_count=sats_class.waitingListCount,
             activity=RezervoActivity(
-                id=sats_class.metadata.name,  # Sats does not provide activity ids
+                id=create_id_hash(
+                    sats_class.metadata.name,
+                ),  # Sats does not provide activity ids
                 name=sats_class.metadata.name,
                 category=category.name,
                 description=sats_class.text,
@@ -282,8 +263,19 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                 )
             ],
             user_status=None,
-            booking_opens_at=datetime.now().astimezone() + timedelta(days=1),
+            booking_opens_at=start_time - timedelta(days=7),
         )
+
+    def extract_location_id(self, sats_id: str) -> str:
+        provider_location_id_match = re.search(r"(\d+)p", sats_id)
+        if not provider_location_id_match:
+            raise Exception("Could not retrieve location id from sats_id")
+        location_id = self.location_from_provider_location_identifier(
+            int(provider_location_id_match.group(1))
+        )
+        if location_id is None:
+            raise BookingError.MALFORMED_CLASS
+        return location_id
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
         async with create_client_session() as session:
