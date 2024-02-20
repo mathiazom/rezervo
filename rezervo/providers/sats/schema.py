@@ -29,17 +29,8 @@ class SatsClass(BaseModel):
     waitingListCount: int
 
 
-class SatsDaySchedule(BaseModel):
-    date: str
-    events: list[SatsClass]
-
-
-class SatsWeekSchedule(BaseModel):
-    events: Optional[list[SatsDaySchedule]]
-
-
 class SatsScheduleResponse(BaseModel):
-    schedule: SatsWeekSchedule
+    classes: list[SatsClass]
 
 
 class SatsBookingHiddenInput(BaseModel):
