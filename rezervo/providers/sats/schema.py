@@ -1,4 +1,4 @@
-from typing import TypeAlias
+from typing import Optional, TypeAlias
 
 from pydantic import BaseModel
 
@@ -22,10 +22,10 @@ class SatsClassDetail(BaseModel):
 class SatsClass(BaseModel):
     id: str
     hasWaitingList: bool
-    image: SatsClassImage
+    image: Optional[SatsClassImage]
     isBooked: bool
     metadata: SatsClassDetail
-    text: str
+    text: Optional[str] = ""
     waitingListCount: int
 
 
@@ -35,7 +35,7 @@ class SatsDaySchedule(BaseModel):
 
 
 class SatsWeekSchedule(BaseModel):
-    events: list[SatsDaySchedule]
+    events: Optional[list[SatsDaySchedule]]
 
 
 class SatsScheduleResponse(BaseModel):

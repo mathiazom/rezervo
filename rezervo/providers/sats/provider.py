@@ -215,7 +215,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                     next(
                         (
                             day
-                            for day in sats_schedule.events
+                            for day in (sats_schedule.events or [])
                             if day.date
                             == (from_date + datetime.timedelta(days=i)).strftime(
                                 "%Y-%m-%d"
@@ -248,7 +248,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                         for c in day_schedule.events
                     ],
                 )
-                for day_schedule in schedule.events
+                for day_schedule in (schedule.events or [])
             ]
         )
 
@@ -289,7 +289,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                 category=category.name,
                 description=sats_class.text,
                 color=category.color,
-                image=sats_class.image.src,
+                image=None if sats_class.image is None else sats_class.image.src,
             ),
             instructors=[
                 RezervoInstructor(
