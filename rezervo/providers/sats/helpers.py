@@ -18,5 +18,5 @@ def retrieve_sats_page_props(html_content: str):
     return json.loads(corrected_json_string)
 
 
-def create_id_hash(activity_name: str) -> str:
+def create_activity_id(activity_name: str) -> str:
     return xxhash.xxh64(activity_name).hexdigest()
