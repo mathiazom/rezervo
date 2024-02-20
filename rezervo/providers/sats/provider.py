@@ -11,7 +11,7 @@ from rezervo.http_client import create_client_session
 from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
 from rezervo.providers.sats.auth import authenticate_session
-from rezervo.providers.sats.helpers import create_id_hash, retrieve_sats_page_props
+from rezervo.providers.sats.helpers import create_activity_id, retrieve_sats_page_props
 from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
 )
@@ -24,7 +24,7 @@ from rezervo.providers.sats.urls import (
     BOOKING_URL,
     BOOKINGS_PATH,
     BOOKINGS_URL,
-    UNBOOK_URL,
+    CANCEL_BOOKING_URL,
 )
 from rezervo.providers.schema import LocationIdentifier
 from rezervo.schemas.config.user import (
@@ -118,7 +118,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                     and start_time == _class.start_time
                 ):
                     res = await auth_session.post(
-                        UNBOOK_URL,
+                        CANCEL_BOOKING_URL,
                         data=FormData(
                             {
                                 "participationId": booking.hiddenInput[0].value,
@@ -153,7 +153,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                 )
                 _class = await self.find_class(
                     Class(
-                        activity_id=create_id_hash(training.activityName),
+                        activity_id=create_activity_id(training.activityName),
                         weekday=start_time.weekday(),
                         location_id=self.extract_location_id(
                             training.hiddenInput[0].value
@@ -248,7 +248,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
             available_slots=None,
             waiting_list_count=sats_class.waitingListCount,
             activity=RezervoActivity(
-                id=create_id_hash(
+                id=create_activity_id(
                     sats_class.metadata.name,
                 ),  # Sats does not provide activity ids
                 name=sats_class.metadata.name,
