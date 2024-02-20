@@ -2,10 +2,17 @@ import asyncio
 from typing import Optional
 from uuid import UUID
 
+from rezervo import models
 from rezervo.chains.active import ACTIVE_CHAIN_IDENTIFIERS, get_chain
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
+from rezervo.models import SessionState
 from rezervo.schemas.config.user import ChainIdentifier
+from rezervo.schemas.schedule import (
+    RezervoClass,
+    UserSession,
+    session_model_from_user_session,
+)
 from rezervo.utils.logging_utils import err
 
 
@@ -46,3 +53,35 @@ async def pull_sessions(
     await asyncio.gather(
         *[pull_chain_sessions(i, user_id) for i in ACTIVE_CHAIN_IDENTIFIERS]
     )
+
+
+async def add_session(
+    chain_identifier: ChainIdentifier, user_id: UUID, _class: RezervoClass
+):
+    with SessionLocal() as db:
+        db.add(
+            session_model_from_user_session(
+                UserSession(
+                    chain=chain_identifier,
+                    class_id=_class.id,
+                    user_id=user_id,
+                    status=(
+                        SessionState.BOOKED
+                        if _class.available_slots > 0
+                        else SessionState.WAITLIST
+                    ),
+                    class_data=_class,
+                )
+            )
+        )
+        db.commit()
+
+
+async def remove_session(
+    chain_identifier: ChainIdentifier, user_id: UUID, class_id: str
+):
+    with SessionLocal() as db:
+        db.query(models.Session).filter_by(
+            chain=chain_identifier, user_id=user_id, class_id=class_id
+        ).delete()
+        db.commit()
