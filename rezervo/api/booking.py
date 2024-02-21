@@ -15,7 +15,7 @@ from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import ChainIdentifier, ChainUser
-from rezervo.sessions import add_session, remove_session
+from rezervo.sessions import remove_session, upsert_booked_session
 from rezervo.settings import Settings, get_settings
 from rezervo.utils.logging_utils import err
 
@@ -78,7 +78,7 @@ async def book_class_api(
             )
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    await add_session(chain_identifier, chain_user.user_id, _class)
+    await upsert_booked_session(chain_identifier, chain_user.user_id, _class)
 
 
 class BookingCancellationPayload(BaseModel):

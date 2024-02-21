@@ -55,25 +55,33 @@ async def pull_sessions(
     )
 
 
-async def add_session(
+async def upsert_booked_session(
     chain_identifier: ChainIdentifier, user_id: UUID, _class: RezervoClass
 ):
-    with SessionLocal() as db:
-        db.add(
-            session_model_from_user_session(
-                UserSession(
-                    chain=chain_identifier,
-                    class_id=_class.id,
-                    user_id=user_id,
-                    status=(
-                        SessionState.BOOKED
-                        if _class.available_slots > 0
-                        else SessionState.WAITLIST
-                    ),
-                    class_data=_class,
-                )
-            )
+    session = session_model_from_user_session(
+        UserSession(
+            chain=chain_identifier,
+            class_id=_class.id,
+            user_id=user_id,
+            status=(
+                SessionState.BOOKED
+                if _class.available_slots > 0
+                else SessionState.WAITLIST
+            ),
+            class_data=_class,
         )
+    )
+    with SessionLocal() as db:
+        existing_session = (
+            db.query(models.Session)
+            .filter_by(chain=chain_identifier, user_id=user_id, class_id=_class.id)
+            .one_or_none()
+        )
+        if existing_session is not None:
+            existing_session.status = session.status
+            existing_session.class_data = session.class_data
+        else:
+            db.add(session)
         db.commit()
 
 
