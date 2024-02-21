@@ -1,3 +1,4 @@
+import asyncio
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -157,7 +158,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
             if attempts >= BOOKING_INITIAL_BURST_ATTEMPTS:
                 sleep_seconds = 2 ** (attempts - BOOKING_INITIAL_BURST_ATTEMPTS)
                 warn.log(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
-                time.sleep(sleep_seconds)
+                await asyncio.sleep(sleep_seconds)
         if not booked:
             err.log(
                 f"Booking failed after {attempts} attempt"
@@ -203,7 +204,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
             if attempts >= BOOKING_INITIAL_BURST_ATTEMPTS:
                 sleep_seconds = 2 ** (attempts - BOOKING_INITIAL_BURST_ATTEMPTS)
                 warn.log(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
-                time.sleep(sleep_seconds)
+                await asyncio.sleep(sleep_seconds)
         if not cancelled:
             err.log(
                 f"Booking cancellation failed after {attempts} attempt"
