@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
@@ -15,7 +15,7 @@ from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import ChainIdentifier, ChainUser
-from rezervo.sessions import pull_sessions
+from rezervo.sessions import pull_sessions, remove_session, upsert_booked_session
 from rezervo.settings import Settings, get_settings
 from rezervo.utils.logging_utils import err
 
@@ -46,6 +46,7 @@ class BookingPayload(BaseModel):
 async def book_class_api(
     chain_identifier: ChainIdentifier,
     payload: BookingPayload,
+    background_tasks: BackgroundTasks,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -78,8 +79,9 @@ async def book_class_api(
             )
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    # Pulling in foreground to have sessions up-to-date once the response is sent
-    await pull_sessions(chain_identifier, chain_user.user_id)
+    # optimistically update session data, but start proper sync in background
+    await upsert_booked_session(chain_identifier, chain_user.user_id, _class)
+    background_tasks.add_task(pull_sessions, chain_identifier, chain_user.user_id)
 
 
 class BookingCancellationPayload(BaseModel):
@@ -90,6 +92,7 @@ class BookingCancellationPayload(BaseModel):
 async def cancel_booking_api(
     chain_identifier: ChainIdentifier,
     payload: BookingCancellationPayload,
+    background_tasks: BackgroundTasks,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -124,5 +127,6 @@ async def cancel_booking_api(
             )
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    # Pulling in foreground to have sessions up-to-date once the response is sent
-    await pull_sessions(chain_identifier, chain_user.user_id)
+    # optimistically update session data, but start proper sync in background
+    await remove_session(chain_identifier, chain_user.user_id, _class.id)
+    background_tasks.add_task(pull_sessions, chain_identifier, chain_user.user_id)
