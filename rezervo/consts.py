@@ -3,6 +3,8 @@ WEEKDAYS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søn
 # The number of whole weeks to fetch in addition to the rest of the current week when looking at planned sessions
 PLANNED_SESSIONS_NEXT_WHOLE_WEEKS = 4
 
+BOOKING_INITIAL_BURST_ATTEMPTS = 5
+
 SLACK_ACTION_ADD_BOOKING_TO_CALENDAR = "add_booking_to_calendar"
 SLACK_ACTION_CANCEL_BOOKING = "cancel_booking"
 

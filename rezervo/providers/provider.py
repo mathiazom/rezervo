@@ -5,7 +5,10 @@ from typing import Generic, Optional, Union
 
 from rich import print as rprint
 
-from rezervo.consts import PLANNED_SESSIONS_NEXT_WHOLE_WEEKS
+from rezervo.consts import (
+    BOOKING_INITIAL_BURST_ATTEMPTS,
+    PLANNED_SESSIONS_NEXT_WHOLE_WEEKS,
+)
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
 from rezervo.notify.notify import notify_booking
@@ -25,7 +28,7 @@ from rezervo.schemas.config.user import (
     config_from_chain_user,
 )
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule, UserSession
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import err, warn
 from rezervo.utils.time_utils import (
     first_date_of_week_by_offset,
     total_days_for_next_whole_weeks,
@@ -151,9 +154,10 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
                 break
             if attempts >= max_attempts:
                 break
-            sleep_seconds = 2**attempts
-            print(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
-            time.sleep(sleep_seconds)
+            if attempts >= BOOKING_INITIAL_BURST_ATTEMPTS:
+                sleep_seconds = 2 ** (attempts - BOOKING_INITIAL_BURST_ATTEMPTS)
+                warn.log(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
+                time.sleep(sleep_seconds)
         if not booked:
             err.log(
                 f"Booking failed after {attempts} attempt"
@@ -196,9 +200,10 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
                 break
             if attempts >= config.booking.max_attempts:
                 break
-            sleep_seconds = 2**attempts
-            print(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
-            time.sleep(sleep_seconds)
+            if attempts >= BOOKING_INITIAL_BURST_ATTEMPTS:
+                sleep_seconds = 2 ** (attempts - BOOKING_INITIAL_BURST_ATTEMPTS)
+                warn.log(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
+                time.sleep(sleep_seconds)
         if not cancelled:
             err.log(
                 f"Booking cancellation failed after {attempts} attempt"
