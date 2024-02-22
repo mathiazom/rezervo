@@ -1,8 +1,9 @@
 from auth0.management import Auth0
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from starlette import status
 
+from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.auth import auth0
 from rezervo.auth.auth0 import get_auth0_management_client
@@ -12,8 +13,9 @@ from rezervo.settings import Settings, get_settings
 router = APIRouter()
 
 
-@router.put("/user", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/user")
 def upsert_user(
+    response: Response,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -28,12 +30,11 @@ def upsert_user(
     )
     if not isinstance(jwt_sub, str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-
+    db_user = db.query(models.User).filter_by(jwt_sub=jwt_sub).one_or_none()
+    if db_user is not None:
+        # TODO: update user data without being rate limited by Auth0
+        response.status_code = status.HTTP_204_NO_CONTENT
+        return
     name = auth0_mgmt_client.users.get(jwt_sub, ["name"])["name"]  # type: ignore
-
-    db_user = crud.user_from_token(db, settings, token)
-    if db_user is None:
-        crud.create_user(db, name, jwt_sub)
-    else:
-        db_user.name = name
-        db.commit()
+    crud.create_user(db, name, jwt_sub)
+    response.status_code = status.HTTP_201_CREATED
