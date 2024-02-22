@@ -5,7 +5,6 @@ from starlette import status
 
 from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
-from rezervo.auth import auth0
 from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.database import crud
 from rezervo.schemas.community import UserRelationship
@@ -45,10 +44,7 @@ def get_sessions_index(
         if dbs.user_id == db_user.id
         or user_relationship_index.get(dbs.user_id) == UserRelationship.FRIEND
     ]
-    user_name_lookup = {
-        u.id: auth0.get_auth0_user_name(auth0_mgmt_client, u.jwt_sub)
-        for u in db.query(models.User).all()
-    }
+    user_name_lookup = {u.id: u.name for u in db.query(models.User).all()}
     session_dict: dict[str, list[UserNameSessionStatus]] = {}
     for db_session in friendly_db_sessions:
         session = UserSession.from_orm(db_session)

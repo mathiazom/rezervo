@@ -1,12 +1,9 @@
-from auth0.management import Auth0
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.background import BackgroundTasks
 
 from rezervo.api.common import get_db, token_auth_scheme
-from rezervo.auth import auth0
-from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.chains.active import get_chain
 from rezervo.cron import refresh_cron
 from rezervo.database import crud
@@ -113,7 +110,6 @@ def get_all_configs_index(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
-    auth0_mgmt_client: Auth0 = Depends(get_auth0_management_client),
 ):
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
@@ -131,14 +127,13 @@ def get_all_configs_index(
         dbu = crud.get_user(db, chain_user.user_id)
         if dbu is None:
             continue
-        name = auth0.get_auth0_user_name(auth0_mgmt_client, dbu.jwt_sub)
         for c in chain_user.recurring_bookings:
             class_id = class_config_recurrent_id(c)
             if class_id not in user_configs_dict:
                 user_configs_dict[class_id] = []
             user_configs_dict[class_id].append(
                 UserNameWithIsSelf(
-                    is_self=chain_user.user_id == db_user.id, user_name=name
+                    is_self=chain_user.user_id == db_user.id, user_name=dbu.name
                 )
             )
     return user_configs_dict
