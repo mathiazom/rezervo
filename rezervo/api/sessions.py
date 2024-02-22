@@ -1,11 +1,9 @@
-from auth0.management import Auth0
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
 from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
-from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.database import crud
 from rezervo.schemas.community import UserRelationship
 from rezervo.schemas.config.user import ChainIdentifier
@@ -24,7 +22,6 @@ def get_sessions_index(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
-    auth0_mgmt_client: Auth0 = Depends(get_auth0_management_client),
 ):
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
