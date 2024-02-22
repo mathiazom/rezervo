@@ -35,6 +35,6 @@ def upsert_user(
         # TODO: update user data without being rate limited by Auth0
         response.status_code = status.HTTP_204_NO_CONTENT
         return
-    name = auth0_mgmt_client.users.get(jwt_sub, ["name"])["name"]  # type: ignore
+    name = auth0.get_auth0_user_name(auth0_mgmt_client, jwt_sub)
     crud.create_user(db, name, jwt_sub)
     response.status_code = status.HTTP_201_CREATED

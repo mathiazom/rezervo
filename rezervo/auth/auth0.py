@@ -27,3 +27,7 @@ def get_auth0_management_client() -> Auth0:
         client_secret=client_secret,
     ).client_credentials(audience=f"https://{domain}/api/v2/")["access_token"]
     return Auth0(domain, mgmt_api_token, RestClientOptions(timeout=20.0))
+
+
+def get_auth0_user_name(auth0_mgmt_client: Auth0, jwt_sub: str) -> str:
+    return auth0_mgmt_client.users.get(jwt_sub, ["name"])["name"]  # type: ignore

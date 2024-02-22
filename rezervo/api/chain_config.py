@@ -5,6 +5,7 @@ from starlette import status
 from starlette.background import BackgroundTasks
 
 from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.auth import auth0
 from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.chains.active import get_chain
 from rezervo.cron import refresh_cron
@@ -130,7 +131,7 @@ def get_all_configs_index(
         dbu = crud.get_user(db, chain_user.user_id)
         if dbu is None:
             continue
-        name = auth0_mgmt_client.users.get(dbu.jwt_sub)["name"]  # type: ignore[attr-defined]
+        name = auth0.get_auth0_user_name(auth0_mgmt_client, dbu.jwt_sub)
         for c in chain_user.recurring_bookings:
             class_id = class_config_recurrent_id(c)
             if class_id not in user_configs_dict:
