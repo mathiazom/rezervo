@@ -32,7 +32,7 @@ def get_chain_user_profile(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    config_info = crud.get_chain_user_profile(db, chain_identifier, db_user.id)
+    config_info = crud.get_chain_user_profile(db, chain_identifier, db_user.id)  # type: ignore
     if config_info is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return config_info
@@ -53,11 +53,11 @@ async def put_chain_user_creds(
     if not await get_chain(chain_identifier).verify_authentication(chain_user_creds):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     updated_config = crud.upsert_chain_user_creds(
-        db, db_user.id, chain_identifier, chain_user_creds
+        db, db_user.id, chain_identifier, chain_user_creds  # type: ignore
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])
+    background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])  # type: ignore
     return ChainUserProfile(username=updated_config.username)
 
 
@@ -71,7 +71,7 @@ def get_chain_config(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    config = crud.get_chain_config(db, chain_identifier, db_user.id)
+    config = crud.get_chain_config(db, chain_identifier, db_user.id)  # type: ignore
     if config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return config
@@ -91,13 +91,13 @@ def put_chain_config(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     updated_config = crud.update_chain_config(
         db,
-        db_user.id,
+        db_user.id,  # type: ignore
         ChainConfig(**chain_config.dict(), chain=chain_identifier),
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     # TODO: debounce refresh to better handle burst updates
-    background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])
+    background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])  # type: ignore
     return updated_config
 
 
@@ -115,7 +115,7 @@ def get_all_configs_index(
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     active_chain_users = crud.get_chain_users(db, chain_identifier, active_only=True)
-    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)
+    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)  # type: ignore
     friendly_chain_users = [
         cu
         for cu in active_chain_users
@@ -133,7 +133,7 @@ def get_all_configs_index(
                 user_configs_dict[class_id] = []
             user_configs_dict[class_id].append(
                 UserNameWithIsSelf(
-                    is_self=chain_user.user_id == db_user.id, user_name=dbu.name
+                    is_self=chain_user.user_id == db_user.id, user_name=dbu.name  # type: ignore
                 )
             )
     return user_configs_dict

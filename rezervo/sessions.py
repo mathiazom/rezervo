@@ -65,10 +65,10 @@ async def upsert_booked_session(
             user_id=user_id,
             status=(
                 SessionState.BOOKED
-                if _class.available_slots > 0
+                if _class.available_slots > 0  # type: ignore
                 else SessionState.WAITLIST
             ),
-            class_data=_class,
+            class_data=_class,  # type: ignore
         )
     )
     with SessionLocal() as db:

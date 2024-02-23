@@ -40,7 +40,7 @@ def upsert_chain_user(
             raise typer.Exit(1)
         crud.upsert_chain_user_creds(
             db,
-            user.id,
+            user.id,  # type: ignore
             chain_identifier,
             ChainUserCredentials(username=username, password=password),
         )

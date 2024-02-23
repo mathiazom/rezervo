@@ -59,7 +59,7 @@ async def build_cron_jobs_from_config(
                     chain_config.chain,
                     class_config_recurrent_id(class_config),
                     conf.config.cron,
-                    user.id,
+                    user.id,  # type: ignore
                     check,
                 )
                 for check in [True, False]
@@ -129,10 +129,10 @@ def build_booking_cron_job(
             chain_identifier,
             class_config_recurrent_id(class_config),
             cron_config,
-            user.id,
+            user.id,  # type: ignore
             precheck,
         ),
-        comment=f"{build_cron_comment_prefix_for_user_chain(user.id, chain_identifier)} --- {user.name} --- "
+        comment=f"{build_cron_comment_prefix_for_user_chain(user.id, chain_identifier)} --- {user.name} --- "  # type: ignore
         f"{class_config.display_name}{' --- [precheck]' if precheck else ''}",
         pre_comment=True,
     )
@@ -227,7 +227,7 @@ async def build_cron_jobs_from_config_task(
     crontab: CronTab, config: Config, chain_config: ChainConfig, user: models.User
 ):
     comment_pattern = re.compile(
-        f"^{build_cron_comment_prefix_for_user_chain(user.id, chain_config.chain)}.*$"
+        f"^{build_cron_comment_prefix_for_user_chain(user.id, chain_config.chain)}.*$"  # type: ignore
     )
     existing_jobs = list(crontab.find_comment(comment_pattern))
     jobs = await build_cron_jobs_from_config(config, chain_config, user, existing_jobs)

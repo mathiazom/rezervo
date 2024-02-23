@@ -152,10 +152,10 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         past_and_booked_sessions = [
             UserSession(
                 chain=chain_user.chain,
-                class_id=s.class_field.id,
+                class_id=s.class_field.id,  # type: ignore
                 user_id=chain_user.user_id,
                 status=session_state_from_ibooking(s.status),
-                class_data=self.rezervo_class_from_ibooking_class(s.class_field),
+                class_data=self.rezervo_class_from_ibooking_class(s.class_field),  # type: ignore
             )
             for s in ibooking_sessions
         ]
@@ -190,11 +190,11 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         self, ibooking_class: IBookingClass
     ) -> RezervoClass:
         return RezervoClass(
-            id=ibooking_class.id,
-            start_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.from_field),
-            end_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.to),
+            id=ibooking_class.id,  # type: ignore
+            start_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.from_field),  # type: ignore
+            end_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.to),  # type: ignore
             location=RezervoLocation(
-                id=self.location_from_provider_location_identifier(
+                id=self.location_from_provider_location_identifier(  # type: ignore
                     ibooking_class.studio.id
                 ),
                 studio=ibooking_class.studio.name,
@@ -218,7 +218,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
                 RezervoInstructor(name=s.name) for s in ibooking_class.instructors
             ],
             user_status=ibooking_class.userStatus,
-            booking_opens_at=tz_aware_iso_from_ibooking_date_str(
+            booking_opens_at=tz_aware_iso_from_ibooking_date_str(  # type: ignore
                 ibooking_class.bookingOpensAt
             ),
         )

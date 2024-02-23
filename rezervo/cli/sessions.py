@@ -33,4 +33,4 @@ async def pull_sessions_cli(
             if user is None:
                 rprint(f"User '{name}' not found")
                 raise typer.Exit(1)
-    await pull_sessions(chain_identifier, user.id if user is not None else None)
+    await pull_sessions(chain_identifier, user.id if user is not None else None)  # type: ignore
