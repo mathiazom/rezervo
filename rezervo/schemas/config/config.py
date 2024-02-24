@@ -83,7 +83,7 @@ def config_from_stored(
         CONFIG_MERGER.merge(merged_config, c)
     config_value = ConfigValue(**merged_config)
     if config_value.notifications is None:
-        config_value.notifications = Notifications()
+        config_value.notifications = Notifications()  # type: ignore
     config_value.notifications.push_notification_subscriptions = (
         push_notification_subscriptions
     )

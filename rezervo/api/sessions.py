@@ -34,7 +34,7 @@ def get_sessions_index(
         )
         .all()
     )
-    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)
+    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)  # type: ignore
     friendly_db_sessions = [
         dbs
         for dbs in db_sessions
@@ -51,7 +51,7 @@ def get_sessions_index(
         session_dict[class_id].append(
             UserNameSessionStatus(
                 is_self=session.user_id == db_user.id,
-                user_name=user_name_lookup[session.user_id],
+                user_name=user_name_lookup[session.user_id],  # type: ignore
                 status=session.status,
             )
         )

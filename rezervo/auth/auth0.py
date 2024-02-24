@@ -1,6 +1,6 @@
-from auth0.authentication import GetToken
-from auth0.management import Auth0
-from auth0.rest import RestClientOptions
+from auth0.authentication import GetToken  # type: ignore
+from auth0.management import Auth0  # type: ignore
+from auth0.rest import RestClientOptions  # type: ignore
 
 from rezervo.auth.jwt import decode_jwt
 from rezervo.settings import Settings, get_settings

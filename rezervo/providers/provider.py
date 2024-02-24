@@ -257,7 +257,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
                 class_id=str(p.id),
                 user_id=chain_user.user_id,
                 status=SessionState.PLANNED,
-                class_data=p,
+                class_data=p,  # type: ignore
             )
             for p in planned_classes
         ]

@@ -2,7 +2,7 @@ from datetime import datetime
 
 import humanize
 import typer
-from cron_descriptor import CasingTypeEnum
+from cron_descriptor import CasingTypeEnum  # type: ignore
 from crontab import CronItem, CronTab
 from rich import print as rprint
 from tabulate import tabulate
@@ -98,10 +98,10 @@ def list_cron_jobs(
                 use_24hour_time_format=True, casing_type=CasingTypeEnum.LowerCase
             )
             if not j.is_valid():
-                print_table_data.append((None, f"{j.comment} (invalid)", description))
+                print_table_data.append((None, f"{j.comment} (invalid)", description))  # type: ignore
                 continue
             if not j.is_enabled():
-                print_table_data.append((None, f"{j.comment} (disabled)", description))
+                print_table_data.append((None, f"{j.comment} (disabled)", description))  # type: ignore
                 continue
             next_run: datetime = j.schedule(date_from=datetime.now()).get_next()  # type: ignore
             if next_run is None:
