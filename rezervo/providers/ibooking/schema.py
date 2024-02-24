@@ -81,6 +81,8 @@ def session_state_from_ibooking(status: str) -> SessionState:
             return SessionState.BOOKED
         case "waitlist":
             return SessionState.WAITLIST
+        case "noshow":
+            return SessionState.NOSHOW
     return SessionState.UNKNOWN
 
 

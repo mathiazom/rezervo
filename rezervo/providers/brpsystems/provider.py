@@ -197,6 +197,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             brp_sessions.append(pydantic.parse_obj_as(BookingData, s))
         past_and_imminent_sessions = []
         for s in brp_sessions:
+            # TODO: fetch concurrently
             _class = await self.find_class_by_id(str(s.groupActivity.id))
             if not isinstance(_class, RezervoClass):
                 continue
@@ -205,7 +206,9 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                     chain=chain_user.chain,
                     class_id=s.groupActivity.id,  # type: ignore
                     user_id=chain_user.user_id,
-                    status=session_state_from_brp(s.type, s.checkedIn),
+                    status=session_state_from_brp(
+                        s.type, _class.start_time, s.checkedIn
+                    ),
                     class_data=_class,  # type: ignore
                 )
             )

@@ -35,7 +35,11 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
     sessions_query = (
         db.query(models.Session)  # type: ignore
         .filter_by(user_id=db_user.id)
-        .filter(models.Session.status != models.SessionState.UNKNOWN)
+        .filter(
+            ~models.Session.status.in_(
+                [models.SessionState.UNKNOWN, models.SessionState.NOSHOW]
+            )
+        )
     )
     if not include_past:
         sessions_query = sessions_query.filter(

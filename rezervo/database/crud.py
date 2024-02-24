@@ -252,6 +252,7 @@ def upsert_user_chain_sessions(
             models.Session.user_id == user_id,  # type: ignore
             models.Session.chain == chain_identifier,  # type: ignore
             models.Session.status != SessionState.CONFIRMED,
+            models.Session.status != SessionState.NOSHOW,
         )
     )
     for s in user_sessions:

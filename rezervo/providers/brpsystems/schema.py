@@ -213,10 +213,14 @@ class UserDetails(BaseModel):
 
 
 def session_state_from_brp(
-    booking_type: BookingType, checked_in: Optional[str]
+    booking_type: BookingType, start_time: datetime, checked_in: Optional[str]
 ) -> SessionState:
     if checked_in is not None:
         return SessionState.CONFIRMED
+
+    # TODO: check if a direct 'noshow' status can be obtained from brp
+    if start_time < datetime.now(tz=start_time.tzinfo):
+        return SessionState.NOSHOW
 
     match booking_type:
         case BookingType.GROUP_ACTIVITY:

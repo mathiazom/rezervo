@@ -123,6 +123,7 @@ class SessionState(enum.Enum):
     BOOKED = "BOOKED"
     WAITLIST = "WAITLIST"
     PLANNED = "PLANNED"
+    NOSHOW = "NOSHOW"
     UNKNOWN = "UNKNOWN"
 
 

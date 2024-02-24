@@ -54,6 +54,7 @@ def ical_event_from_session(session: UserSession, timezone: str) -> Optional[cal
             SessionState.WAITLIST: 2,
             SessionState.BOOKED: 3,
             SessionState.CONFIRMED: 4,
+            SessionState.NOSHOW: 5,
         }[session.status],
     )
     return event
