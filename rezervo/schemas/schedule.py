@@ -28,7 +28,7 @@ class RezervoActivity(CamelModel):
     id: str
     name: str
     category: str
-    description: str
+    description: Optional[str] = None
     additional_information: Optional[str] = None
     color: str
     image: Optional[str] = None
