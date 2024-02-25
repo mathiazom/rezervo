@@ -83,7 +83,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                     and _class.start_time.minute == _class_config.start_time.minute
                 ):
                     return _class
-        raise BookingError.CLASS_MISSING
+        return BookingError.CLASS_MISSING
 
     async def _book_class(
         self,
@@ -129,7 +129,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
                     await auth_session.close()
                     return res.status == 200
         await auth_session.close()
-        raise BookingError.CANCELLING_WITHOUT_BOOKING
+        return False
 
     async def _fetch_past_and_booked_sessions(
         self,
@@ -270,11 +270,14 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
         provider_location_id_match = re.search(r"(\d+)p", sats_id)
         if not provider_location_id_match:
             raise Exception("Could not retrieve location id from sats_id")
+        provider_location_id = int(provider_location_id_match.group(1))
         location_id = self.location_from_provider_location_identifier(
-            int(provider_location_id_match.group(1))
+            provider_location_id
         )
         if location_id is None:
-            raise BookingError.MALFORMED_CLASS
+            raise Exception(
+                f"Failed to find location_id for provider_location_id: {provider_location_id}"
+            )
         return location_id
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
