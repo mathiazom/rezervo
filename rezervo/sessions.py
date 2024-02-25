@@ -6,12 +6,17 @@ from rezervo import models
 from rezervo.chains.active import ACTIVE_CHAIN_IDENTIFIERS, get_chain
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
+from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
-from rezervo.schemas.config.user import ChainIdentifier
+from rezervo.schemas.config.user import ChainIdentifier, Class
 from rezervo.schemas.schedule import (
     RezervoClass,
     UserSession,
     session_model_from_user_session,
+)
+from rezervo.utils.config_utils import (
+    class_config_recurrent_id,
+    rezervo_class_recurrent_id,
 )
 from rezervo.utils.logging_utils import err
 
@@ -55,19 +60,18 @@ async def pull_sessions(
     )
 
 
-async def upsert_booked_session(
-    chain_identifier: ChainIdentifier, user_id: UUID, _class: RezervoClass
+async def upsert_session(
+    chain_identifier: ChainIdentifier,
+    user_id: UUID,
+    _class: RezervoClass,
+    status: SessionState,
 ):
     session = session_model_from_user_session(
         UserSession(
             chain=chain_identifier,
             class_id=_class.id,
             user_id=user_id,
-            status=(
-                SessionState.BOOKED
-                if _class.available_slots > 0  # type: ignore
-                else SessionState.WAITLIST
-            ),
+            status=status,
             class_data=_class,  # type: ignore
         )
     )
@@ -85,6 +89,21 @@ async def upsert_booked_session(
         db.commit()
 
 
+async def upsert_booked_session(
+    chain_identifier: ChainIdentifier, user_id: UUID, _class: RezervoClass
+):
+    await upsert_session(
+        chain_identifier,
+        user_id,
+        _class,
+        (
+            SessionState.BOOKED
+            if (_class.available_slots or 0) > 0
+            else SessionState.WAITLIST
+        ),
+    )
+
+
 async def remove_session(
     chain_identifier: ChainIdentifier, user_id: UUID, class_id: str
 ):
@@ -93,3 +112,72 @@ async def remove_session(
             chain=chain_identifier, user_id=user_id, class_id=class_id
         ).delete()
         db.commit()
+
+
+async def remove_sessions(
+    chain_identifier: ChainIdentifier,
+    user_id: UUID,
+    recurrent_ids_to_remove: list[str],
+    session_state: SessionState,
+):
+    with SessionLocal() as db:
+        user_planned_sessions = (
+            db.query(models.Session)
+            .filter(
+                models.Session.chain == chain_identifier,
+                models.Session.user_id == user_id,
+                models.Session.status == session_state,
+            )
+            .all()
+        )
+        sessions_to_remove = [
+            session
+            for session in user_planned_sessions
+            if rezervo_class_recurrent_id(UserSession.from_orm(session).class_data)
+            in recurrent_ids_to_remove
+        ]
+        for session in sessions_to_remove:
+            db.delete(session)
+        db.commit()
+
+
+async def update_planned_sessions(
+    chain_identifier: ChainIdentifier,
+    user_id: UUID,
+    previous_config_classes: list[Class],
+    updated_config_classes: list[Class],
+):
+    previous_class_ids = {
+        class_config_recurrent_id(_class) for _class in previous_config_classes
+    }
+    updated_class_ids = {
+        class_config_recurrent_id(_class) for _class in updated_config_classes
+    }
+
+    removed_class_ids = previous_class_ids - updated_class_ids
+    added_class_ids = updated_class_ids - previous_class_ids
+
+    if removed_class_ids:
+        await remove_sessions(
+            chain_identifier, user_id, list(removed_class_ids), SessionState.PLANNED
+        )
+
+    for class_id in added_class_ids:
+        _class_config = next(
+            (
+                _class
+                for _class in updated_config_classes
+                if class_config_recurrent_id(_class) == class_id
+            ),
+            None,
+        )
+        if _class_config:
+            class_data = await get_chain(chain_identifier).find_class(_class_config)
+            if isinstance(class_data, RezervoClass):
+                await upsert_session(
+                    chain_identifier, user_id, class_data, SessionState.PLANNED
+                )
+            elif isinstance(class_data, (BookingError, AuthenticationError)):
+                err.log(
+                    f"Failed to generate planned session. Class not found: {class_data}"
+                )
