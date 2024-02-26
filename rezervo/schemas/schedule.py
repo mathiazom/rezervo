@@ -79,6 +79,12 @@ class UserSession(OrmBase):
     class_data: SessionRezervoClass
 
 
+class UserAgendaClass(BaseModel):
+    chain: ChainIdentifier
+    status: SessionState
+    class_data: SessionRezervoClass
+
+
 class UserNameSessionStatus(BaseModel):
     is_self: bool
     user_name: str
