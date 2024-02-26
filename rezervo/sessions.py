@@ -8,7 +8,7 @@ from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
-from rezervo.schemas.config.user import ChainIdentifier, Class
+from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
 from rezervo.schemas.schedule import (
     RezervoClass,
     UserSession,
@@ -144,18 +144,31 @@ async def remove_sessions(
 async def update_planned_sessions(
     chain_identifier: ChainIdentifier,
     user_id: UUID,
-    previous_config_classes: list[Class],
-    updated_config_classes: list[Class],
+    previous_config: ChainConfig | None,
+    updated_config: ChainConfig,
 ):
     previous_class_ids = {
-        class_config_recurrent_id(_class) for _class in previous_config_classes
+        class_config_recurrent_id(_class)
+        for _class in (previous_config.recurring_bookings if previous_config else [])
     }
     updated_class_ids = {
-        class_config_recurrent_id(_class) for _class in updated_config_classes
+        class_config_recurrent_id(_class)
+        for _class in updated_config.recurring_bookings
     }
 
-    removed_class_ids = previous_class_ids - updated_class_ids
-    added_class_ids = updated_class_ids - previous_class_ids
+    config_active_changed = (
+        previous_config is None or previous_config.active != updated_config.active
+    )
+    removed_class_ids = (
+        updated_class_ids
+        if config_active_changed and not updated_config.active
+        else previous_class_ids - updated_class_ids
+    )
+    added_class_ids = (
+        updated_class_ids
+        if config_active_changed and updated_config.active
+        else updated_class_ids - previous_class_ids
+    )
 
     if removed_class_ids:
         await remove_sessions(
@@ -166,7 +179,7 @@ async def update_planned_sessions(
         _class_config = next(
             (
                 _class
-                for _class in updated_config_classes
+                for _class in updated_config.recurring_bookings
                 if class_config_recurrent_id(_class) == class_id
             ),
             None,

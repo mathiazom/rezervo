@@ -105,8 +105,8 @@ async def put_chain_config(
     await update_planned_sessions(
         chain_identifier,
         db_user.id,  # type: ignore
-        previous_config.recurring_bookings if previous_config else [],
-        updated_config.recurring_bookings,
+        previous_config,
+        updated_config,
     )
     # optimistically update session data, but start proper sync in background
     background_tasks.add_task(pull_sessions, chain_identifier, db_user.id)  # type: ignore
