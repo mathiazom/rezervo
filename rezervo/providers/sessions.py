@@ -16,6 +16,8 @@ def get_user_planned_sessions_from_schedule(
     for d in schedule.days:
         for c in d.classes:
             for cc in chain_config.recurring_bookings:
+                if c.location.id != cc.location_id:
+                    continue
                 if d.day_name != WEEKDAYS[cc.weekday]:
                     continue
                 if c.activity.id != str(cc.activity_id):
