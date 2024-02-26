@@ -1,8 +1,5 @@
-import datetime
 from typing import Optional
 from urllib.parse import urlparse
-
-from dateutil.relativedelta import relativedelta
 
 from rezervo.http_client import HttpClient
 from rezervo.schemas.config.user import ChainIdentifier
@@ -29,9 +26,6 @@ def activity_url(
     host: Optional[str], chain_identifier: ChainIdentifier, _class: RezervoClass
 ):
     if host:
-        week_offset = relativedelta(
-            _class.start_time.replace(tzinfo=None), datetime.datetime.now()
-        ).weeks
-        return f"<{host}/{chain_identifier}?weekOffset={week_offset}&classId={_class.id}|*{_class.activity.name}*>"
+        return f"<{host}/{chain_identifier}?classId={_class.id}&startTime={_class.start_time.isoformat()}|*{_class.activity.name}*>"
 
     return f"*{_class.activity.name}*"
