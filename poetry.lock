@@ -164,13 +164,13 @@ files = [
 
 [[package]]
 name = "asyncer"
-version = "0.0.4"
+version = "0.0.5"
 description = "Asyncer, async and await, focused on developer experience."
 optional = false
 python-versions = ">=3.8,<4.0"
 files = [
-    {file = "asyncer-0.0.4-py3-none-any.whl", hash = "sha256:bc27f6bcea231a78c6fb730dff5977c74b0ee5a6f2ea080e273a03fac17ca3d1"},
-    {file = "asyncer-0.0.4.tar.gz", hash = "sha256:d9400418d4b508e5f3e819809bd3e7b9cd43d99a65c0a5eada14d41583164ca6"},
+    {file = "asyncer-0.0.5-py3-none-any.whl", hash = "sha256:ba06d6de3c750763868dffacf89b18d40b667605b0241d31c2ee43f188e2ab74"},
+    {file = "asyncer-0.0.5.tar.gz", hash = "sha256:2979f3e04cbedfe5cfeb79027dcf7d004fcc4430a0ca0066ae20490f218ec06e"},
 ]
 
 [package.dependencies]
@@ -1616,13 +1616,13 @@ optional = ["SQLAlchemy (>=1.4,<3)", "aiodns (>1.0)", "aiohttp (>=3.7.3,<4)", "b
 
 [[package]]
 name = "sniffio"
-version = "1.3.0"
+version = "1.3.1"
 description = "Sniff out which async library your code is running under"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "sniffio-1.3.0-py3-none-any.whl", hash = "sha256:eecefdce1e5bbfb7ad2eeaabf7c1eeb404d7757c379bd1f7e5cce9d8bf425384"},
-    {file = "sniffio-1.3.0.tar.gz", hash = "sha256:e60305c5e5d314f5389259b7f22aaa33d8f7dee49763119234af3755c55b9101"},
+    {file = "sniffio-1.3.1-py3-none-any.whl", hash = "sha256:2f6da418d1f1e0fddd844478f41680e794e6051915791a034ff65e5f100525a2"},
+    {file = "sniffio-1.3.1.tar.gz", hash = "sha256:f4324edc670a0f49750a81b895f35c3adb843cca46f0530f79fc1babb23789dc"},
 ]
 
 [[package]]
@@ -1847,13 +1847,13 @@ files = [
 
 [[package]]
 name = "typing-extensions"
-version = "4.9.0"
+version = "4.10.0"
 description = "Backported and Experimental Type Hints for Python 3.8+"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "typing_extensions-4.9.0-py3-none-any.whl", hash = "sha256:af72aea155e91adfc61c3ae9e0e342dbc0cba726d6cba4b6c72c1f34e47291cd"},
-    {file = "typing_extensions-4.9.0.tar.gz", hash = "sha256:23478f88c37f27d76ac8aee6c905017a143b0b1b886c3c9f66bc2fd94f9f5783"},
+    {file = "typing_extensions-4.10.0-py3-none-any.whl", hash = "sha256:69b1a937c3a517342112fb4c6df7e72fc39a38e7891a5730ed4985b5214b5475"},
+    {file = "typing_extensions-4.10.0.tar.gz", hash = "sha256:b0abd7c89e8fb96f98db18d86106ff1d90ab692004eb746cf6eda2682f91b3cb"},
 ]
 
 [[package]]
@@ -1998,4 +1998,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "1b4d9ac40cd1ca5f55cf57862ace379229108fc1e78fc365092f255721940af1"
+content-hash = "9ffecdd828b574e3f56514b186c1fa1b469f194037f2f6bc1cdc9f50c9bbc292"
