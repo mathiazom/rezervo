@@ -102,13 +102,13 @@ async def put_chain_config(
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
 
+    # optimistically update session data, but start proper sync in background
     await update_planned_sessions(
         chain_identifier,
         db_user.id,  # type: ignore
         previous_config,
         updated_config,
     )
-    # optimistically update session data, but start proper sync in background
     background_tasks.add_task(pull_sessions, chain_identifier, db_user.id)  # type: ignore
     # TODO: debounce refresh to better handle burst updates
     background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])

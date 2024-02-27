@@ -9,7 +9,7 @@ from rezervo.auth import auth0
 from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.database import crud
 from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
-from rezervo.schemas.schedule import UserAgendaClass
+from rezervo.schemas.schedule import BaseUserSession
 from rezervo.settings import Settings, get_settings
 
 router = APIRouter()
@@ -43,10 +43,10 @@ def upsert_user(
 
 
 @router.get(
-    "/user/agenda",
-    response_model=list[UserAgendaClass],
+    "/user/sessions",
+    response_model=list[BaseUserSession],
 )
-def get_user_agenda(
+def get_user_sessions(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -71,7 +71,7 @@ def get_user_agenda(
     )
 
     return [
-        UserAgendaClass(
+        BaseUserSession(
             chain=session.chain,  # type: ignore
             status=session.status,  # type: ignore
             class_data=session.class_data,  # type: ignore
