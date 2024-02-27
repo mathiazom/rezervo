@@ -1,6 +1,6 @@
-from auth0.authentication import GetToken  # type: ignore
-from auth0.management import Auth0  # type: ignore
-from auth0.rest import RestClientOptions  # type: ignore
+from auth0.authentication import GetToken  # type: ignore[import-untyped]
+from auth0.management import Auth0  # type: ignore[import-untyped]
+from auth0.rest import RestClientOptions  # type: ignore[import-untyped]
 
 from rezervo.auth.jwt import decode_jwt
 from rezervo.settings import Settings, get_settings
@@ -30,4 +30,4 @@ def get_auth0_management_client() -> Auth0:
 
 
 def get_auth0_user_name(auth0_mgmt_client: Auth0, jwt_sub: str) -> str:
-    return auth0_mgmt_client.users.get(jwt_sub, ["name"])["name"]  # type: ignore
+    return auth0_mgmt_client.users.get(jwt_sub, ["name"])["name"]

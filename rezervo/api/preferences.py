@@ -19,7 +19,7 @@ def get_user_preferences(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return UserPreferences(**db_user.preferences)  # type: ignore
+    return UserPreferences(**db_user.preferences)
 
 
 @router.put("/preferences", response_model=UserPreferences)

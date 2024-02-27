@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from requests import RequestException
 from slack_sdk import WebClient as SlackClient
@@ -28,7 +28,7 @@ def notify_slack(
     slack_token: str,
     channel: str,
     message: str,
-    message_blocks: Optional[List[Dict[str, Any]]] = None,
+    message_blocks: Optional[list[Dict[str, Any]]] = None,
     thread_ts: Optional[str] = None,
 ) -> Optional[str]:
     try:
@@ -90,7 +90,7 @@ def schedule_dm_slack(
     user_id: str,
     post_at: int,
     message: str,
-    message_blocks: Optional[List[Dict[str, Any]]] = None,
+    message_blocks: Optional[list[Dict[str, Any]]] = None,
 ) -> Optional[str]:
     try:
         res = SlackClient(token=slack_token).chat_scheduleMessage(

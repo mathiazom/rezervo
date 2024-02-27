@@ -30,11 +30,11 @@ def get_sessions_index(
         db.query(models.Session)
         .filter(
             models.Session.status != models.SessionState.PLANNED,
-            models.Session.chain == chain_identifier,  # type: ignore
+            models.Session.chain == chain_identifier,
         )
         .all()
     )
-    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)  # type: ignore
+    user_relationship_index = crud.get_user_relationship_index(db, db_user.id)
     friendly_db_sessions = [
         dbs
         for dbs in db_sessions
@@ -51,7 +51,7 @@ def get_sessions_index(
         session_dict[class_id].append(
             UserNameSessionStatus(
                 is_self=session.user_id == db_user.id,
-                user_name=user_name_lookup[session.user_id],  # type: ignore
+                user_name=user_name_lookup[session.user_id],
                 status=session.status,
             )
         )

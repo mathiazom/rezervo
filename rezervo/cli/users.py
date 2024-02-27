@@ -34,13 +34,13 @@ def upsert_chain_user(
     password: str,
 ):
     with SessionLocal() as db:
-        user = db.query(models.User).filter_by(name=name).first()  # type: ignore
+        user = db.query(models.User).filter_by(name=name).first()
         if user is None:
             rprint(f"User '{name}' not found")
             raise typer.Exit(1)
         crud.upsert_chain_user_creds(
             db,
-            user.id,  # type: ignore
+            user.id,
             chain_identifier,
             ChainUserCredentials(username=username, password=password),
         )

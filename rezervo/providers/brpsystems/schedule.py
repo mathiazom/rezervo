@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Optional
 from urllib.parse import urlencode
 
 import requests
@@ -54,8 +54,8 @@ async def fetch_brp_class(
 
 async def fetch_detailed_brp_schedule(
     subdomain: BrpSubdomain,
-    schedule: List[BrpClass],
-) -> List[DetailedBrpClass]:
+    schedule: list[BrpClass],
+) -> list[DetailedBrpClass]:
     class_details_map: dict[int, BrpActivityDetails] = {}
     fetch_detailed_activity_tasks = []
     detected_activity_ids = set()
@@ -107,7 +107,7 @@ async def fetch_brp_schedule(
     business_unit: int,
     days: int,
     from_date: Optional[datetime] = None,
-) -> List[BrpClass]:
+) -> list[BrpClass]:
     classes: list[BrpClass] = []
     if from_date is None:
         now = datetime.utcnow()

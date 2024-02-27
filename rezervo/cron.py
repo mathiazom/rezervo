@@ -35,7 +35,7 @@ async def refresh_cron(
                 err.log(f"User '{user.name}' has no config, skipping...")
                 continue
             for chain in chains:
-                chain_config = crud.get_chain_config(db, chain.identifier, user.id)  # type: ignore
+                chain_config = crud.get_chain_config(db, chain.identifier, user.id)
                 if chain_config is None:
                     continue
                 recurring_booking_user_configs.append((config, chain_config, user))

@@ -88,7 +88,7 @@ class UserNameSessionStatus(BaseModel):
 def session_model_from_user_session(user_session: UserSession):
     return models.Session(
         class_id=user_session.class_id,
-        user_id=user_session.user_id,  # type: ignore
+        user_id=user_session.user_id,
         status=user_session.status,
         class_data=json.loads(user_session.class_data.json()),
         chain=user_session.chain,

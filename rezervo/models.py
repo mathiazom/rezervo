@@ -89,12 +89,12 @@ class RecurringBooking(Base):
     chain_id: Mapped[str] = mapped_column(String, nullable=False)
     location_id: Mapped[str] = mapped_column(String, nullable=False)
     activity_id: Mapped[str] = mapped_column(String, nullable=False)
-    weekday: Mapped[SmallInteger] = mapped_column(
+    weekday: Mapped[int] = mapped_column(
         SmallInteger,
         CheckConstraint("weekday >= 0 AND weekday <= 6", name="check_weekday_range"),
         nullable=False,
     )
-    start_time_hour: Mapped[SmallInteger] = mapped_column(
+    start_time_hour: Mapped[int] = mapped_column(
         SmallInteger,
         CheckConstraint(
             "start_time_hour >= 0 AND start_time_hour <= 23",
@@ -102,7 +102,7 @@ class RecurringBooking(Base):
         ),
         nullable=False,
     )
-    start_time_minute: Mapped[SmallInteger] = mapped_column(
+    start_time_minute: Mapped[int] = mapped_column(
         SmallInteger,
         CheckConstraint(
             "start_time_minute >= 0 AND start_time_minute <= 59",

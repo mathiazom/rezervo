@@ -86,7 +86,7 @@ def upsert_chain_user_creds(
     )
     if db_chain_user is None:
         db_chain_user = models.ChainUser(
-            user_id=user_id,  # type: ignore
+            user_id=user_id,
             chain=chain_identifier,
             username=creds.username,
             password=creds.password,
@@ -137,8 +137,8 @@ def _get_chain_user_from_db_model(
             Class(
                 **db_booking.__dict__,
                 start_time=ClassTime(
-                    hour=db_booking.start_time_hour,  # type: ignore
-                    minute=db_booking.start_time_minute,  # type: ignore
+                    hour=db_booking.start_time_hour,
+                    minute=db_booking.start_time_minute,
                 ),
             )
             for db_booking in db.query(models.RecurringBooking).filter_by(
@@ -211,7 +211,7 @@ def update_chain_config(
         if db_booking is None:
             db.add(
                 models.RecurringBooking(
-                    user_id=user_id,  # type: ignore
+                    user_id=user_id,
                     chain_id=config.chain,
                     activity_id=c.activity_id,
                     weekday=c.weekday,
@@ -249,8 +249,8 @@ def upsert_user_chain_sessions(
     # delete unconfirmed sessions
     db.execute(
         delete(models.Session).where(
-            models.Session.user_id == user_id,  # type: ignore
-            models.Session.chain == chain_identifier,  # type: ignore
+            models.Session.user_id == user_id,
+            models.Session.chain == chain_identifier,
             models.Session.status != SessionState.CONFIRMED,
             models.Session.status != SessionState.NOSHOW,
         )
@@ -301,10 +301,10 @@ def update_last_used_push_notification_subscription(
 
 def get_user_config(db, user: models.User) -> Config:
     return config_from_stored(
-        user.id,  # type: ignore
-        UserPreferences(**user.preferences),  # type: ignore
-        get_user_push_notification_subscriptions(db, user.id),  # type: ignore
-        AdminConfig(**user.admin_config),  # type: ignore
+        user.id,
+        UserPreferences(**user.preferences),
+        get_user_push_notification_subscriptions(db, user.id),
+        AdminConfig(**user.admin_config),
     )
 
 
@@ -424,16 +424,16 @@ def get_community(db: Session, user_id: UUID) -> Community:
 
     user_to_chain_map: defaultdict[UUID, list[str]] = defaultdict(list)
     for chain_user in chain_users:
-        user_to_chain_map[chain_user.user_id].append(chain_user.chain)  # type: ignore
+        user_to_chain_map[chain_user.user_id].append(chain_user.chain)
 
     user_relationship_index = get_user_relationship_index(db, user_id)
 
     return Community(
         users=[
             CommunityUser(
-                user_id=user.id,  # type: ignore
-                name=user.name,  # type: ignore
-                chains=user_to_chain_map.get(user.id, []),  # type: ignore
+                user_id=user.id,
+                name=user.name,
+                chains=user_to_chain_map.get(user.id, []),
                 relationship=user_relationship_index.get(
                     user.id, UserRelationship.UNKNOWN
                 ),
@@ -473,8 +473,8 @@ def modify_user_relationship(
                 detail="Relationship already exists",
             )
         new_relation = UserRelation(
-            user_one=user_id,  # type: ignore
-            user_two=other_user_id,  # type: ignore
+            user_one=user_id,
+            user_two=other_user_id,
             relationship=UserRelationship.REQUEST_SENT,
         )
         db.add(new_relation)

@@ -29,8 +29,8 @@ async def pull_sessions_cli(
     user = None
     if name is not None:
         with SessionLocal() as db:
-            user = db.query(models.User).filter_by(name=name).first()  # type: ignore
+            user = db.query(models.User).filter_by(name=name).first()
             if user is None:
                 rprint(f"User '{name}' not found")
                 raise typer.Exit(1)
-    await pull_sessions(chain_identifier, user.id if user is not None else None)  # type: ignore
+    await pull_sessions(chain_identifier, user.id if user is not None else None)

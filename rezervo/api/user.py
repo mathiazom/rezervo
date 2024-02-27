@@ -1,4 +1,4 @@
-from auth0.management import Auth0  # type: ignore
+from auth0.management import Auth0  # type: ignore[import-untyped]
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from starlette import status
