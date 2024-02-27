@@ -1,10 +1,10 @@
 import enum
 import uuid
+from datetime import datetime
 
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
-    Column,
     DateTime,
     Enum,
     ForeignKey,
@@ -13,20 +13,26 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from rezervo.database.base_class import Base
 from rezervo.schemas.community import UserRelationship
+
+
+class Base(DeclarativeBase):
+    pass
 
 
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    name = Column(String, unique=True, nullable=False)
-    jwt_sub = Column(String, nullable=True)
-    cal_token = Column(String, nullable=False)
-    preferences = Column(JSONB)
-    admin_config = Column(JSONB)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    jwt_sub: Mapped[str | None] = mapped_column(String, nullable=True)
+    cal_token: Mapped[str] = mapped_column(String, nullable=False)
+    preferences: Mapped[dict] = mapped_column(JSONB)
+    admin_config: Mapped[dict] = mapped_column(JSONB)
 
     def __repr__(self):
         return (
@@ -38,12 +44,12 @@ class User(Base):
 class PushNotificationSubscription(Base):
     __tablename__ = "push_notification_subscriptions"
 
-    user_id = Column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
-    endpoint = Column(String, primary_key=True)
-    keys = Column(JSONB, nullable=False)
-    last_used = Column(DateTime, nullable=True)
+    endpoint: Mapped[str] = mapped_column(String, primary_key=True)
+    keys: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    last_used: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
     def __repr__(self):
         return (
@@ -55,14 +61,14 @@ class PushNotificationSubscription(Base):
 class ChainUser(Base):
     __tablename__ = "chain_users"
 
-    user_id = Column(
+    user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
-    chain = Column(String, primary_key=True)
-    username = Column(String, nullable=False)
-    password = Column(String, nullable=False)
-    auth_token = Column(String, nullable=True)
-    active = Column(Boolean, nullable=False, default=True)
+    chain: Mapped[str] = mapped_column(String, primary_key=True)
+    username: Mapped[str] = mapped_column(String, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
+    auth_token: Mapped[str | None] = mapped_column(String, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     def __repr__(self):
         return (
@@ -74,19 +80,21 @@ class ChainUser(Base):
 class RecurringBooking(Base):
     __tablename__ = "recurring_bookings"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    user_id = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), nullable=False
     )
-    chain_id = Column(String, nullable=False)
-    location_id = Column(String, nullable=False)
-    activity_id = Column(String, nullable=False)
-    weekday = Column(
+    chain_id: Mapped[str] = mapped_column(String, nullable=False)
+    location_id: Mapped[str] = mapped_column(String, nullable=False)
+    activity_id: Mapped[str] = mapped_column(String, nullable=False)
+    weekday: Mapped[SmallInteger] = mapped_column(
         SmallInteger,
         CheckConstraint("weekday >= 0 AND weekday <= 6", name="check_weekday_range"),
         nullable=False,
     )
-    start_time_hour = Column(
+    start_time_hour: Mapped[SmallInteger] = mapped_column(
         SmallInteger,
         CheckConstraint(
             "start_time_hour >= 0 AND start_time_hour <= 23",
@@ -94,7 +102,7 @@ class RecurringBooking(Base):
         ),
         nullable=False,
     )
-    start_time_minute = Column(
+    start_time_minute: Mapped[SmallInteger] = mapped_column(
         SmallInteger,
         CheckConstraint(
             "start_time_minute >= 0 AND start_time_minute <= 59",
@@ -102,7 +110,7 @@ class RecurringBooking(Base):
         ),
         nullable=False,
     )
-    display_name = Column(String, nullable=True)
+    display_name: Mapped[str | None] = mapped_column(String, nullable=True)
 
     __table_args__ = (
         UniqueConstraint(
@@ -130,17 +138,17 @@ class SessionState(enum.Enum):
 class Session(Base):
     __tablename__ = "sessions"
 
-    chain = Column(
+    chain: Mapped[str] = mapped_column(
         String,
         nullable=False,
         primary_key=True,
     )
-    class_id = Column(String, primary_key=True)
-    user_id = Column(
+    class_id: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
-    status = Column(Enum(SessionState))
-    class_data = Column(JSONB)
+    status: Mapped[SessionState] = mapped_column(Enum(SessionState))
+    class_data: Mapped[dict] = mapped_column(JSONB)
 
     def __repr__(self):
         return (
@@ -152,14 +160,16 @@ class Session(Base):
 class SlackClassNotificationReceipt(Base):
     __tablename__ = "slack_class_notification_receipts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    slack_user_id = Column(String, nullable=False)
-    chain = Column(String, nullable=False)
-    class_id = Column(String, nullable=False)
-    channel_id = Column(String, nullable=False)
-    message_id = Column(String, nullable=False)
-    scheduled_reminder_id = Column(String, nullable=True)
-    expires_at = Column(DateTime, nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
+    )
+    slack_user_id: Mapped[str] = mapped_column(String, nullable=False)
+    chain: Mapped[str] = mapped_column(String, nullable=False)
+    class_id: Mapped[str] = mapped_column(String, nullable=False)
+    channel_id: Mapped[str] = mapped_column(String, nullable=False)
+    message_id: Mapped[str] = mapped_column(String, nullable=False)
+    scheduled_reminder_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
     def __repr__(self):
         return (
@@ -172,14 +182,16 @@ class SlackClassNotificationReceipt(Base):
 
 class UserRelation(Base):
     __tablename__ = "user_relations"
-    id = Column(UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4)
-    user_one = Column(
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, index=True, default=uuid.uuid4
+    )
+    user_one: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
-    user_two = Column(
+    user_two: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
-    relationship = Column(Enum(UserRelationship))
+    relationship: Mapped[UserRelationship] = mapped_column(Enum(UserRelationship))
 
     __table_args__ = (
         UniqueConstraint(
