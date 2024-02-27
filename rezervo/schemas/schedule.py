@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 from rezervo import models
 from rezervo.models import SessionState
+from rezervo.schemas.base import OrmBase
 from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.user import ChainIdentifier
 
@@ -70,7 +71,7 @@ class RezervoSchedule(CamelModel):
     days: list[RezervoDay]
 
 
-class BaseUserSession(BaseModel):
+class BaseUserSession(OrmBase):
     chain: ChainIdentifier
     status: SessionState
     class_data: SessionRezervoClass
