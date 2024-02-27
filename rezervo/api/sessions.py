@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get(
-    "/{chain_identifier}/sessions",
+    "/{chain_identifier}/sessions-index",
     response_model=dict[str, list[UserNameSessionStatus]],
 )
 def get_sessions_index(
