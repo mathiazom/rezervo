@@ -147,28 +147,25 @@ async def update_planned_sessions(
     previous_config: ChainConfig | None,
     updated_config: ChainConfig,
 ):
-    previous_class_ids = {
-        class_config_recurrent_id(_class)
-        for _class in (previous_config.recurring_bookings if previous_config else [])
-    }
-    updated_class_ids = {
-        class_config_recurrent_id(_class)
-        for _class in updated_config.recurring_bookings
-    }
+    previous_class_ids = (
+        set()
+        if not previous_config or not previous_config.active
+        else {
+            class_config_recurrent_id(_class)
+            for _class in previous_config.recurring_bookings
+        }
+    )
+    updated_class_ids = (
+        set()
+        if not updated_config.active
+        else {
+            class_config_recurrent_id(_class)
+            for _class in updated_config.recurring_bookings
+        }
+    )
 
-    config_active_changed = (
-        previous_config is None or previous_config.active != updated_config.active
-    )
-    removed_class_ids = (
-        updated_class_ids
-        if config_active_changed and not updated_config.active
-        else previous_class_ids - updated_class_ids
-    )
-    added_class_ids = (
-        updated_class_ids
-        if config_active_changed and updated_config.active
-        else updated_class_ids - previous_class_ids
-    )
+    removed_class_ids = previous_class_ids - updated_class_ids
+    added_class_ids = updated_class_ids - previous_class_ids
 
     if removed_class_ids:
         await remove_sessions(
