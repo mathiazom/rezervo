@@ -4,19 +4,17 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (
-    Boolean,
     CheckConstraint,
-    DateTime,
     Enum,
     ForeignKey,
     SmallInteger,
-    String,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from rezervo.schemas.community import UserRelationship
+from rezervo.utils.typing_utils import small_integer
 
 
 class SessionState(enum.Enum):
@@ -31,10 +29,8 @@ class SessionState(enum.Enum):
 class Base(DeclarativeBase):
     type_annotation_map = {
         uuid.UUID: UUID(as_uuid=True),
-        str: String,
         dict: JSONB,
-        int: SmallInteger,
-        datetime: DateTime,
+        small_integer: SmallInteger,
         SessionState: Enum(SessionState),
         UserRelationship: Enum(UserRelationship),
     }
@@ -86,7 +82,7 @@ class ChainUser(Base):
     username: Mapped[str] = mapped_column()
     password: Mapped[str] = mapped_column()
     auth_token: Mapped[Optional[str]] = mapped_column()
-    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    active: Mapped[bool] = mapped_column(default=True)
 
     def __repr__(self):
         return (
@@ -107,16 +103,16 @@ class RecurringBooking(Base):
     chain_id: Mapped[str] = mapped_column()
     location_id: Mapped[str] = mapped_column()
     activity_id: Mapped[str] = mapped_column()
-    weekday: Mapped[int] = mapped_column(
+    weekday: Mapped[small_integer] = mapped_column(
         CheckConstraint("weekday >= 0 AND weekday <= 6", name="check_weekday_range"),
     )
-    start_time_hour: Mapped[int] = mapped_column(
+    start_time_hour: Mapped[small_integer] = mapped_column(
         CheckConstraint(
             "start_time_hour >= 0 AND start_time_hour <= 23",
             name="check_start_time_hour_range",
         ),
     )
-    start_time_minute: Mapped[int] = mapped_column(
+    start_time_minute: Mapped[small_integer] = mapped_column(
         CheckConstraint(
             "start_time_minute >= 0 AND start_time_minute <= 59",
             name="check_start_time_minute_range",
@@ -142,7 +138,6 @@ class Session(Base):
     __tablename__ = "sessions"
 
     chain: Mapped[str] = mapped_column(
-        String,
         primary_key=True,
     )
     class_id: Mapped[str] = mapped_column(primary_key=True)
