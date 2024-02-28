@@ -72,9 +72,9 @@ def get_user_sessions(
 
     return [
         BaseUserSession(
-            chain=session.chain,  # type: ignore
-            status=session.status,  # type: ignore
-            class_data=session.class_data,  # type: ignore
+            chain=session.chain,
+            status=session.status,
+            class_data=session.class_data,  # type: ignore[arg-type]
         )
         for session in db_sessions
     ]
@@ -94,6 +94,6 @@ def get_user_chain_configs(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     db_chain_users = db.query(models.ChainUser).filter_by(user_id=db_user.id).all()
     return {
-        chain_user.chain: crud.get_chain_config(db, chain_user.chain, db_user.id)  # type: ignore
+        chain_user.chain: crud.get_chain_config(db, chain_user.chain, db_user.id)
         for chain_user in db_chain_users
     }
