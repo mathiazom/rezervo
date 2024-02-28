@@ -3,7 +3,7 @@ import datetime
 import re
 from abc import abstractmethod
 from collections import defaultdict
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 import pydantic
 import requests
@@ -137,7 +137,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                     "Authorization": f"Bearer {auth_result.access_token}",
                 },
             ) as res:
-                bookings_response = parse_obj_as(List[BookingData], await res.json())
+                bookings_response = parse_obj_as(list[BookingData], await res.json())
         except requests.exceptions.RequestException as e:
             err.log(
                 f"Failed to retrieve booked classes for cancellation of class '{class_id}'",
@@ -185,7 +185,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
                     "Authorization": f"Bearer {auth_result.access_token}",
                 },
             ) as res:
-                bookings_response: List[BookingData] = await res.json()
+                bookings_response: list[BookingData] = await res.json()
         except requests.exceptions.RequestException as e:
             err.log(
                 f"Failed to retrieve sessions for '{chain_user.username}'",
@@ -204,7 +204,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             past_and_imminent_sessions.append(
                 UserSession(
                     chain=chain_user.chain,
-                    class_id=s.groupActivity.id,  # type: ignore
+                    class_id=str(s.groupActivity.id),
                     user_id=chain_user.user_id,
                     status=session_state_from_brp(
                         s.type, _class.start_time, s.checkedIn
@@ -216,7 +216,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
 
     async def _fetch_detailed_schedule(
         self, business_unit: int, days: int, from_date: datetime.datetime
-    ) -> List[DetailedBrpClass]:
+    ) -> list[DetailedBrpClass]:
         schedule = await fetch_brp_schedule(
             self.brp_subdomain,
             business_unit,
@@ -226,7 +226,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         return await fetch_detailed_brp_schedule(self.brp_subdomain, schedule)
 
     def _rezervo_schedule_from_brp_schedule(
-        self, schedule: List[BrpClass]
+        self, schedule: list[BrpClass] | list[DetailedBrpClass]
     ) -> RezervoSchedule:
         days_map: defaultdict[datetime.date, list[RezervoClass]] = defaultdict(list)
         for _class in schedule:
@@ -273,7 +273,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             ]
         ):
             schedule.extend(res)
-        return self._rezervo_schedule_from_brp_schedule(schedule)  # type: ignore
+        return self._rezervo_schedule_from_brp_schedule(schedule)
 
     def rezervo_class_from_brp_class(
         self,
@@ -283,7 +283,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         category = determine_activity_category(
             brp_class.name, brp_class.externalMessage is not None
         )
-        return RezervoClass(  # type: ignore
+        return RezervoClass(
             id=str(brp_class.id),  # TODO: check if unique across all subdomains
             start_time=datetime.datetime.fromisoformat(
                 tz_aware_iso_from_brp_date_str(brp_class.duration.start)
@@ -310,7 +310,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             available_slots=brp_class.slots.leftToBook,
             waiting_list_count=brp_class.slots.inWaitingList,
             activity=RezervoActivity(
-                id=brp_class.groupActivityProduct.id,  # type: ignore
+                id=str(brp_class.groupActivityProduct.id),
                 name=re.sub(r"\s\(\d+\)$", "", brp_class.groupActivityProduct.name),
                 category=category.name,
                 description=(

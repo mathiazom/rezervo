@@ -3,7 +3,7 @@ import json
 import re
 from typing import Optional
 
-from pywebpush import WebPushException, webpush  # type: ignore
+from pywebpush import WebPushException, webpush  # type: ignore[import-untyped]
 
 from rezervo.consts import WEEKDAYS
 from rezervo.database import crud

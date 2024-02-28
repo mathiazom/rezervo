@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -30,6 +30,6 @@ class Interaction(BaseModel):
     type: str
     trigger_id: str
     user: User
-    actions: List[Action]
+    actions: list[Action]
     response_url: str
     container: InteractionContainer

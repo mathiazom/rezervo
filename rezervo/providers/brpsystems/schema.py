@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, TypeAlias, Union
+from typing import Optional, TypeAlias, Union
 
 import pytz
 from pydantic import BaseModel
@@ -15,7 +15,7 @@ BrpLocationIdentifier: TypeAlias = int
 
 class BrpAuthResult(BaseModel):
     username: str
-    roles: List[str]
+    roles: list[str]
     token_type: str
     access_token: str
     expires_in: int
@@ -66,8 +66,8 @@ class BrpClass(BaseModel):
     duration: Duration
     groupActivityProduct: GroupActivityProduct
     businessUnit: BusinessUnit
-    locations: List[Location]
-    instructors: List[Instructor]
+    locations: list[Location]
+    instructors: list[Instructor]
     bookableEarliest: str
     bookableLatest: str
     externalMessage: Optional[str] = None
@@ -90,7 +90,7 @@ class BrpActivityAsset(BaseModel):
 class BrpReceivedActivityDetails(BaseModel):
     id: int
     description: Optional[str] = None
-    assets: Optional[List[BrpActivityAsset]] = None
+    assets: Optional[list[BrpActivityAsset]] = None
 
 
 class BrpActivityDetails(BaseModel):
@@ -207,7 +207,7 @@ class UserDetails(BaseModel):
     allowMassSendEmail: bool
     allowMassSendMail: bool
     allowMassSendSms: bool
-    consents: List[Consent]
+    consents: list[Consent]
     temporary: Optional[Union[int, str]] = None  # Type based on actual usage
     lastPasswordChangedTime: str
 

@@ -25,7 +25,7 @@ def get_community(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return crud.get_community(db, db_user.id)  # type: ignore
+    return crud.get_community(db, db_user.id)
 
 
 @router.put("/community/relationship", response_model=UserRelationship)
@@ -39,7 +39,7 @@ def update_relationship(
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     updated_relationship = crud.modify_user_relationship(
-        db, db_user.id, payload.user_id, payload.action  # type: ignore
+        db, db_user.id, payload.user_id, payload.action
     )
 
     if updated_relationship is UserRelationship.REQUEST_SENT:
@@ -48,6 +48,6 @@ def update_relationship(
         ).config.notifications.push_notification_subscriptions
         if receiver_push_subscriptions is not None:
             for subscription in receiver_push_subscriptions:
-                notify_friend_request_web_push(subscription, db_user.name)  # type: ignore
+                notify_friend_request_web_push(subscription, db_user.name)
 
     return updated_relationship

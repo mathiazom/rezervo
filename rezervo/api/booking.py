@@ -31,7 +31,7 @@ def authenticate_chain_user_with_config(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    chain_user = crud.get_chain_user(db, chain_identifier, db_user.id)  # type: ignore
+    chain_user = crud.get_chain_user(db, chain_identifier, db_user.id)
     if chain_user is None:
         err.log(f"No '{chain_identifier}' user for given user id")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)

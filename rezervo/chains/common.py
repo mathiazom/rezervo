@@ -86,7 +86,7 @@ def update_slack_notifications_with_cancellation(
         )
     for receipt in receipts:
         notify_cancellation_slack(
-            slack_config.bot_token, slack_config.channel_id, receipt.message_id  # type: ignore
+            slack_config.bot_token, slack_config.channel_id, receipt.message_id
         )
         reminder_id = receipt.scheduled_reminder_id
         if reminder_id is not None:

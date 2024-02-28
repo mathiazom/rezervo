@@ -24,7 +24,7 @@ def get_features(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    admin_config = AdminConfig(**db_user.admin_config)  # type: ignore
+    admin_config = AdminConfig(**db_user.admin_config)
     return Features(
         class_reminder_notifications=(
             admin_config.notifications is not None

@@ -152,7 +152,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         past_and_booked_sessions = [
             UserSession(
                 chain=chain_user.chain,
-                class_id=s.class_field.id,  # type: ignore
+                class_id=str(s.class_field.id),
                 user_id=chain_user.user_id,
                 status=session_state_from_ibooking(s.status),
                 class_data=self.rezervo_class_from_ibooking_class(s.class_field),  # type: ignore
@@ -190,7 +190,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         self, ibooking_class: IBookingClass
     ) -> RezervoClass:
         return RezervoClass(
-            id=ibooking_class.id,  # type: ignore
+            id=str(ibooking_class.id),
             start_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.from_field),  # type: ignore
             end_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.to),  # type: ignore
             location=RezervoLocation(
