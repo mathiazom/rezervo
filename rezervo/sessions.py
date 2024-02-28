@@ -130,14 +130,12 @@ async def remove_sessions(
             )
             .all()
         )
-        sessions_to_remove = [
-            session
-            for session in user_planned_sessions
-            if rezervo_class_recurrent_id(UserSession.from_orm(session).class_data)
-            in recurrent_ids_to_remove
-        ]
-        for session in sessions_to_remove:
-            db.delete(session)
+        for session in user_planned_sessions:
+            if (
+                rezervo_class_recurrent_id(UserSession.from_orm(session).class_data)
+                in recurrent_ids_to_remove
+            ):
+                db.delete(session)
         db.commit()
 
 
@@ -149,7 +147,7 @@ async def update_planned_sessions(
 ):
     previous_class_ids = (
         set()
-        if not previous_config or not previous_config.active
+        if previous_config is None or not previous_config.active
         else {
             class_config_recurrent_id(_class)
             for _class in previous_config.recurring_bookings
@@ -167,7 +165,7 @@ async def update_planned_sessions(
     removed_class_ids = previous_class_ids - updated_class_ids
     added_class_ids = updated_class_ids - previous_class_ids
 
-    if removed_class_ids:
+    if len(removed_class_ids) > 0:
         await remove_sessions(
             chain_identifier, user_id, list(removed_class_ids), SessionState.PLANNED
         )
