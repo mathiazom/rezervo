@@ -1,16 +1,16 @@
 from fastapi import APIRouter, HTTPException
 
 from rezervo.chains.active import ACTIVE_CHAIN_IDENTIFIERS, ACTIVE_CHAINS, get_chain
-from rezervo.chains.schema import Chain, ChainProfile
+from rezervo.chains.schema import ChainResponse, ChainProfile
 from rezervo.schemas.config.user import ChainIdentifier
 
 router = APIRouter()
 
 
-@router.get("/chains", response_model=list[Chain])
+@router.get("/chains", response_model=list[ChainResponse])
 def get_chains():
     return [
-        Chain(
+        ChainResponse(
             profile=ChainProfile(
                 identifier=chain.identifier,
                 name=chain.name,
@@ -22,7 +22,7 @@ def get_chains():
     ]
 
 
-@router.get("/chains/{chain_identifier}", response_model=Chain)
+@router.get("/chains/{chain_identifier}", response_model=ChainResponse)
 def get_chain_by_identifier(
     chain_identifier: ChainIdentifier,
 ):
@@ -31,7 +31,7 @@ def get_chain_by_identifier(
             status_code=404, detail=f"Chain '{chain_identifier}' not recognized."
         )
     chain = get_chain(chain_identifier)
-    return Chain(
+    return ChainResponse(
         profile=ChainProfile(
             identifier=chain.identifier,
             name=chain.name,

@@ -16,13 +16,13 @@ class SitChain(Chain, IBookingProvider):
     name = "Sit Trening"
     images = ChainProfileImages(
         light=ThemeSpecificImages(
-            largeLogo=f"images/chains/sit/light/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+            large_logo=f"images/chains/sit/light/logo_large{'_santa.png' if is_santa_time else '.svg'}"
         ),
         dark=ThemeSpecificImages(
-            largeLogo=f"images/chains/sit/dark/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+            large_logo=f"images/chains/sit/dark/logo_large{'_santa.png' if is_santa_time else '.svg'}"
         ),
         common=ThemeAgnosticImages(
-            smallLogo=f"images/chains/sit/common/logo_small{'_santa' if is_santa_time else ''}.png"
+            small_logo=f"images/chains/sit/common/logo_small{'_santa' if is_santa_time else ''}.png"
         ),
     )
     ibooking_domain = "sit"

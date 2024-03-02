@@ -17,13 +17,13 @@ class FscChain(Chain, BrpProvider):
     brp_subdomain = "fsc"
     images = ChainProfileImages(
         light=ThemeSpecificImages(
-            largeLogo=f"images/chains/fsc/light/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+            large_logo=f"images/chains/fsc/light/logo_large{'_santa.png' if is_santa_time else '.svg'}"
         ),
         dark=ThemeSpecificImages(
-            largeLogo=f"images/chains/fsc/dark/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+            large_logo=f"images/chains/fsc/dark/logo_large{'_santa.png' if is_santa_time else '.svg'}"
         ),
         common=ThemeAgnosticImages(
-            smallLogo=f"images/chains/fsc/common/logo_small{'_santa' if is_santa_time else ''}.png"
+            small_logo=f"images/chains/fsc/common/logo_small{'_santa' if is_santa_time else ''}.png"
         ),
     )
     branches = [

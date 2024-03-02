@@ -16,13 +16,13 @@ class TttChain(Chain, BrpProvider):
     name = "3T"
     images = ChainProfileImages(
         light=ThemeSpecificImages(
-            largeLogo=f"images/chains/3t/light/logo_large{'_santa' if is_santa_time else ''}.png"
+            large_logo=f"images/chains/3t/light/logo_large{'_santa' if is_santa_time else ''}.png"
         ),
         dark=ThemeSpecificImages(
-            largeLogo=f"images/chains/3t/dark/logo_large{'_santa' if is_santa_time else ''}.png"
+            large_logo=f"images/chains/3t/dark/logo_large{'_santa' if is_santa_time else ''}.png"
         ),
         common=ThemeAgnosticImages(
-            smallLogo=f"images/chains/3t/common/logo_small{'_santa' if is_santa_time else ''}.png"
+            small_logo=f"images/chains/3t/common/logo_small{'_santa' if is_santa_time else ''}.png"
         ),
     )
     brp_subdomain = "3t"
