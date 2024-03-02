@@ -1,7 +1,13 @@
+from typing import Sequence
+
 from pydantic import BaseModel
 
-from rezervo.providers.schema import Branch
+from rezervo.providers.schema import BaseBranch, BaseLocation
 from rezervo.schemas.camel import CamelModel
+
+
+class BranchProfile(BaseBranch):
+    locations: Sequence[BaseLocation]
 
 
 class ThemeSpecificImages(CamelModel):
@@ -26,4 +32,4 @@ class ChainProfile(BaseModel):
 
 class ChainResponse(BaseModel):
     profile: ChainProfile
-    branches: list[Branch]
+    branches: Sequence[BranchProfile]
