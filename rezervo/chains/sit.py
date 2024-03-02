@@ -1,11 +1,30 @@
 from rezervo.chains.chain import Chain
+from rezervo.chains.schema import (
+    ChainProfileImages,
+    ThemeAgnosticImages,
+    ThemeSpecificImages,
+)
 from rezervo.providers.ibooking.provider import IBookingProvider
 from rezervo.providers.schema import Branch, Location
+from rezervo.utils.santa_utils import check_santa_time
+
+is_santa_time = check_santa_time()
 
 
 class SitChain(Chain, IBookingProvider):
     identifier = "sit"
     name = "Sit Trening"
+    images = ChainProfileImages(
+        light=ThemeSpecificImages(
+            largeLogo=f"images/chains/sit/light/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+        ),
+        dark=ThemeSpecificImages(
+            largeLogo=f"images/chains/sit/dark/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+        ),
+        common=ThemeAgnosticImages(
+            smallLogo=f"images/chains/sit/common/logo_small{'_santa' if is_santa_time else ''}.png"
+        ),
+    )
     ibooking_domain = "sit"
     branches = [
         Branch(
