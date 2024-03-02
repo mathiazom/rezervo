@@ -80,7 +80,7 @@ async def book_class_api(
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     # optimistically update session data, but start proper sync in background
-    await upsert_booked_session(chain_identifier, chain_user.user_id, _class)
+    upsert_booked_session(chain_identifier, chain_user.user_id, _class)
     background_tasks.add_task(pull_sessions, chain_identifier, chain_user.user_id)
 
 

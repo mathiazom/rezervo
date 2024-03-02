@@ -6,7 +6,6 @@ from rezervo import models
 from rezervo.chains.active import ACTIVE_CHAIN_IDENTIFIERS, get_chain
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
-from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
 from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
 from rezervo.schemas.schedule import (
@@ -60,7 +59,7 @@ async def pull_sessions(
     )
 
 
-async def upsert_session(
+def upsert_session(
     chain_identifier: ChainIdentifier,
     user_id: UUID,
     _class: RezervoClass,
@@ -89,10 +88,10 @@ async def upsert_session(
         db.commit()
 
 
-async def upsert_booked_session(
+def upsert_booked_session(
     chain_identifier: ChainIdentifier, user_id: UUID, _class: RezervoClass
 ):
-    await upsert_session(
+    upsert_session(
         chain_identifier,
         user_id,
         _class,
@@ -170,22 +169,18 @@ async def update_planned_sessions(
             chain_identifier, user_id, list(removed_class_ids), SessionState.PLANNED
         )
 
-    for class_id in added_class_ids:
-        _class_config = next(
-            (
-                _class
-                for _class in updated_config.recurring_bookings
-                if class_config_recurrent_id(_class) == class_id
-            ),
-            None,
+    find_session_class_tasks = []
+    for _class_config in updated_config.recurring_bookings:
+        if class_config_recurrent_id(_class_config) in added_class_ids:
+            find_session_class_tasks.append(
+                get_chain(chain_identifier).find_class(_class_config)
+            )
+    for session_class_data in await asyncio.gather(*find_session_class_tasks):
+        if not isinstance(session_class_data, RezervoClass):
+            err.log(
+                f"Failed to generate planned session. Class not found: {session_class_data}"
+            )
+            continue
+        upsert_session(
+            chain_identifier, user_id, session_class_data, SessionState.PLANNED
         )
-        if _class_config:
-            class_data = await get_chain(chain_identifier).find_class(_class_config)
-            if isinstance(class_data, RezervoClass):
-                await upsert_session(
-                    chain_identifier, user_id, class_data, SessionState.PLANNED
-                )
-            elif isinstance(class_data, (BookingError, AuthenticationError)):
-                err.log(
-                    f"Failed to generate planned session. Class not found: {class_data}"
-                )
