@@ -1,12 +1,31 @@
 from rezervo.chains.chain import Chain
+from rezervo.chains.schema import (
+    ChainProfileImages,
+    ThemeAgnosticImages,
+    ThemeSpecificImages,
+)
 from rezervo.providers.brpsystems.provider import BrpProvider
 from rezervo.providers.schema import Branch, Location
+from rezervo.utils.santa_utils import check_santa_time
+
+is_santa_time = check_santa_time()
 
 
 class FscChain(Chain, BrpProvider):
     identifier = "fsc"
     name = "Family Sports Club"
     brp_subdomain = "fsc"
+    images = ChainProfileImages(
+        light=ThemeSpecificImages(
+            large_logo=f"images/chains/fsc/light/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+        ),
+        dark=ThemeSpecificImages(
+            large_logo=f"images/chains/fsc/dark/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+        ),
+        common=ThemeAgnosticImages(
+            small_logo=f"images/chains/fsc/common/logo_small{'_santa' if is_santa_time else ''}.png"
+        ),
+    )
     branches = [
         Branch(
             identifier="ski",

@@ -1,6 +1,7 @@
 from fastapi import (
     FastAPI,
 )
+from starlette.staticfiles import StaticFiles
 
 from rezervo.api import (
     activity_categories,
@@ -22,6 +23,9 @@ from rezervo.http_client import HttpClient
 api = FastAPI(
     on_startup=[HttpClient.singleton], on_shutdown=[HttpClient.close_singleton]
 )
+
+api.mount("/images", StaticFiles(directory="rezervo/static"), name="images")
+
 api.include_router(chains.router, tags=["chains"])
 api.include_router(schedules.router, tags=["schedules"])
 api.include_router(activity_categories.router, tags=["activity categories"])
