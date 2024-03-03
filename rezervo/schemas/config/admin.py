@@ -1,13 +1,14 @@
 from typing import Optional
 
 from rezervo.schemas.base import OrmBase
+from rezervo.schemas.camel import CamelOrmBase
 
 
-class Slack(OrmBase):
+class Slack(CamelOrmBase):
     user_id: Optional[str] = None
 
 
-class Notifications(OrmBase):
+class Notifications(CamelOrmBase):
     slack: Optional[Slack] = None
 
 

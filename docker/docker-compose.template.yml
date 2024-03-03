@@ -35,5 +35,7 @@ services:
       - "./config.json:/app/config.json:ro"
       # supply env variables as file to allow access from cron
       - "./.env:/app/.env:ro"
+      - "rezervo-avatars:/app/content/avatars"
 volumes:
   rezervo-data:
+  rezervo-avatars:

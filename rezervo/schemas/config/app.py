@@ -1,6 +1,7 @@
 from typing import Optional
 
 from rezervo.schemas.base import OrmBase
+from rezervo.schemas.camel import CamelOrmBase
 
 CONFIG_FILE = "config.json"
 
@@ -23,24 +24,29 @@ class Cron(OrmBase):
     preparation_minutes: int = 10
 
 
-class Transfersh(OrmBase):
+class Transfersh(CamelOrmBase):
     url: str
 
 
-class Slack(OrmBase):
+class Slack(CamelOrmBase):
     bot_token: str
     signing_secret: str
     channel_id: str
 
 
-class Notifications(OrmBase):
+class Notifications(CamelOrmBase):
     host: Optional[str] = None
     transfersh: Transfersh
     slack: Optional[Slack] = None
+
+
+class Content(OrmBase):
+    avatars_dir: Optional[str] = None
 
 
 class AppConfig(OrmBase):
     auth: Auth
     booking: Booking
     cron: Cron
+    content: Optional[Content] = None
     notifications: Optional[Notifications] = None

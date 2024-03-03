@@ -14,7 +14,7 @@ from rezervo.schemas.config.user import (
     ChainIdentifier,
     ChainUserCredentials,
     ChainUserProfile,
-    UserNameWithIsSelf,
+    UserIdAndNameWithIsSelf,
 )
 from rezervo.sessions import (
     pull_sessions,
@@ -117,7 +117,7 @@ async def put_chain_config(
 
 @router.get(
     "/{chain_identifier}/all-configs",
-    response_model=dict[str, list[UserNameWithIsSelf]],
+    response_model=dict[str, list[UserIdAndNameWithIsSelf]],
 )
 def get_all_configs_index(
     chain_identifier: ChainIdentifier,
@@ -136,7 +136,7 @@ def get_all_configs_index(
         if cu.user_id == db_user.id
         or user_relationship_index.get(cu.user_id) == UserRelationship.FRIEND
     ]
-    user_configs_dict: dict[str, list[UserNameWithIsSelf]] = {}
+    user_configs_dict: dict[str, list[UserIdAndNameWithIsSelf]] = {}
     for chain_user in friendly_chain_users:
         dbu = crud.get_user(db, chain_user.user_id)
         if dbu is None:
@@ -146,8 +146,10 @@ def get_all_configs_index(
             if class_id not in user_configs_dict:
                 user_configs_dict[class_id] = []
             user_configs_dict[class_id].append(
-                UserNameWithIsSelf(
-                    is_self=chain_user.user_id == db_user.id, user_name=dbu.name
+                UserIdAndNameWithIsSelf(
+                    is_self=chain_user.user_id == db_user.id,
+                    user_id=chain_user.user_id,
+                    user_name=dbu.name,
                 )
             )
     return user_configs_dict

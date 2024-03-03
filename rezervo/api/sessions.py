@@ -51,6 +51,7 @@ def get_sessions_index(
         session_dict[class_id].append(
             UserNameSessionStatus(
                 is_self=session.user_id == db_user.id,
+                user_id=session.user_id,
                 user_name=user_name_lookup[session.user_id],
                 status=session.status,
             )

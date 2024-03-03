@@ -5,8 +5,7 @@ from uuid import UUID
 
 from rezervo import models
 from rezervo.models import SessionState
-from rezervo.schemas.base import OrmBase
-from rezervo.schemas.camel import CamelModel
+from rezervo.schemas.camel import CamelModel, CamelOrmBase
 from rezervo.schemas.config.user import ChainIdentifier
 
 
@@ -69,7 +68,7 @@ class RezervoSchedule(CamelModel):
     days: list[RezervoDay]
 
 
-class BaseUserSession(OrmBase, CamelModel):
+class BaseUserSession(CamelOrmBase):
     chain: ChainIdentifier
     status: SessionState
     class_data: SessionRezervoClass
@@ -82,6 +81,7 @@ class UserSession(BaseUserSession):
 
 class UserNameSessionStatus(CamelModel):
     is_self: bool
+    user_id: UUID
     user_name: str
     status: SessionState
 
