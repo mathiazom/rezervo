@@ -8,6 +8,8 @@ from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.auth import auth0
 from rezervo.auth.auth0 import get_auth0_management_client
 from rezervo.database import crud
+from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
+from rezervo.schemas.schedule import BaseUserSession
 from rezervo.settings import Settings, get_settings
 
 router = APIRouter()
@@ -38,3 +40,60 @@ def upsert_user(
     name = auth0.get_auth0_user_name(auth0_mgmt_client, jwt_sub)
     crud.create_user(db, name, jwt_sub)
     response.status_code = status.HTTP_201_CREATED
+
+
+@router.get(
+    "/user/sessions",
+    response_model=list[BaseUserSession],
+)
+def get_user_sessions(
+    token=Depends(token_auth_scheme),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    db_sessions = (
+        db.query(models.Session)
+        .filter(models.Session.user_id == db_user.id)
+        .filter(
+            models.Session.status.in_(
+                [
+                    models.SessionState.PLANNED,
+                    models.SessionState.BOOKED,
+                    models.SessionState.WAITLIST,
+                ]
+            )
+        )
+        .order_by(models.Session.class_data["start_time"])
+        .all()
+    )
+
+    return [
+        BaseUserSession(
+            chain=session.chain,
+            status=session.status,
+            class_data=session.class_data,  # type: ignore[arg-type]
+        )
+        for session in db_sessions
+    ]
+
+
+@router.get(
+    "/user/chain-configs",
+    response_model=dict[ChainIdentifier, ChainConfig],
+)
+def get_user_chain_configs(
+    token=Depends(token_auth_scheme),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    db_chain_users = db.query(models.ChainUser).filter_by(user_id=db_user.id).all()
+    return {
+        chain_user.chain: crud.get_chain_config(db, chain_user.chain, db_user.id)
+        for chain_user in db_chain_users
+    }

@@ -71,12 +71,15 @@ class RezervoSchedule(CamelModel):
     days: list[RezervoDay]
 
 
-class UserSession(OrmBase):
+class BaseUserSession(OrmBase):
     chain: ChainIdentifier
-    class_id: str
-    user_id: UUID
     status: SessionState
     class_data: SessionRezervoClass
+
+
+class UserSession(BaseUserSession):
+    class_id: str
+    user_id: UUID
 
 
 class UserNameSessionStatus(BaseModel):

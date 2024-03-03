@@ -26,8 +26,6 @@ def activity_url(
     host: Optional[str], chain_identifier: ChainIdentifier, _class: RezervoClass
 ):
     if host:
-        return (
-            f"<{host}/{chain_identifier}/?classId={_class.id}|*{_class.activity.name}*>"
-        )
+        return f"<{host}/{chain_identifier}?classId={_class.id}&startTime={_class.start_time.isoformat()}|*{_class.activity.name}*>"
 
     return f"*{_class.activity.name}*"

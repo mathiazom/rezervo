@@ -16,6 +16,10 @@ from rezervo.schemas.config.user import (
     ChainUserProfile,
     UserNameWithIsSelf,
 )
+from rezervo.sessions import (
+    pull_sessions,
+    update_planned_sessions,
+)
 from rezervo.settings import Settings, get_settings
 from rezervo.utils.config_utils import class_config_recurrent_id
 
@@ -78,7 +82,7 @@ def get_chain_config(
 
 
 @router.put("/{chain_identifier}/config", response_model=BaseChainConfig)
-def put_chain_config(
+async def put_chain_config(
     chain_identifier: ChainIdentifier,
     chain_config: BaseChainConfig,
     background_tasks: BackgroundTasks,
@@ -89,6 +93,7 @@ def put_chain_config(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    previous_config = crud.get_chain_config(db, chain_identifier, db_user.id)
     updated_config = crud.update_chain_config(
         db,
         db_user.id,
@@ -96,6 +101,15 @@ def put_chain_config(
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    # optimistically update session data, but start proper sync in background
+    await update_planned_sessions(
+        chain_identifier,
+        db_user.id,
+        previous_config,
+        updated_config,
+    )
+    background_tasks.add_task(pull_sessions, chain_identifier, db_user.id)
     # TODO: debounce refresh to better handle burst updates
     background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])
     return updated_config

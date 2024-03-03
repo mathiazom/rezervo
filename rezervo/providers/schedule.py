@@ -21,6 +21,8 @@ def find_class_in_schedule_by_config(
         if day.day_name != weekday_str:
             continue
         for c in day.classes:
+            if c.location.id != _class_config.location_id:
+                continue
             if c.activity.id != _class_config.activity_id:
                 continue
             localized_start_time = c.start_time.astimezone(
