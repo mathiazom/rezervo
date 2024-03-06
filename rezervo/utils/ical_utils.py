@@ -30,7 +30,14 @@ def ical_event_from_session(session: UserSession, timezone: str) -> Optional[cal
         "description",
         f"{_class.activity.name} {instructors_str}",
     )
-    event.add("location", f"{_class.location.studio} ({_class.location.room})")
+    event.add(
+        "location",
+        (
+            _class.location.studio + f" ({_class.location.room})"
+            if _class.location.room
+            else ""
+        ),
+    )
     # TODO: start and end times use a naughty timezone hack to make ical valid, check if any nicer solutions exists
     tz = pytz.timezone(timezone)
     event.add("dtstart", _class.start_time.astimezone(tz).replace(tzinfo=None))

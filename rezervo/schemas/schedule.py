@@ -24,7 +24,7 @@ class RezervoStudio(CamelModel):
 class RezervoLocation(CamelModel):
     id: str
     studio: str
-    room: str
+    room: Optional[str] = None
 
 
 class RezervoActivity(CamelModel):
@@ -53,11 +53,11 @@ class SessionRezervoClass(BaseRezervoClass):
 class RezervoClass(BaseRezervoClass):
     is_bookable: bool
     is_cancelled: bool
-    cancel_text: Optional[str]
-    total_slots: Optional[int]
-    available_slots: Optional[int]
-    waiting_list_count: Optional[int]
-    user_status: Optional[str]
+    cancel_text: Optional[str] = None
+    total_slots: Optional[int] = None
+    available_slots: Optional[int] = None
+    waiting_list_count: Optional[int] = None
+    user_status: Optional[str] = None
     booking_opens_at: datetime.datetime
 
 

@@ -33,22 +33,22 @@ class IBookingWaitlist(BaseModel):
 class IBookingClass(BaseModel):
     id: int
     activityId: int
-    available: Optional[int]
+    available: Optional[int] = None
     bookable: bool
     capacity: int
     studio: IBookingStudio
-    room: str
+    room: Optional[str] = None
     from_field: str = Field(..., alias="from")
     to: str
     name: str
     description: str
     category: IBookingCategory
-    image: Optional[str]
+    image: Optional[str] = None
     color: str
     instructors: list[IBookingInstructor]
     waitlist: IBookingWaitlist
-    cancelText: Optional[str]
-    userStatus: Optional[str]
+    cancelText: Optional[str] = None
+    userStatus: Optional[str] = None
     bookingOpensAt: str
 
     class Config:
