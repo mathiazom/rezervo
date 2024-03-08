@@ -2,13 +2,11 @@ import enum
 from typing import Optional, TypeAlias
 from uuid import UUID
 
-from pydantic import BaseModel
-
 from rezervo.schemas.base import OrmBase
 from rezervo.schemas.camel import CamelModel
 
 
-class Notifications(OrmBase):
+class Notifications(OrmBase, CamelModel):
     reminder_hours_before: Optional[float] = None
 
 
@@ -16,7 +14,7 @@ class UserPreferences(OrmBase):
     notifications: Optional[Notifications] = None
 
 
-class UserNameWithIsSelf(BaseModel):
+class UserNameWithIsSelf(CamelModel):
     is_self: bool
     user_name: str
 

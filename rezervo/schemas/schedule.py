@@ -3,8 +3,6 @@ import json
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
-
 from rezervo import models
 from rezervo.models import SessionState
 from rezervo.schemas.base import OrmBase
@@ -71,7 +69,7 @@ class RezervoSchedule(CamelModel):
     days: list[RezervoDay]
 
 
-class BaseUserSession(OrmBase):
+class BaseUserSession(OrmBase, CamelModel):
     chain: ChainIdentifier
     status: SessionState
     class_data: SessionRezervoClass
@@ -82,7 +80,7 @@ class UserSession(BaseUserSession):
     user_id: UUID
 
 
-class UserNameSessionStatus(BaseModel):
+class UserNameSessionStatus(CamelModel):
     is_self: bool
     user_name: str
     status: SessionState

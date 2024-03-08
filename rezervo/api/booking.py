@@ -1,5 +1,4 @@
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import Response
@@ -13,6 +12,7 @@ from rezervo.chains.common import (
 )
 from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import ChainIdentifier, ChainUser
 from rezervo.sessions import pull_sessions, remove_session, upsert_booked_session
@@ -38,7 +38,7 @@ def authenticate_chain_user_with_config(
     return chain_user, crud.get_user_config(db, db_user).config
 
 
-class BookingPayload(BaseModel):
+class BookingPayload(CamelModel):
     class_id: str
 
 
@@ -84,7 +84,7 @@ async def book_class_api(
     background_tasks.add_task(pull_sessions, chain_identifier, chain_user.user_id)
 
 
-class BookingCancellationPayload(BaseModel):
+class BookingCancellationPayload(CamelModel):
     class_id: str
 
 
