@@ -3,14 +3,14 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional, Union
 
-from aiohttp import ClientSession, FormData
+from aiohttp import FormData
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.http_client import create_client_session
 from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
-from rezervo.providers.sats.auth import authenticate_session
+from rezervo.providers.sats.auth import SatsAuthResult, authenticate_session
 from rezervo.providers.sats.helpers import create_activity_id, retrieve_sats_page_props
 from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
@@ -46,10 +46,10 @@ from rezervo.schemas.schedule import (
 from rezervo.utils.category_utils import determine_activity_category
 
 
-class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
+class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier]):
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[ClientSession, AuthenticationError]:
+    ) -> Union[SatsAuthResult, AuthenticationError]:
         session = create_client_session()
         return await authenticate_session(
             session, chain_user.username, chain_user.password
@@ -87,7 +87,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
 
     async def _book_class(
         self,
-        auth_session: ClientSession,
+        auth_session: SatsAuthResult,
         class_id: str,
     ) -> bool:
         res = await auth_session.post(BOOKING_URL, data={"id": class_id})
@@ -96,7 +96,7 @@ class SatsProvider(Provider[ClientSession, SatsLocationIdentifier]):
 
     async def _cancel_booking(
         self,
-        auth_session: ClientSession,
+        auth_session: SatsAuthResult,
         class_id: str,
     ) -> bool:
         _class = await self.find_class_by_id(class_id)
