@@ -11,6 +11,7 @@ from rezervo.http_client import create_client_session
 from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
 from rezervo.providers.sats.auth import SatsAuthResult, authenticate_session
+from rezervo.providers.sats.consts import SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE
 from rezervo.providers.sats.helpers import create_activity_id, retrieve_sats_page_props
 from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
@@ -206,14 +207,15 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier]):
     async def fetch_sats_classes_as_rezervo_day(
         self, date: datetime, club_ids: list[str]
     ) -> RezervoDay:
-        # Sats only expose classes 14 days into the future
-        date_is_within_14_days = (
+        classes_are_fetchable = (
             datetime.now().date()
             <= date.date()
-            < (datetime.now() + timedelta(days=14)).date()
+            < (
+                datetime.now() + timedelta(days=SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE)
+            ).date()
         )
         sats_classes = (
-            await fetch_sats_classes(club_ids, date) if date_is_within_14_days else []
+            await fetch_sats_classes(club_ids, date) if classes_are_fetchable else []
         )
         return RezervoDay(
             day_name=WEEKDAYS[date.weekday()],
