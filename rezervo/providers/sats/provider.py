@@ -1,5 +1,6 @@
 import asyncio
 import re
+from abc import ABC
 from datetime import datetime, timedelta
 from typing import Optional, Union
 
@@ -47,7 +48,7 @@ from rezervo.schemas.schedule import (
 from rezervo.utils.category_utils import determine_activity_category
 
 
-class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier]):
+class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
     async def _authenticate(
         self, chain_user: ChainUser
     ) -> Union[SatsAuthResult, AuthenticationError]:
