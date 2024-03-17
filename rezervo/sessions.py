@@ -97,7 +97,7 @@ def upsert_booked_session(
         _class,
         (
             SessionState.BOOKED
-            if (_class.available_slots or 0) > 0
+            if (_class.available_slots or (1 - (_class.waiting_list_count or 0))) > 0
             else SessionState.WAITLIST
         ),
     )

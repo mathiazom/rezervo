@@ -7,11 +7,17 @@ from typing import Optional, Union
 from aiohttp import FormData
 
 from rezervo.consts import WEEKDAYS
+from rezervo.database import crud
+from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.http_client import create_client_session
 from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
-from rezervo.providers.sats.auth import SatsAuthResult, authenticate_session
+from rezervo.providers.sats.auth import (
+    SatsAuthResult,
+    create_sats_session,
+    fetch_authed_sats_cookie,
+    validate_token,
+)
 from rezervo.providers.sats.consts import SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE
 from rezervo.providers.sats.helpers import create_activity_id, retrieve_sats_page_props
 from rezervo.providers.sats.schedule import (
@@ -46,16 +52,33 @@ from rezervo.schemas.schedule import (
     UserSession,
 )
 from rezervo.utils.category_utils import determine_activity_category
+from rezervo.utils.logging_utils import err, warn
 
 
 class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
     async def _authenticate(
         self, chain_user: ChainUser
     ) -> Union[SatsAuthResult, AuthenticationError]:
-        session = create_client_session()
-        return await authenticate_session(
-            session, chain_user.username, chain_user.password
+        if chain_user.auth_token is not None:
+            if await validate_token(chain_user.auth_token) is None:
+                return chain_user.auth_token
+            warn.log(
+                "Authentication token validation failed, retrieving fresh token..."
+            )
+        token_res = await fetch_authed_sats_cookie(
+            chain_user.username, chain_user.password
         )
+        if isinstance(token_res, AuthenticationError):
+            err.log("Failed to extract authentication token!")
+            return token_res
+        validation_error = await validate_token(token_res)
+        if validation_error is not None:
+            return validation_error
+        with SessionLocal() as db:
+            crud.upsert_chain_user_token(
+                db, chain_user.user_id, chain_user.chain, token_res
+            )
+        return token_res
 
     async def find_class_by_id(
         self, class_id: str
@@ -89,48 +112,54 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
 
     async def _book_class(
         self,
-        auth_session: SatsAuthResult,
+        auth_result: SatsAuthResult,
         class_id: str,
     ) -> bool:
-        res = await auth_session.post(BOOKING_URL, data={"id": class_id})
-        await auth_session.close()
-        return res.status == 200
+        async with create_sats_session(auth_result) as session:
+            async with session.post(
+                BOOKING_URL, headers={"Accept": "text/html"}, data={"id": class_id}
+            ) as res:
+                if not res.ok:
+                    err.log("Booking attempt failed: " + (await res.text()))
+                    return False
+                return True
 
     async def _cancel_booking(
         self,
-        auth_session: SatsAuthResult,
+        auth_result: SatsAuthResult,
         class_id: str,
     ) -> bool:
         _class = await self.find_class_by_id(class_id)
         if not isinstance(_class, RezervoClass):
             return False
-        bookings_res = await auth_session.get(BOOKINGS_URL)
-        sats_day_bookings = SatsBookingsResponse(
-            **retrieve_sats_page_props(str(await bookings_res.read()))
-        ).myUpcomingTraining
-
-        for day_bookings in sats_day_bookings:
-            for booking in day_bookings.upcomingTrainings.trainings:
-                start_time = datetime.strptime(
-                    booking.date + " " + booking.startTime, "%Y-%m-%d %H:%M"
-                ).astimezone()
-                if (
-                    booking.activityName == _class.activity.name
-                    and booking.instructor == _class.instructors[0].name
-                    and start_time == _class.start_time
-                ):
-                    res = await auth_session.post(
-                        CANCEL_BOOKING_URL,
-                        data=FormData(
-                            {
-                                "participationId": booking.hiddenInput[0].value,
-                                "redirectUrl": BOOKINGS_PATH,
-                            }
-                        ),
-                    )
-                    await auth_session.close()
-                    return res.status == 200
-        await auth_session.close()
+        async with create_sats_session(auth_result) as session:
+            async with session.get(
+                BOOKINGS_URL, headers={"Accept": "text/html"}
+            ) as bookings_res:
+                sats_day_bookings = SatsBookingsResponse(
+                    **retrieve_sats_page_props(str(await bookings_res.read()))
+                ).myUpcomingTraining
+            for day_bookings in sats_day_bookings:
+                for booking in day_bookings.upcomingTrainings.trainings:
+                    start_time = datetime.strptime(
+                        booking.date + " " + booking.startTime, "%Y-%m-%d %H:%M"
+                    ).astimezone()
+                    if (
+                        booking.activityName == _class.activity.name
+                        and booking.instructor == _class.instructors[0].name
+                        and start_time == _class.start_time
+                    ):
+                        async with session.post(
+                            CANCEL_BOOKING_URL,
+                            headers={"Accept": "text/html"},
+                            data=FormData(
+                                {
+                                    "participationId": booking.hiddenInput[0].value,
+                                    "redirectUrl": BOOKINGS_PATH,
+                                }
+                            ),
+                        ) as res:
+                            return res.ok
         return False
 
     async def _fetch_past_and_booked_sessions(
@@ -138,14 +167,17 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> Optional[list[UserSession]]:
-        async with create_client_session() as session:
-            await authenticate_session(
-                session, chain_user.username, chain_user.password
-            )
-            bookings_res = await session.get(BOOKINGS_URL)
-            sats_day_bookings = SatsBookingsResponse(
-                **retrieve_sats_page_props(str(await bookings_res.read()))
-            ).myUpcomingTraining
+        auth_result = await self._authenticate(chain_user)
+        if isinstance(auth_result, AuthenticationError):
+            err.log(f"Authentication failed for '{chain_user.username}'!")
+            return None
+        async with create_sats_session(auth_result) as session:
+            async with session.get(
+                BOOKINGS_URL, headers={"Accept": "text/html"}
+            ) as bookings_res:
+                sats_day_bookings = SatsBookingsResponse(
+                    **retrieve_sats_page_props(str(await bookings_res.read()))
+                ).myUpcomingTraining
 
         user_sessions = []
         for day_booking in sats_day_bookings:
@@ -284,10 +316,7 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         return location_id
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
-        async with create_client_session() as session:
-            return not isinstance(
-                await authenticate_session(
-                    session, credentials.username, credentials.password
-                ),
-                AuthenticationError,
-            )
+        return not isinstance(
+            await fetch_authed_sats_cookie(credentials.username, credentials.password),
+            AuthenticationError,
+        )
