@@ -24,25 +24,30 @@ async def fetch_sats_classes_with_offset(
 
 
 async def fetch_classes_batch_task(
-    club_ids: list[str], date: datetime, start_offset: int
+    club_ids: list[str],
+    date: datetime,
+    start_batch: int,
+    batch_step: int,
+    batch_size: int,
 ) -> list[SatsClass]:
     all_classes: list[SatsClass] = []
-    offset = start_offset
+    offset = batch_size * start_batch
     while True:
         classes = await fetch_sats_classes_with_offset(club_ids, date, offset)
         if not classes:
             break
         all_classes.extend(classes)
-        offset += BATCH_SIZE * TASK_COUNT
+        offset += batch_size * batch_step
     return all_classes
 
 
 async def fetch_sats_classes(club_ids: list[str], date: datetime) -> list[SatsClass]:
-    results = await asyncio.gather(
+    all_classes = []
+    for classes in await asyncio.gather(
         *(
-            fetch_classes_batch_task(club_ids, date, i * BATCH_SIZE)
+            fetch_classes_batch_task(club_ids, date, i, TASK_COUNT, BATCH_SIZE)
             for i in range(TASK_COUNT)
         )
-    )
-    all_classes = [_class for result in results for _class in result]
+    ):
+        all_classes.extend(classes)
     return all_classes
