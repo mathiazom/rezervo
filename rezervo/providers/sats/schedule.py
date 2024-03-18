@@ -20,7 +20,7 @@ async def fetch_sats_classes_with_offset(
             "offset": offset,
         },
     )
-    return SatsScheduleResponse(**await response.json()).classes
+    return SatsScheduleResponse(**(await response.json())).classes
 
 
 async def fetch_classes_batch_task(
