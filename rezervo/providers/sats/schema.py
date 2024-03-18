@@ -61,3 +61,15 @@ class SatsDayBookings(BaseModel):
 
 class SatsBookingsResponse(BaseModel):
     myUpcomingTraining: list[SatsDayBookings]
+
+
+class SatsMembershipSettingsProfile(BaseModel):
+    info: list[str]
+
+
+class SatsMembershipSettings(BaseModel):
+    profile: SatsMembershipSettingsProfile
+
+
+class SatsMyPageResponse(BaseModel):
+    membershipSettings: SatsMembershipSettings

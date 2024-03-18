@@ -14,7 +14,7 @@ from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
 from rezervo.providers.sats.auth import (
     SatsAuthResult,
-    create_sats_session,
+    create_authed_sats_session,
     fetch_authed_sats_cookie,
     validate_token,
 )
@@ -125,10 +125,8 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         auth_result: SatsAuthResult,
         class_id: str,
     ) -> bool:
-        async with create_sats_session(auth_result) as session:
-            async with session.post(
-                BOOKING_URL, headers={"Accept": "text/html"}, data={"id": class_id}
-            ) as res:
+        async with create_authed_sats_session(auth_result) as session:
+            async with session.post(BOOKING_URL, data={"id": class_id}) as res:
                 if not res.ok:
                     err.log("Booking attempt failed: " + (await res.text()))
                     return False
@@ -142,10 +140,8 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         _class = await self.find_class_by_id(class_id)
         if not isinstance(_class, RezervoClass):
             return False
-        async with create_sats_session(auth_result) as session:
-            async with session.get(
-                BOOKINGS_URL, headers={"Accept": "text/html"}
-            ) as bookings_res:
+        async with create_authed_sats_session(auth_result) as session:
+            async with session.get(BOOKINGS_URL) as bookings_res:
                 sats_day_bookings = SatsBookingsResponse(
                     **retrieve_sats_page_props(str(await bookings_res.read()))
                 ).myUpcomingTraining
@@ -161,7 +157,6 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
                     ):
                         async with session.post(
                             CANCEL_BOOKING_URL,
-                            headers={"Accept": "text/html"},
                             data=FormData(
                                 {
                                     "participationId": booking.hiddenInput[0].value,
@@ -181,10 +176,8 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         if isinstance(auth_result, AuthenticationError):
             err.log(f"Authentication failed for '{chain_user.username}'!")
             return None
-        async with create_sats_session(auth_result) as session:
-            async with session.get(
-                BOOKINGS_URL, headers={"Accept": "text/html"}
-            ) as bookings_res:
+        async with create_authed_sats_session(auth_result) as session:
+            async with session.get(BOOKINGS_URL) as bookings_res:
                 sats_day_bookings = SatsBookingsResponse(
                     **retrieve_sats_page_props(str(await bookings_res.read()))
                 ).myUpcomingTraining

@@ -4,32 +4,40 @@ from aiohttp import ClientSession, FormData
 from pydantic import ValidationError
 
 from rezervo.errors import AuthenticationError
-from rezervo.http_client import create_client_session, create_tcp_connector
+from rezervo.http_client import create_tcp_connector
+from rezervo.providers.sats.consts import SATS_AUTH_COOKIE_NAME, SATS_REQUEST_HEADERS
 from rezervo.providers.sats.helpers import retrieve_sats_page_props
-from rezervo.providers.sats.schema import SatsBookingsResponse
+from rezervo.providers.sats.schema import SatsBookingsResponse, SatsMyPageResponse
 from rezervo.providers.sats.urls import (
     AUTH_URL,
     BOOKINGS_PATH,
-    BOOKINGS_URL,
     LOGIN_PATH,
+    MY_PAGE_URL,
 )
 from rezervo.utils.logging_utils import err
 
 SatsAuthResult: TypeAlias = str
 
-SATS_AUTH_COOKIE_NAME = ".SATSBETA"
 
-
-def create_sats_session(auth_result: SatsAuthResult) -> ClientSession:
+def creat_public_sats_client_session() -> ClientSession:
     return ClientSession(
-        connector=create_tcp_connector(), cookies={SATS_AUTH_COOKIE_NAME: auth_result}
+        connector=create_tcp_connector(),
+        headers=SATS_REQUEST_HEADERS,
+    )
+
+
+def create_authed_sats_session(auth_result: SatsAuthResult) -> ClientSession:
+    return ClientSession(
+        connector=create_tcp_connector(),
+        cookies={SATS_AUTH_COOKIE_NAME: auth_result},
+        headers=SATS_REQUEST_HEADERS,
     )
 
 
 async def fetch_authed_sats_cookie(
     username: str, password: str
 ) -> Union[SatsAuthResult, AuthenticationError]:
-    async with create_client_session() as session:
+    async with creat_public_sats_client_session() as session:
         auth_res = await session.post(
             AUTH_URL,
             data=FormData(
@@ -40,7 +48,6 @@ async def fetch_authed_sats_cookie(
                     "onSuccess": BOOKINGS_PATH,
                 }
             ),
-            headers={"Accept": "text/html"},
         )
         try:
             # verify that the response contains user data
@@ -59,16 +66,17 @@ async def fetch_authed_sats_cookie(
 async def validate_token(
     auth_result: SatsAuthResult,
 ) -> Union[None, AuthenticationError]:
-    async with create_sats_session(auth_result) as session:
-        async with session.get(
-            BOOKINGS_URL, headers={"Accept": "text/html"}
-        ) as bookings_res:
+    async with create_authed_sats_session(auth_result) as session:
+        async with session.get(MY_PAGE_URL) as my_page_res:
+            if not my_page_res.ok:
+                err.log("Validation of authentication token failed")
+                return AuthenticationError.TOKEN_VALIDATION_FAILED
             try:
-                # verify that the response contains user data
-                SatsBookingsResponse(
-                    **(retrieve_sats_page_props(str(await bookings_res.read())))
+                # verify that the response contains some user data
+                my_page_data = SatsMyPageResponse(
+                    **retrieve_sats_page_props(str(await my_page_res.read()))
                 )
+                if len("".join(my_page_data.membershipSettings.profile.info)) == 0:
+                    return AuthenticationError.TOKEN_INVALID
             except ValidationError:
-                err.log("Authentication failed")
                 return AuthenticationError.TOKEN_INVALID
-    return None
