@@ -80,3 +80,4 @@ async def validate_token(
                     return AuthenticationError.TOKEN_INVALID
             except ValidationError:
                 return AuthenticationError.TOKEN_INVALID
+    return None
