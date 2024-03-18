@@ -18,5 +18,9 @@ def retrieve_sats_page_props(html_content: str):
     return json.loads(corrected_json_string)
 
 
-def create_activity_id(activity_name: str) -> str:
-    return xxhash.xxh64(activity_name).hexdigest()
+def club_name_from_center_name(center_name: str) -> str:
+    return center_name.removeprefix("SATS ")
+
+
+def create_activity_id(activity_name: str, club_name: str) -> str:
+    return xxhash.xxh64(f"{activity_name}@{club_name}".strip()).hexdigest()

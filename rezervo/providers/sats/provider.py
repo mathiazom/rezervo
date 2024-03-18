@@ -21,7 +21,11 @@ from rezervo.providers.sats.auth import (
 from rezervo.providers.sats.consts import (
     SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE,
 )
-from rezervo.providers.sats.helpers import create_activity_id, retrieve_sats_page_props
+from rezervo.providers.sats.helpers import (
+    club_name_from_center_name,
+    create_activity_id,
+    retrieve_sats_page_props,
+)
 from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
 )
@@ -193,7 +197,10 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
                 )
                 _class = await self.find_class(
                     Class(
-                        activity_id=create_activity_id(training.activityName),
+                        activity_id=create_activity_id(
+                            training.activityName,
+                            club_name_from_center_name(training.centerName),
+                        ),
                         weekday=start_time.weekday(),
                         location_id=self.extract_location_id(
                             training.hiddenInput[0].value
@@ -290,7 +297,7 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
             waiting_list_count=sats_class.waitingListCount,
             activity=RezervoActivity(
                 id=create_activity_id(
-                    sats_class.metadata.name,
+                    sats_class.metadata.name, sats_class.metadata.clubName
                 ),  # Sats does not provide activity ids
                 name=sats_class.metadata.name,
                 category=category.name,
