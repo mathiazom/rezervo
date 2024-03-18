@@ -18,7 +18,9 @@ from rezervo.providers.sats.auth import (
     fetch_authed_sats_cookie,
     validate_token,
 )
-from rezervo.providers.sats.consts import SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE
+from rezervo.providers.sats.consts import (
+    SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE,
+)
 from rezervo.providers.sats.helpers import create_activity_id, retrieve_sats_page_props
 from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
@@ -84,7 +86,9 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         self, class_id: str
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         schedule = await self.fetch_schedule(
-            datetime.now(), 14, [self.extract_location_id(class_id)]
+            datetime.now(),
+            SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE,
+            [self.extract_location_id(class_id)],
         )
         for day in schedule.days:
             for _class in day.classes:
@@ -96,7 +100,9 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         self, _class_config: Class
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         schedule = await self.fetch_schedule(
-            datetime.now(), 14, [_class_config.location_id]
+            datetime.now(),
+            SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE,
+            [_class_config.location_id],
         )
         for day in schedule.days:
             for _class in day.classes:
