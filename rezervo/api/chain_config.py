@@ -14,6 +14,10 @@ from rezervo.schemas.config.user import (
     ChainIdentifier,
     ChainUserCredentials,
     ChainUserProfile,
+    ChainUserTOTPPayload,
+    InitiatedTOTPFlowResponse,
+    PutChainUserCredsResponse,
+    UpdatedChainUserCredsResponse,
     UserIdAndNameWithIsSelf,
 )
 from rezervo.sessions import (
@@ -42,7 +46,7 @@ def get_chain_user_profile(
     return config_info
 
 
-@router.put("/{chain_identifier}/user", response_model=ChainUserProfile)
+@router.put("/{chain_identifier}/user", response_model=PutChainUserCredsResponse)
 async def put_chain_user_creds(
     chain_identifier: ChainIdentifier,
     chain_user_creds: ChainUserCredentials,
@@ -54,15 +58,48 @@ async def put_chain_user_creds(
     db_user = crud.user_from_token(db, settings, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    if not await get_chain(chain_identifier).verify_authentication(chain_user_creds):
+    chain = get_chain(chain_identifier)
+    if not chain.totp_enabled and not await chain.verify_authentication(
+        chain_user_creds
+    ):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     updated_config = crud.upsert_chain_user_creds(
         db, db_user.id, chain_identifier, chain_user_creds
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    if chain.totp_enabled:
+        background_tasks.add_task(chain.initiate_totp_flow, updated_config)
+        return InitiatedTOTPFlowResponse()
     background_tasks.add_task(refresh_cron, db_user.id, [chain_identifier])
-    return ChainUserProfile(username=updated_config.username)
+    return UpdatedChainUserCredsResponse(
+        profile=ChainUserProfile(username=updated_config.username)
+    )
+
+
+@router.put("/{chain_identifier}/user/totp")
+async def put_chain_user_totp(
+    chain_identifier: ChainIdentifier,
+    payload: ChainUserTOTPPayload,
+    token=Depends(token_auth_scheme),
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
+):
+    print("[INFO] totp payload ", payload)
+    db_user = crud.user_from_token(db, settings, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    chain = get_chain(chain_identifier)
+    if not chain.totp_enabled:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
+    db_chain_user = crud.get_db_chain_user(db, chain_identifier, db_user.id)
+    if db_chain_user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+    totp = payload.totp
+    if not await chain.verify_totp(totp):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
+    db_chain_user.totp = totp
+    db.commit()
 
 
 @router.get("/{chain_identifier}/config", response_model=BaseChainConfig)

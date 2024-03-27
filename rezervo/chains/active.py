@@ -1,9 +1,10 @@
 from rezervo.chains.chain import Chain
 from rezervo.chains.fsc import FscChain
+from rezervo.chains.sit import SitChain
 from rezervo.chains.ttt import TttChain
 from rezervo.schemas.config.user import ChainIdentifier
 
-ACTIVE_CHAINS: list[Chain] = [FscChain(), TttChain()]
+ACTIVE_CHAINS: list[Chain] = [SitChain(), FscChain(), TttChain()]
 
 ACTIVE_CHAIN_IDENTIFIERS = [c.identifier for c in ACTIVE_CHAINS]
 

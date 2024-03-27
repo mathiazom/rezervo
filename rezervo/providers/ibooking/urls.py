@@ -1,5 +1,5 @@
-AUTH_URL = "https://www.sit.no/"
-BOOKING_URL = "https://www.sit.no/trening/gruppe"
+AUTH_URL = "https://ibooking.sit.no/webapp/timeplan/"
+BOOKING_URL = "https://ibooking.sit.no/webapp/timeplan/"
 MY_SESSIONS_URL = "https://www.sit.no/ibooking-api/callback/get-my-sessions"
 ADD_BOOKING_URL = "https://ibooking.sit.no/webapp/api//Schedule/addBooking"
 CANCEL_BOOKING_URL = "https://ibooking.sit.no/webapp/api//Schedule/cancelBooking"

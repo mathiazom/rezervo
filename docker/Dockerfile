@@ -2,7 +2,11 @@ FROM python:3.10.9-bullseye
 
 RUN apt-get update && apt-get install -y \
     cron \
-    figlet
+    figlet \
+    firefox-esr
+
+# Download and install geckodriver
+RUN wget https://github.com/mozilla/geckodriver/releases/download/v0.34.0/geckodriver-v0.34.0-linux64.tar.gz && tar -xvzf geckodriver-v0.34.0-linux64.tar.gz && mv geckodriver /usr/local/bin/
 
 # Set local timezone (for cron)
 RUN ln -sf /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime

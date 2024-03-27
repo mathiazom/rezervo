@@ -1,6 +1,8 @@
 import enum
-from typing import Optional, TypeAlias
+from typing import Annotated, Literal, Optional, TypeAlias, Union
 from uuid import UUID
+
+from pydantic.fields import Field
 
 from rezervo.schemas.base import OrmBase
 from rezervo.schemas.camel import CamelModel, CamelOrmBase
@@ -61,10 +63,34 @@ class ChainUserCredentials(ChainUserProfile, CamelModel):
     password: str
 
 
-class ChainUser(ChainConfig, ChainUserCredentials, CamelModel):
+class ChainUserTOTP(CamelModel):
+    totp: Optional[str] = None
+
+
+class ChainUserTOTPPayload(CamelModel):
+    totp: str
+
+
+class ChainUser(ChainConfig, ChainUserCredentials, ChainUserTOTP, CamelModel):
     user_id: UUID
     auth_token: Optional[str] = None
 
 
 def config_from_chain_user(user: ChainUser):
     return ChainConfig(**user.dict())
+
+
+class UpdatedChainUserCredsResponse(CamelModel):
+    status: Literal["updated"] = "updated"
+    profile: ChainUserProfile
+
+
+class InitiatedTOTPFlowResponse(CamelModel):
+    status: Literal["initiated_totp_flow"] = "initiated_totp_flow"
+
+
+class PutChainUserCredsResponse(CamelModel):
+    __root__: Annotated[
+        Union[UpdatedChainUserCredsResponse, InitiatedTOTPFlowResponse],
+        Field(discriminator="status"),
+    ]

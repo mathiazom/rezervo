@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 import re
 from abc import abstractmethod
 from collections import defaultdict
@@ -58,10 +59,14 @@ from rezervo.utils.logging_utils import err, warn
 
 
 class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
+
     @property
     @abstractmethod
     def brp_subdomain(self) -> BrpSubdomain:
         raise NotImplementedError()
+
+    def auth_result_from_string(self, auth_result: str) -> BrpAuthResult:
+        return json.loads(auth_result)
 
     async def _authenticate(
         self, chain_user: ChainUser

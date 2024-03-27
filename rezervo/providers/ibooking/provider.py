@@ -1,4 +1,5 @@
 import asyncio
+import json
 import math
 from abc import abstractmethod
 from datetime import datetime, timedelta
@@ -15,6 +16,9 @@ from rezervo.providers.ibooking.auth import (
     authenticate_session,
     authenticate_token,
     fetch_public_token,
+)
+from rezervo.providers.ibooking.auth_session import (
+    initialize_auth_session_interactively,
 )
 from rezervo.providers.ibooking.booking import (
     book_ibooking_class,
@@ -53,10 +57,18 @@ from rezervo.utils.logging_utils import err, warn
 
 
 class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier]):
+
+    @property
+    def totp_enabled(self) -> bool:
+        return True
+
     @property
     @abstractmethod
     def ibooking_domain(self) -> IBookingDomain:
         raise NotImplementedError()
+
+    def auth_result_from_string(self, auth_result: str) -> IBookingAuthResult:
+        return IBookingAuthResult(**json.loads(auth_result))
 
     async def _authenticate(
         self, chain_user: ChainUser
@@ -103,7 +115,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             err.log(f"Invalid ibooking class id: {class_id}")
             return False
         return await book_ibooking_class(
-            self.ibooking_domain, auth_result, ibooking_class_id
+            self.ibooking_domain, "INSERT TOKEN HERE", ibooking_class_id  # TODO: fix
         )
 
     async def _cancel_booking(
@@ -319,6 +331,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         return _class
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
+        # TODO: fix
         async with create_client_session() as session:
             return not isinstance(
                 await authenticate_session(
@@ -326,3 +339,13 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
                 ),
                 AuthenticationError,
             )
+
+    async def verify_totp(self, totp: str) -> bool:
+        return len(totp) == 6 and totp.isdigit()
+
+    async def initiate_totp_flow(self, chain_user: ChainUser) -> None:
+        # TODO: totp flow
+        warn.log("initiating ibooking TOTP flow")
+        return initialize_auth_session_interactively(
+            chain_user.chain, chain_user.user_id
+        )

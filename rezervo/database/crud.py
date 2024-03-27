@@ -79,11 +79,7 @@ def upsert_chain_user_creds(
     chain_identifier: ChainIdentifier,
     creds: ChainUserCredentials,
 ):
-    db_chain_user = (
-        db.query(models.ChainUser)
-        .filter_by(user_id=user_id, chain=chain_identifier)
-        .one_or_none()
-    )
+    db_chain_user = get_db_chain_user(db, chain_identifier, user_id)
     if db_chain_user is None:
         db_chain_user = models.ChainUser(
             user_id=user_id,
@@ -115,14 +111,58 @@ def upsert_chain_user_token(
     db.commit()
 
 
-def get_chain_user(
+def get_db_chain_user(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[ChainUser]:
-    db_chain_user = (
+) -> Optional[models.ChainUser]:
+    return (
         db.query(models.ChainUser)
         .filter_by(user_id=user_id, chain=chain_identifier)
         .one_or_none()
     )
+
+
+def get_chain_user_totp(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[str]:
+    return (
+        db.query(models.ChainUser.totp)
+        .filter_by(user_id=user_id, chain=chain_identifier)
+        .scalar()
+    )
+
+
+def get_chain_user_totp_verified_at(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[datetime]:
+    return (
+        db.query(models.ChainUser.totp_verified_at)
+        .filter_by(user_id=user_id, chain=chain_identifier)
+        .scalar()
+    )
+
+
+def delete_chain_user_totp(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+):
+    db.query(models.ChainUser).filter_by(
+        user_id=user_id, chain=chain_identifier
+    ).update({"totp": None})
+    db.commit()
+
+
+def update_chain_user_totp_verified_at(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+):
+    db.query(models.ChainUser).filter_by(
+        user_id=user_id, chain=chain_identifier
+    ).update({"totp_verified_at": datetime.now()})
+    db.commit()
+
+
+def get_chain_user(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[ChainUser]:
+    db_chain_user = get_db_chain_user(db, chain_identifier, user_id)
     if db_chain_user is None:
         return None
     return _get_chain_user_from_db_model(db, db_chain_user)

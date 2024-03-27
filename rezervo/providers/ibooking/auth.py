@@ -1,29 +1,23 @@
 import re
-from typing import Optional, TypeAlias, Union
+from typing import Optional, Union
 
 import requests
 from aiohttp import ClientSession
+from pydantic.main import BaseModel
 
-from rezervo.database import crud
-from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
-from rezervo.http_client import HttpClient, create_client_session
+from rezervo.http_client import HttpClient
 from rezervo.providers.ibooking.urls import (
     AUTH_URL,
     BOOKING_URL,
     TOKEN_VALIDATION_URL,
 )
 from rezervo.schemas.config.user import ChainUser
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import err
 
 USER_AGENT = (
     "Mozilla/5.0 (X11; Fedora; Linux x86_64; rv:100.0) Gecko/20100101 Firefox/100.0"
 )
-
-
-async def fetch_public_token() -> Union[str, AuthenticationError]:
-    # use an unauthenticated session
-    return await extract_token_from_session(HttpClient.singleton())
 
 
 async def authenticate_session(
@@ -49,35 +43,41 @@ async def authenticate_session(
     return session
 
 
-IBookingAuthResult: TypeAlias = str
+class IBookingAuthResult(BaseModel):
+    cookies: list[dict]
+
+
+# IBookingAuthResult: TypeAlias = str
 
 
 async def authenticate_token(
     chain_user: ChainUser,
 ) -> Union[IBookingAuthResult, AuthenticationError]:
-    if chain_user.auth_token is not None:
-        validation_error = await validate_token(chain_user.auth_token)
-        if validation_error is None:
-            return chain_user.auth_token
-        warn.log("Authentication token validation failed, retrieving fresh token...")
-    async with create_client_session() as session:
-        result = await authenticate_session(
-            session, chain_user.username, chain_user.password
-        )
-        if isinstance(result, AuthenticationError):
-            return result
-        token_res = await extract_token_from_session(result)
-    if isinstance(token_res, AuthenticationError):
-        err.log("Failed to extract authentication token!")
-        return token_res
-    validation_error = await validate_token(token_res)
-    if validation_error is not None:
-        return validation_error
-    with SessionLocal() as db:
-        crud.upsert_chain_user_token(
-            db, chain_user.user_id, chain_user.chain, token_res
-        )
-    return token_res
+    # TODO
+    return AuthenticationError.ERROR
+    # if chain_user.auth_token is not None:
+    #     validation_error = await validate_token(chain_user.auth_token)
+    #     if validation_error is None:
+    #         return chain_user.auth_token
+    #     warn.log("Authentication token validation failed, retrieving fresh token...")
+    # async with create_client_session() as session:
+    #     result = await authenticate_session(
+    #         session, chain_user.username, chain_user.password
+    #     )
+    #     if isinstance(result, AuthenticationError):
+    #         return result
+    #     token_res = await extract_token_from_session(result)
+    # if isinstance(token_res, AuthenticationError):
+    #     err.log("Failed to extract authentication token!")
+    #     return token_res
+    # validation_error = await validate_token(token_res)
+    # if validation_error is not None:
+    #     return validation_error
+    # with SessionLocal() as db:
+    #     crud.upsert_chain_user_token(
+    #         db, chain_user.user_id, chain_user.chain, token_res
+    #     )
+    # return token_res
 
 
 async def validate_token(token: str) -> Optional[AuthenticationError]:
@@ -98,6 +98,11 @@ async def validate_token(token: str) -> Optional[AuthenticationError]:
     return None
 
 
+async def fetch_public_token() -> Union[str, AuthenticationError]:
+    # use an unauthenticated session
+    return await extract_token_from_session(HttpClient.singleton())
+
+
 async def extract_token_from_session(
     session: ClientSession,
 ) -> Union[str, AuthenticationError]:
@@ -105,12 +110,10 @@ async def extract_token_from_session(
         BOOKING_URL, headers={"User-Agent": USER_AGENT}
     ) as booking_res:
         booking_soup = re.sub(" +", " ", (await booking_res.text()).replace("\n", ""))
-    cdata_token_matches = re.search(
-        r"<!\[CDATA\[.*?iBookingPreload\(.*?token:.*?\"(.+?)\".*?]]>", booking_soup
-    )
-    if cdata_token_matches is None:
+    token_matches = re.search(r'\s+clientToken\s*=\s*"([^"]+)"', booking_soup)
+    if token_matches is None:
         return AuthenticationError.TOKEN_EXTRACTION_FAILED
     try:
-        return cdata_token_matches.group(1)
+        return token_matches.group(1)
     except IndexError:
         return AuthenticationError.TOKEN_EXTRACTION_FAILED

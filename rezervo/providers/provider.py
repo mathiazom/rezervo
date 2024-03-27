@@ -38,8 +38,16 @@ from rezervo.utils.time_utils import (
 
 class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
     @property
+    def totp_enabled(self) -> bool:
+        return False
+
+    @property
     @abstractmethod
     def branches(self) -> list[Branch[LocationProviderIdentifier]]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def auth_result_from_string(self, auth_result: str) -> AuthResult:
         raise NotImplementedError()
 
     def locations(self) -> list[LocationIdentifier]:
@@ -290,4 +298,14 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
 
     @abstractmethod
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
+        raise NotImplementedError()
+
+    async def verify_totp(self, totp: str) -> bool:
+        if not self.totp_enabled:
+            raise NotImplementedError("TOTP not enabled for this provider")
+        raise NotImplementedError()
+
+    async def initiate_totp_flow(self, chain_user: ChainUser) -> None:
+        if not self.totp_enabled:
+            raise NotImplementedError("TOTP not enabled for this provider")
         raise NotImplementedError()

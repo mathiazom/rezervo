@@ -81,6 +81,8 @@ class ChainUser(Base):
     chain: Mapped[str] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column()
     password: Mapped[str] = mapped_column()
+    totp: Mapped[Optional[str]] = mapped_column()
+    totp_verified_at: Mapped[Optional[datetime]] = mapped_column()
     auth_token: Mapped[Optional[str]] = mapped_column()
     active: Mapped[bool] = mapped_column(default=True)
 
