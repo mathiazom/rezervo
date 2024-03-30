@@ -5,7 +5,6 @@ from datetime import datetime, timedelta
 from typing import Optional, Union
 
 import pydantic
-import requests
 
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.http_client import HttpClient, create_client_session
@@ -75,7 +74,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
         async with HttpClient.singleton().get(
             f"{CLASS_URL}?token={token}&id={class_id}&lang=no"
         ) as class_response:
-            if class_response.status != requests.codes.OK:
+            if not class_response.ok:
                 err.log("Class get request failed")
                 return BookingError.ERROR
             ibooking_class = IBookingClass(**(await class_response.json())["class"])
@@ -240,7 +239,7 @@ class IBookingProvider(Provider[IBookingAuthResult, IBookingLocationIdentifier])
             f"{('&studios=' + ','.join([str(s) for s in studios])) if studios else ''}"
             f"&lang=no"
         ) as res:
-            if res.status != requests.codes.OK:
+            if not res.ok:
                 return None
             json_res = await res.json()
         return RezervoSchedule(
