@@ -1,8 +1,10 @@
 import asyncio
+import re
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import Generic, Optional, Union
+from uuid import UUID
 
 from rich import print as rprint
 
@@ -14,7 +16,7 @@ from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
 from rezervo.notify.notify import notify_booking
 from rezervo.providers.schema import (
-    AuthResult,
+    AuthData,
     Branch,
     LocationIdentifier,
     LocationProviderIdentifier,
@@ -36,7 +38,15 @@ from rezervo.utils.time_utils import (
 )
 
 
-class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
+class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
+    @property
+    def totp_enabled(self) -> bool:
+        return False
+
+    @property
+    def totp_regex(self) -> Optional[str]:
+        return None
+
     @property
     @abstractmethod
     def branches(self) -> list[Branch[LocationProviderIdentifier]]:
@@ -70,14 +80,17 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
     @abstractmethod
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[AuthResult, AuthenticationError]:
+    ) -> Union[AuthData, AuthenticationError]:
         raise NotImplementedError()
+
+    async def extend_auth_session(self, chain_user: ChainUser) -> None:
+        pass
 
     async def try_authenticate(
         self,
         chain_user: ChainUser,
         max_attempts: int,
-    ) -> Union[AuthResult, AuthenticationError]:
+    ) -> Union[AuthData, AuthenticationError]:
         if max_attempts < 1:
             return AuthenticationError.ERROR
         success = False
@@ -126,7 +139,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
     @abstractmethod
     async def _book_class(
         self,
-        auth_result: AuthResult,
+        auth_data: AuthData,
         class_id: str,
     ) -> bool:
         raise NotImplementedError()
@@ -134,7 +147,7 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
     async def try_book_class(
         self,
         chain_identifier: ChainIdentifier,
-        auth_result: AuthResult,
+        auth_data: AuthData,
         _class: RezervoClass,
         config: ConfigValue,
     ) -> Union[None, BookingError, AuthenticationError]:
@@ -142,14 +155,13 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
         if max_attempts < 1:
             err.log("Max booking attempts should be a positive number")
             return BookingError.INVALID_CONFIG
-        if isinstance(auth_result, AuthenticationError):
+        if isinstance(auth_data, AuthenticationError):
             err.log("Invalid authentication")
-            return auth_result
-        token = auth_result
+            return auth_data
         booked = False
         attempts = 0
         while not booked:
-            booked = await self._book_class(token, _class.id)
+            booked = await self._book_class(auth_data, _class.id)
             attempts += 1
             if booked:
                 break
@@ -177,25 +189,24 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
     @abstractmethod
     async def _cancel_booking(
         self,
-        auth_result: AuthResult,
+        auth_data: AuthData,
         class_id: str,
     ) -> bool:
         raise NotImplementedError()
 
     async def try_cancel_booking(
-        self, auth_result: AuthResult, _class: RezervoClass, config: ConfigValue
+        self, auth_data: AuthData, _class: RezervoClass, config: ConfigValue
     ) -> Union[None, BookingError, AuthenticationError]:
         if config.booking.max_attempts < 1:
             err.log("Max booking cancellation attempts should be a positive number")
             return BookingError.INVALID_CONFIG
-        if isinstance(auth_result, AuthenticationError):
+        if isinstance(auth_data, AuthenticationError):
             err.log("Invalid authentication")
-            return auth_result
-        token = auth_result
+            return auth_data
         cancelled = False
         attempts = 0
         while not cancelled:
-            cancelled = await self._cancel_booking(token, _class.id)
+            cancelled = await self._cancel_booking(auth_data, _class.id)
             attempts += 1
             if cancelled:
                 break
@@ -290,4 +301,19 @@ class Provider(ABC, Generic[AuthResult, LocationProviderIdentifier]):
 
     @abstractmethod
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
+        raise NotImplementedError()
+
+    async def verify_totp(self, totp: str) -> bool:
+        if not self.totp_enabled:
+            raise NotImplementedError("TOTP not enabled for this provider")
+        if self.totp_regex is None:
+            # bypass TOTP verification if no pattern is defined
+            return True
+        return re.compile(self.totp_regex).match(totp) is not None
+
+    async def initiate_totp_flow(
+        self, chain_identifier: ChainIdentifier, user_id: UUID
+    ) -> None:
+        if not self.totp_enabled:
+            raise NotImplementedError("TOTP not enabled for this provider")
         raise NotImplementedError()

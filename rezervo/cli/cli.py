@@ -1,3 +1,4 @@
+import asyncio
 import time
 from datetime import datetime
 from uuid import UUID
@@ -7,6 +8,7 @@ import uvicorn
 from rich import print as rprint
 
 from rezervo.api import api
+from rezervo.chains.active import ACTIVE_CHAINS
 from rezervo.chains.common import authenticate, book_class, find_class
 from rezervo.cli.async_cli import AsyncTyper
 from rezervo.cli.cron import cron_cli
@@ -78,7 +80,12 @@ async def book(
             )
         return
     print("Authenticating chain user...")
-    auth_result = await authenticate(chain_user, config.auth.max_attempts)
+    auth_data = await authenticate(chain_user, config.auth.max_attempts)
+    if isinstance(auth_data, AuthenticationError):
+        err.log("Abort!")
+        if config.notifications is not None:
+            notify_auth_failure(config.notifications, auth_data, check_run)
+        return
     print("Searching for class...")
     class_search_result = await find_class(chain_identifier, _class_config)
     if isinstance(class_search_result, AuthenticationError):
@@ -133,7 +140,7 @@ async def book(
         time.sleep(wait_time)
         print(f"Awoke at {datetime.now().astimezone()}")
     print("Booking class...")
-    booking_result = await book_class(chain_user.chain, auth_result, _class, config)
+    booking_result = await book_class(chain_user.chain, auth_data, _class, config)
     if isinstance(booking_result, AuthenticationError):
         if config.notifications is not None:
             notify_auth_failure(config.notifications, booking_result, check_run)
@@ -178,6 +185,19 @@ def purge_slack_receipts_cli():
             )
         else:
             rprint("No expired Slack notification receipts")
+
+
+@cli.command(name="extend_auth_sessions")
+async def extend_auth_sessions_cli():
+    """
+    Extend the lifetime of all active authentication sessions
+    """
+    extend_jobs = []
+    with SessionLocal() as db:
+        for chain in ACTIVE_CHAINS:
+            for chain_user in crud.get_chain_users(db, chain.identifier):
+                extend_jobs.append(chain.extend_auth_session(chain_user))
+    await asyncio.gather(*extend_jobs)
 
 
 @cli.callback()

@@ -4,10 +4,10 @@ RUN apt-get update && apt-get install -y \
     cron \
     figlet
 
-# Set local timezone (for cron)
+# set local timezone (for cron)
 RUN ln -sf /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
 
-# Ensure sufficient resource limits (prevents 'Too many open files' for cron jobs)
+# ensure sufficient resource limits (prevents 'Too many open files' for cron jobs)
 COPY docker/limits_mods.conf .
 RUN cat ./limits_mods.conf >> /etc/security/limits.conf
 
@@ -22,6 +22,9 @@ COPY pyproject.toml poetry.lock README.md ./
 COPY rezervo rezervo
 
 RUN /root/.local/bin/poetry install --only main
+
+# install Playwright browser and required deps
+RUN playwright install --with-deps firefox
 
 COPY docker/entrypoint.sh .
 RUN chmod +x ./entrypoint.sh

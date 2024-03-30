@@ -73,17 +73,25 @@ def create_user(db: Session, name: str, jwt_sub: str, slack_id: Optional[str] = 
     return db_user
 
 
+def get_chain_user_creds(
+    db: Session, user_id: UUID, chain_identifier: ChainIdentifier
+) -> Optional[ChainUserCredentials]:
+    db_chain_user = get_db_chain_user(db, chain_identifier, user_id)
+    if db_chain_user is None:
+        return None
+    return ChainUserCredentials(
+        username=db_chain_user.username, password=db_chain_user.password
+    )
+
+
 def upsert_chain_user_creds(
     db: Session,
     user_id: UUID,
     chain_identifier: ChainIdentifier,
     creds: ChainUserCredentials,
+    mark_as_verified: bool = True,
 ):
-    db_chain_user = (
-        db.query(models.ChainUser)
-        .filter_by(user_id=user_id, chain=chain_identifier)
-        .one_or_none()
-    )
+    db_chain_user = get_db_chain_user(db, chain_identifier, user_id)
     if db_chain_user is None:
         db_chain_user = models.ChainUser(
             user_id=user_id,
@@ -98,7 +106,9 @@ def upsert_chain_user_creds(
             and db_chain_user.password == creds.password
         ):
             return db_chain_user
-        db_chain_user.auth_token = None  # forget token for previous credentials
+        if mark_as_verified:
+            db_chain_user.auth_verified_at = datetime.now()
+            db_chain_user.auth_data = None
         db_chain_user.username = creds.username
         db_chain_user.password = creds.password
     db.commit()
@@ -106,23 +116,70 @@ def upsert_chain_user_creds(
     return db_chain_user
 
 
-def upsert_chain_user_token(
-    db: Session, user_id: UUID, chain_identifier: ChainIdentifier, token: str
+def upsert_chain_user_auth_data(
+    db: Session,
+    chain_identifier: ChainIdentifier,
+    user_id: UUID,
+    auth_data: Optional[str],
 ):
     db.query(models.ChainUser).filter_by(
         user_id=user_id, chain=chain_identifier
-    ).update({"auth_token": token})
+    ).update({models.ChainUser.auth_data: auth_data})
+    db.commit()
+
+
+def get_db_chain_user(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[models.ChainUser]:
+    return (
+        db.query(models.ChainUser)
+        .filter_by(user_id=user_id, chain=chain_identifier)
+        .one_or_none()
+    )
+
+
+def get_chain_user_totp(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[str]:
+    return (
+        db.query(models.ChainUser.totp)
+        .filter_by(user_id=user_id, chain=chain_identifier)
+        .scalar()
+    )
+
+
+def get_chain_user_auth_verified_at(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+) -> Optional[datetime]:
+    return (
+        db.query(models.ChainUser.auth_verified_at)
+        .filter_by(user_id=user_id, chain=chain_identifier)
+        .scalar()
+    )
+
+
+def update_chain_user_auth_verified_at(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+):
+    db.query(models.ChainUser).filter_by(
+        user_id=user_id, chain=chain_identifier
+    ).update({models.ChainUser.auth_verified_at: datetime.now()})
+    db.commit()
+
+
+def delete_chain_user_totp(
+    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
+):
+    db.query(models.ChainUser).filter_by(
+        user_id=user_id, chain=chain_identifier
+    ).update({models.ChainUser.totp: None})
     db.commit()
 
 
 def get_chain_user(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
 ) -> Optional[ChainUser]:
-    db_chain_user = (
-        db.query(models.ChainUser)
-        .filter_by(user_id=user_id, chain=chain_identifier)
-        .one_or_none()
-    )
+    db_chain_user = get_db_chain_user(db, chain_identifier, user_id)
     if db_chain_user is None:
         return None
     return _get_chain_user_from_db_model(db, db_chain_user)
@@ -177,7 +234,9 @@ def get_chain_user_profile(
     user = get_chain_user(db, chain_identifier, user_id)
     if user is None:
         return None
-    return ChainUserProfile(**user.dict())
+    return ChainUserProfile(
+        username=user.username, is_auth_verified=user.auth_verified_at is not None
+    )
 
 
 def update_chain_config(

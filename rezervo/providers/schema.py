@@ -28,4 +28,4 @@ class Branch(BaseBranch, Generic[LocationProviderIdentifier]):
     locations: list[Location[LocationProviderIdentifier]]
 
 
-AuthResult = TypeVar("AuthResult")
+AuthData = TypeVar("AuthData")

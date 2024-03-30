@@ -65,13 +65,13 @@ async def book_class_api(
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     print("Authenticating chain user...")
-    auth_result = await authenticate(chain_user, config.auth.max_attempts)
-    if isinstance(auth_result, AuthenticationError):
+    auth_data = await authenticate(chain_user, config.auth.max_attempts)
+    if isinstance(auth_data, AuthenticationError):
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     print("Booking class...")
-    booking_result = await book_class(chain_user.chain, auth_result, _class, config)
+    booking_result = await book_class(chain_user.chain, auth_data, _class, config)
     match booking_result:
         case AuthenticationError():
             return Response(
@@ -111,15 +111,13 @@ async def cancel_booking_api(
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     print("Authenticating chain user...")
-    auth_result = await authenticate(chain_user, config.auth.max_attempts)
-    if isinstance(auth_result, AuthenticationError):
+    auth_data = await authenticate(chain_user, config.auth.max_attempts)
+    if isinstance(auth_data, AuthenticationError):
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     print("Cancelling booking...")
-    cancellation_res = await cancel_booking(
-        chain_user.chain, auth_result, _class, config
-    )
+    cancellation_res = await cancel_booking(chain_user.chain, auth_data, _class, config)
     match cancellation_res:
         case AuthenticationError():
             return Response(

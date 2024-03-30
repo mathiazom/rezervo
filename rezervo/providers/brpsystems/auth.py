@@ -5,7 +5,7 @@ import requests
 
 from rezervo.errors import AuthenticationError
 from rezervo.http_client import HttpClient
-from rezervo.providers.brpsystems.schema import BrpAuthResult, BrpSubdomain
+from rezervo.providers.brpsystems.schema import BrpAuthData, BrpSubdomain
 from rezervo.utils.logging_utils import err
 
 
@@ -15,7 +15,7 @@ def auth_url(subdomain: BrpSubdomain) -> str:
 
 async def authenticate(
     subdomain: BrpSubdomain, email: str, password: str
-) -> Union[BrpAuthResult, AuthenticationError]:
+) -> Union[BrpAuthData, AuthenticationError]:
     async with HttpClient.singleton().post(
         auth_url(subdomain), json={"username": email, "password": password}
     ) as auth_res:
@@ -29,4 +29,4 @@ async def authenticate(
     if invalid_credentials_matches is not None:
         err.log("Authentication failed, invalid credentials")
         return AuthenticationError.INVALID_CREDENTIALS
-    return BrpAuthResult(**auth_res_json)
+    return BrpAuthData(**auth_res_json)

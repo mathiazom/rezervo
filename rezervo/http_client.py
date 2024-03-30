@@ -1,5 +1,4 @@
 from aiohttp import ClientSession, DummyCookieJar, TCPConnector
-from rich import print as rprint
 
 from rezervo.utils.ssl_utils import get_ssl_context
 

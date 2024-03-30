@@ -5,7 +5,7 @@ from rezervo.chains.active import get_chain
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.slack import delete_scheduled_dm_slack, notify_cancellation_slack
-from rezervo.providers.schema import AuthResult, LocationIdentifier
+from rezervo.providers.schema import AuthData, LocationIdentifier
 from rezervo.schemas.config.config import ConfigValue, Slack
 from rezervo.schemas.config.user import (
     ChainIdentifier,
@@ -32,29 +32,29 @@ async def find_class(
 async def authenticate(
     chain_user: ChainUser,
     max_attempts: int,
-) -> Union[AuthResult, AuthenticationError]:
+) -> Union[AuthData, AuthenticationError]:
     return await get_chain(chain_user.chain).try_authenticate(chain_user, max_attempts)
 
 
 async def book_class(
     chain_identifier: ChainIdentifier,
-    auth_result: AuthResult,
+    auth_data: AuthData,
     _class: RezervoClass,
     config: ConfigValue,
 ) -> Union[None, BookingError, AuthenticationError]:
     return await get_chain(chain_identifier).try_book_class(
-        chain_identifier, auth_result, _class, config
+        chain_identifier, auth_data, _class, config
     )
 
 
 async def cancel_booking(
     chain_identifier: ChainIdentifier,
-    auth_result: AuthResult,
+    auth_data: AuthData,
     _class: RezervoClass,
     config: ConfigValue,
 ) -> Union[None, BookingError, AuthenticationError]:
     res = await get_chain(chain_identifier).try_cancel_booking(
-        auth_result, _class, config
+        auth_data, _class, config
     )
     if res is None:
         if config.notifications is not None and config.notifications.slack is not None:

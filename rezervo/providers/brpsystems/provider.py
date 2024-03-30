@@ -28,7 +28,7 @@ from rezervo.providers.brpsystems.schedule import (
 from rezervo.providers.brpsystems.schema import (
     BookingData,
     BookingType,
-    BrpAuthResult,
+    BrpAuthData,
     BrpClass,
     BrpLocationIdentifier,
     BrpSubdomain,
@@ -57,7 +57,7 @@ from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err, warn
 
 
-class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
+class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
     @property
     @abstractmethod
     def brp_subdomain(self) -> BrpSubdomain:
@@ -65,7 +65,9 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
 
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[BrpAuthResult, AuthenticationError]:
+    ) -> Union[BrpAuthData, AuthenticationError]:
+        if chain_user.password is None:
+            return AuthenticationError.INVALID_CREDENTIALS
         return await authenticate(
             self.brp_subdomain, chain_user.username, chain_user.password
         )
@@ -106,7 +108,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
 
     async def _book_class(
         self,
-        auth_result: BrpAuthResult,
+        auth_data: BrpAuthData,
         class_id: str,
     ) -> bool:
         # make sure class_id is a valid brp class id
@@ -115,11 +117,11 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         except ValueError:
             err.log(f"Invalid brp class id: {class_id}")
             return False
-        return await book_brp_class(self.brp_subdomain, auth_result, brp_class_id)
+        return await book_brp_class(self.brp_subdomain, auth_data, brp_class_id)
 
     async def _cancel_booking(
         self,
-        auth_result: BrpAuthResult,
+        auth_data: BrpAuthData,
         class_id: str,
     ) -> bool:
         # make sure class_id is a valid brp class id
@@ -131,10 +133,10 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         # TODO: consider memoizing retrieval of booking reference and type
         try:
             async with HttpClient.singleton().get(
-                booking_url(self.brp_subdomain, auth_result, datetime.datetime.now()),
+                booking_url(self.brp_subdomain, auth_data, datetime.datetime.now()),
                 headers={
                     "Content-Type": "application/json",
-                    "Authorization": f"Bearer {auth_result.access_token}",
+                    "Authorization": f"Bearer {auth_data.access_token}",
                 },
             ) as res:
                 bookings_response = parse_obj_as(list[BookingData], await res.json())
@@ -159,7 +161,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
             )
             return False
         return await cancel_brp_booking(
-            self.brp_subdomain, auth_result, booking_id, booking_type
+            self.brp_subdomain, auth_data, booking_id, booking_type
         )
 
     async def _fetch_past_and_booked_sessions(
@@ -170,19 +172,19 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         start_time = datetime.datetime.combine(
             datetime.datetime.now(), datetime.datetime.min.time()
         ) - datetime.timedelta(weeks=3)
-        auth_result = await self._authenticate(chain_user)
-        if isinstance(auth_result, AuthenticationError):
+        auth_data = await self._authenticate(chain_user)
+        if isinstance(auth_data, AuthenticationError):
             err.log(f"Authentication failed for '{chain_user.username}'!")
             return None
         try:
             async with HttpClient.singleton().get(
                 booking_url(
                     self.brp_subdomain,
-                    auth_result,
+                    auth_data,
                     start_time_point=start_time,
                 ),
                 headers={
-                    "Authorization": f"Bearer {auth_result.access_token}",
+                    "Authorization": f"Bearer {auth_data.access_token}",
                 },
             ) as res:
                 bookings_response: list[BookingData] = await res.json()
@@ -391,7 +393,7 @@ class BrpProvider(Provider[BrpAuthResult, BrpLocationIdentifier]):
         return brp_class
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
-        return not isinstance(
+        return credentials.password is not None and not isinstance(
             await authenticate(
                 self.brp_subdomain, credentials.username, credentials.password
             ),

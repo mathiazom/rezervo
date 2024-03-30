@@ -7,7 +7,7 @@ import requests
 from rezervo.http_client import HttpClient
 from rezervo.providers.brpsystems.schema import (
     BookingType,
-    BrpAuthResult,
+    BrpAuthData,
     BrpSubdomain,
 )
 from rezervo.utils.logging_utils import err
@@ -18,12 +18,12 @@ MAX_SCHEDULE_SEARCH_ATTEMPTS = 6
 
 def booking_url(
     subdomain: BrpSubdomain,
-    auth_result: BrpAuthResult,
+    auth_data: BrpAuthData,
     start_time_point: Optional[datetime] = None,
 ) -> str:
     return (
         f"https://{subdomain}.brpsystems.com"
-        f"/brponline/api/ver3/customers/{auth_result.username}/bookings/groupactivities"
+        f"/brponline/api/ver3/customers/{auth_data.username}/bookings/groupactivities"
         + (
             f"?startTimePoint={start_time_point.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
             if start_time_point is not None
@@ -33,14 +33,14 @@ def booking_url(
 
 
 async def book_brp_class(
-    subdomain: BrpSubdomain, auth_result: BrpAuthResult, class_id: int
+    subdomain: BrpSubdomain, auth_data: BrpAuthData, class_id: int
 ) -> bool:
     async with HttpClient.singleton().post(
-        booking_url(subdomain, auth_result, datetime.now()),
+        booking_url(subdomain, auth_data, datetime.now()),
         json={"groupActivity": class_id, "allowWaitingList": True},
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {auth_result.access_token}",
+            "Authorization": f"Bearer {auth_data.access_token}",
         },
     ) as res:
         if res.status != 201:
@@ -51,16 +51,16 @@ async def book_brp_class(
 
 async def cancel_brp_booking(
     subdomain: BrpSubdomain,
-    auth_result: BrpAuthResult,
+    auth_data: BrpAuthData,
     booking_reference: int,
     booking_type: BookingType,
 ) -> bool:
     print(f"Cancelling booking of class {booking_reference}")
     async with HttpClient.singleton().delete(
-        f"{booking_url(subdomain, auth_result)}/{booking_reference}?bookingType={booking_type.value}",
+        f"{booking_url(subdomain, auth_data)}/{booking_reference}?bookingType={booking_type.value}",
         headers={
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {auth_result.access_token}",
+            "Authorization": f"Bearer {auth_data.access_token}",
         },
     ) as res:
         if res.status != requests.codes.NO_CONTENT:

@@ -13,7 +13,7 @@ BrpSubdomain: TypeAlias = str
 BrpLocationIdentifier: TypeAlias = int
 
 
-class BrpAuthResult(BaseModel):
+class BrpAuthData(BaseModel):
     username: str
     roles: list[str]
     token_type: str

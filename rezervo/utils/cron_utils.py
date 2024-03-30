@@ -9,7 +9,8 @@ from crontab import CronItem, CronTab
 from rezervo import models
 from rezervo.chains.common import find_class
 from rezervo.errors import AuthenticationError, BookingError
-from rezervo.schemas.config.config import Config, Cron
+from rezervo.schemas.config.app import Cron
+from rezervo.schemas.config.config import Config, read_app_config
 from rezervo.schemas.config.user import (
     ChainConfig,
     ChainIdentifier,
@@ -199,26 +200,11 @@ def generate_cron_cli_command_logging_suffix(cron_config: Cron) -> str:
     return f" >> {cron_config.log_path} 2>&1"
 
 
-def generate_pull_sessions_command(cron_config: Cron) -> str:
+def generate_cron_cli_command(command: str) -> str:
+    cron_config = read_app_config().cron
     return (
         f"{generate_cron_cli_command_prefix(cron_config)}"
-        f"sessions pull"
-        f"{generate_cron_cli_command_logging_suffix(cron_config)}"
-    )
-
-
-def generate_refresh_cron_command(cron_config: Cron) -> str:
-    return (
-        f"{generate_cron_cli_command_prefix(cron_config)}"
-        f"cron refresh"
-        f"{generate_cron_cli_command_logging_suffix(cron_config)}"
-    )
-
-
-def generate_purge_slack_receipts_command(cron_config: Cron) -> str:
-    return (
-        f"{generate_cron_cli_command_prefix(cron_config)}"
-        f"purge_slack_receipts"
+        f"{command}"
         f"{generate_cron_cli_command_logging_suffix(cron_config)}"
     )
 

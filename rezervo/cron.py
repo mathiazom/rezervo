@@ -18,7 +18,7 @@ from rezervo.utils.cron_utils import (
 from rezervo.utils.logging_utils import err
 
 
-async def refresh_cron(
+async def refresh_recurring_booking_cron_jobs(
     user_id: Optional[UUID] = None,
     chain_identifiers: list[ChainIdentifier] = ACTIVE_CHAIN_IDENTIFIERS,
 ):

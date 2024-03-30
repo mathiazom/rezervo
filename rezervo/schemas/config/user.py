@@ -1,6 +1,9 @@
+import datetime
 import enum
-from typing import Optional, TypeAlias
+from typing import Annotated, Literal, Optional, TypeAlias, Union
 from uuid import UUID
+
+from pydantic.fields import Field
 
 from rezervo.schemas.base import OrmBase
 from rezervo.schemas.camel import CamelModel, CamelOrmBase
@@ -53,18 +56,48 @@ class ChainConfig(BaseChainConfig, CamelModel):
     chain: ChainIdentifier
 
 
-class ChainUserProfile(CamelModel):
+class ChainUserUsername(CamelModel):
     username: str
 
 
-class ChainUserCredentials(ChainUserProfile, CamelModel):
-    password: str
+class ChainUserProfile(ChainUserUsername, CamelModel):
+    is_auth_verified: bool
 
 
-class ChainUser(ChainConfig, ChainUserCredentials, CamelModel):
+class ChainUserCredentials(ChainUserUsername, CamelModel):
+    password: Optional[str] = None
+
+
+class ChainUserTOTP(CamelModel):
+    totp: Optional[str] = None
+
+
+class ChainUserTOTPPayload(CamelModel):
+    totp: str
+
+
+class ChainUser(ChainConfig, ChainUserCredentials, ChainUserTOTP, CamelModel):
     user_id: UUID
-    auth_token: Optional[str] = None
+    auth_data: Optional[str] = None
+    auth_verified_at: Optional[datetime.datetime] = None
 
 
 def config_from_chain_user(user: ChainUser):
     return ChainConfig(**user.dict())
+
+
+class UpdatedChainUserCredsResponse(CamelModel):
+    status: Literal["updated"] = "updated"
+    profile: ChainUserProfile
+
+
+class InitiatedTOTPFlowResponse(CamelModel):
+    status: Literal["initiated_totp_flow"] = "initiated_totp_flow"
+    totp_regex: Optional[str] = None
+
+
+class PutChainUserCredsResponse(CamelModel):
+    __root__: Annotated[
+        Union[UpdatedChainUserCredsResponse, InitiatedTOTPFlowResponse],
+        Field(discriminator="status"),
+    ]

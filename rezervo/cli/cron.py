@@ -8,78 +8,59 @@ from rich import print as rprint
 from tabulate import tabulate
 
 from rezervo.cli.async_cli import AsyncTyper
-from rezervo.consts import (
-    CRON_PULL_SESSIONS_JOB_COMMENT,
-    CRON_PULL_SESSIONS_SCHEDULE,
-    CRON_PURGE_SLACK_RECEIPTS_JOB_COMMENT,
-    CRON_PURGE_SLACK_RECEIPTS_SCHEDULE,
-    CRON_REFRESH_CRON_JOB_COMMENT,
-    CRON_REFRESH_CRON_SCHEDULE,
-)
-from rezervo.cron import refresh_cron
-from rezervo.schemas.config.config import read_app_config
+from rezervo.cron import refresh_recurring_booking_cron_jobs
 from rezervo.settings import get_settings
 from rezervo.utils.cron_utils import (
-    generate_pull_sessions_command,
-    generate_purge_slack_receipts_command,
-    generate_refresh_cron_command,
+    generate_cron_cli_command,
 )
 
 cron_cli = AsyncTyper()
 
 
-@cron_cli.command(name="add_pull_sessions_job")
-def create_cron_sessions_job():
-    comment = (
-        f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{CRON_PULL_SESSIONS_JOB_COMMENT}]"
-    )
+def upsert_cli_cron_job(
+    command: str,
+    schedule: str,
+    comment: str,
+):
     j = CronItem(
-        command=generate_pull_sessions_command(read_app_config().cron),
-        comment=comment,
+        command=generate_cron_cli_command(command),
+        comment=f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{comment}]",
         pre_comment=True,
     )
-    j.setall(CRON_PULL_SESSIONS_SCHEDULE)
+    j.setall(schedule)
     with CronTab(user=True) as crontab:
         crontab.remove_all(comment=comment)
         crontab.append(j)
-    rprint(":heavy_check_mark: Cronjob created for sessions pulling")
+    rprint(f":heavy_check_mark: Cronjob '{comment}' created")
 
 
-@cron_cli.command(name="add_refresh_cron_job")
-def create_cron_refresh_job():
-    comment = (
-        f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{CRON_REFRESH_CRON_JOB_COMMENT}]"
+@cron_cli.command(name="init")
+def initialize_cron():
+    upsert_cli_cron_job(
+        command="cron refresh",
+        schedule="0,30 4-23 * * *",
+        comment="refresh booking cron jobs",
     )
-    j = CronItem(
-        command=generate_refresh_cron_command(read_app_config().cron),
-        comment=comment,
-        pre_comment=True,
+    upsert_cli_cron_job(
+        command="extend_auth_sessions",
+        schedule="50 * * * *",
+        comment="extend auth sessions",
     )
-    j.setall(CRON_REFRESH_CRON_SCHEDULE)
-    with CronTab(user=True) as crontab:
-        crontab.remove_all(comment=comment)
-        crontab.append(j)
-    rprint(":heavy_check_mark: Cronjob created for refreshing crontab")
-
-
-@cron_cli.command(name="add_slack_receipts_purging_job")
-def create_cron_add_slack_receipts_purging_job():
-    comment = f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{CRON_PURGE_SLACK_RECEIPTS_JOB_COMMENT}]"
-    j = CronItem(
-        command=generate_purge_slack_receipts_command(read_app_config().cron),
-        comment=comment,
-        pre_comment=True,
+    upsert_cli_cron_job(
+        command="sessions pull",
+        schedule="2,17,32,47 4-23 * * *",
+        comment="pull sessions",
     )
-    j.setall(CRON_PURGE_SLACK_RECEIPTS_SCHEDULE)
-    with CronTab(user=True) as crontab:
-        crontab.remove_all(comment=comment)
-        crontab.append(j)
-    rprint(":heavy_check_mark: Cronjob created for purging slack notification receipts")
+    upsert_cli_cron_job(
+        command="purge_slack_receipts",
+        schedule="0 0 * * *",
+        comment="purge slack receipts",
+    )
 
 
 @cron_cli.command(name="refresh")
-async def refresh_cron_cli():
-    await refresh_cron()
+async def refresh_recurring_booking_cron_jobs_cli():
+    await refresh_recurring_booking_cron_jobs()
 
 
 @cron_cli.callback(invoke_without_command=True)
