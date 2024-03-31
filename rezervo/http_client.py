@@ -20,7 +20,6 @@ class HttpClient:
     @classmethod
     def singleton(cls) -> ClientSession:
         if cls._session is None:
-            rprint("✨  Creating shared ClientSession")
             cls._session = ClientSession(
                 connector=create_tcp_connector(),
                 cookie_jar=DummyCookieJar(),  # ignore collected cookies
@@ -30,6 +29,5 @@ class HttpClient:
     @classmethod
     async def close_singleton(cls) -> None:
         if cls._session is not None:
-            rprint("🛑  Closing shared ClientSession")
             await cls._session.close()
             cls._session = None
