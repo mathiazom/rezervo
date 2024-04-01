@@ -21,7 +21,7 @@ def upgrade() -> None:
         "chain_users", "totp_verified_at", new_column_name="auth_verified_at"
     )
     op.execute(
-        "UPDATE chain_users SET auth_verified_at = NOW() WHERE auth_verified_at IS NULL"
+        "UPDATE chain_users SET auth_verified_at = NOW() WHERE chain != 'sit' AND auth_verified_at IS NULL"
     )
     # ### end Alembic commands ###
 
