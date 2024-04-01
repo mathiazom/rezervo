@@ -65,9 +65,9 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
     async def _authenticate(
         self, chain_user: ChainUser
     ) -> Union[SatsAuthResult, AuthenticationError]:
-        if chain_user.auth_token is not None:
-            if await validate_token(chain_user.auth_token) is None:
-                return chain_user.auth_token
+        if chain_user.auth_data is not None:
+            if await validate_token(chain_user.auth_data) is None:
+                return chain_user.auth_data
             warn.log(
                 "Authentication token validation failed, retrieving fresh token..."
             )
@@ -81,8 +81,8 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         if validation_error is not None:
             return validation_error
         with SessionLocal() as db:
-            crud.upsert_chain_user_token(
-                db, chain_user.user_id, chain_user.chain, token_res
+            crud.upsert_chain_user_auth_data(
+                db, chain_user.chain, chain_user.user_id, token_res
             )
         return token_res
 
