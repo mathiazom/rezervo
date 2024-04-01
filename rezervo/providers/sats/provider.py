@@ -91,6 +91,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
     async def find_class_by_id(
         self, class_id: str
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+        # TODO: optimize by fetching until class id is found (instead of always fetching the whole schedule)
         schedule = await self.fetch_schedule(
             datetime.now(),
             SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE,
