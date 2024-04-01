@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime
+from typing import Optional
 
 from rezervo.http_client import HttpClient
 from rezervo.providers.sats.schema import SatsClass, SatsScheduleResponse
@@ -11,16 +12,18 @@ TASK_COUNT = 5  # Number of parallel fetchers
 
 async def fetch_sats_classes_with_offset(
     club_ids: list[str], date: datetime, offset: int
-) -> list[SatsClass]:
-    response = await HttpClient.singleton().post(
+) -> Optional[list[SatsClass]]:
+    async with HttpClient.singleton().post(
         SCHEDULE_URL,
         json={
             "clubIds": ",".join(club_ids),
             "date": date.strftime("%Y-%m-%d"),
             "offset": offset,
         },
-    )
-    return SatsScheduleResponse(**(await response.json())).classes
+    ) as res:
+        if not res.ok:
+            return None
+        return SatsScheduleResponse(**(await res.json())).classes
 
 
 async def fetch_classes_batch_task(
@@ -34,7 +37,7 @@ async def fetch_classes_batch_task(
     offset = batch_size * start_batch
     while True:
         classes = await fetch_sats_classes_with_offset(club_ids, date, offset)
-        if not classes:
+        if classes is None or len(classes) == 0:
             break
         all_classes.extend(classes)
         offset += batch_size * batch_step

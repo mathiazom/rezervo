@@ -237,8 +237,10 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
         club_ids = [
-            str(self.provider_location_identifier_from_location_identifier(loc) or "")
+            str(c)
             for loc in locations
+            if (c := self.provider_location_identifier_from_location_identifier(loc))
+            is not None
         ]
         return RezervoSchedule(
             days=await asyncio.gather(
@@ -254,12 +256,11 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
     async def fetch_sats_classes_as_rezervo_day(
         self, date: datetime, club_ids: list[str]
     ) -> RezervoDay:
+        now_date = datetime.now().date()
         classes_are_fetchable = (
-            datetime.now().date()
+            now_date
             <= date.date()
-            < (
-                datetime.now() + timedelta(days=SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE)
-            ).date()
+            < (now_date + timedelta(days=SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE))
         )
         sats_classes = (
             await fetch_sats_classes(club_ids, date) if classes_are_fetchable else []

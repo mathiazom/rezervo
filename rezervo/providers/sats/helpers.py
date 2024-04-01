@@ -10,7 +10,6 @@ def retrieve_sats_page_props(html_content: str):
     if match is None:
         raise Exception("Failed to retrieve Sats page props")
     json_string = str(match.group(1).strip())
-
     # Fix their bad json escaping
     corrected_json_string = (
         json_string.encode().decode("unicode_escape").encode("latin1").decode()
