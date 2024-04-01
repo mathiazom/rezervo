@@ -101,13 +101,14 @@ def upsert_chain_user_creds(
         )
         db.add(db_chain_user)
     else:
+        if mark_as_verified:
+            db_chain_user.auth_verified_at = datetime.now()
         if (
             db_chain_user.username == creds.username
             and db_chain_user.password == creds.password
         ):
             return db_chain_user
         if mark_as_verified:
-            db_chain_user.auth_verified_at = datetime.now()
             db_chain_user.auth_data = None
         db_chain_user.username = creds.username
         db_chain_user.password = creds.password
