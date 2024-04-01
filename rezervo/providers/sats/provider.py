@@ -4,6 +4,7 @@ from abc import ABC
 from datetime import datetime, timedelta
 from typing import Optional, Union
 
+import pytz
 from aiohttp import FormData
 
 from rezervo.consts import WEEKDAYS
@@ -147,9 +148,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 ).myUpcomingTraining
             for day_bookings in sats_day_bookings:
                 for booking in day_bookings.upcomingTrainings.trainings:
-                    start_time = datetime.strptime(
-                        booking.date + " " + booking.startTime, "%Y-%m-%d %H:%M"
-                    ).astimezone()
+                    start_time = datetime.fromisoformat(
+                        f"{booking.date}T{booking.startTime}"
+                    ).replace(tzinfo=pytz.timezone("Europe/Oslo"))
                     if (
                         booking.activityName == _class.activity.name
                         and booking.instructor == _class.instructors[0].name
@@ -184,19 +185,19 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
 
         user_sessions = []
         for day_booking in sats_day_bookings:
-            for training in day_booking.upcomingTrainings.trainings:
-                start_time = datetime.strptime(
-                    training.date + " " + training.startTime, "%Y-%m-%d %H:%M"
-                )
+            for booking in day_booking.upcomingTrainings.trainings:
+                start_time = datetime.fromisoformat(
+                    f"{booking.date}T{booking.startTime}"
+                ).replace(tzinfo=pytz.timezone("Europe/Oslo"))
                 _class = await self.find_class(
                     Class(
                         activity_id=create_activity_id(
-                            training.activityName,
-                            club_name_from_center_name(training.centerName),
+                            booking.activityName,
+                            club_name_from_center_name(booking.centerName),
                         ),
                         weekday=start_time.weekday(),
                         location_id=self.extract_location_id(
-                            training.hiddenInput[0].value
+                            booking.hiddenInput[0].value
                         ),
                         start_time=ClassTime(
                             hour=start_time.hour, minute=start_time.minute
@@ -212,7 +213,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                     user_id=chain_user.user_id,
                     status=(
                         SessionState.WAITLIST
-                        if training.waitingListIndex > 0
+                        if booking.waitingListIndex > 0
                         else SessionState.BOOKED
                     ),
                     class_data=SessionRezervoClass(**_class.__dict__),
@@ -270,7 +271,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         sats_class: SatsClass,
     ) -> RezervoClass:
         category = determine_activity_category(sats_class.metadata.name)
-        start_time = datetime.fromisoformat(sats_class.metadata.startsAt)
+        start_time = datetime.fromisoformat(sats_class.metadata.startsAt).replace(
+            tzinfo=pytz.timezone("Europe/Oslo")
+        )
 
         return RezervoClass(
             id=sats_class.id,
