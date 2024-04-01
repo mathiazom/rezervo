@@ -19,7 +19,7 @@ from rezervo.utils.logging_utils import err
 SatsAuthResult: TypeAlias = str
 
 
-def creat_public_sats_client_session() -> ClientSession:
+def create_public_sats_client_session() -> ClientSession:
     return ClientSession(
         connector=create_tcp_connector(),
         headers=SATS_REQUEST_HEADERS,
@@ -37,7 +37,7 @@ def create_authed_sats_session(auth_result: SatsAuthResult) -> ClientSession:
 async def fetch_authed_sats_cookie(
     username: str, password: Optional[str]
 ) -> Union[SatsAuthResult, AuthenticationError]:
-    async with creat_public_sats_client_session() as session:
+    async with create_public_sats_client_session() as session:
         auth_res = await session.post(
             AUTH_URL,
             data=FormData(
