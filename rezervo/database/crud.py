@@ -99,6 +99,8 @@ def upsert_chain_user_creds(
             username=creds.username,
             password=creds.password,
         )
+        if mark_as_verified:
+            db_chain_user.auth_verified_at = datetime.now()
         db.add(db_chain_user)
     else:
         if mark_as_verified:
