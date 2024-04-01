@@ -31,6 +31,7 @@ from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
 )
 from rezervo.providers.sats.schema import (
+    SatsBooking,
     SatsBookingsResponse,
     SatsClass,
     SatsLocationIdentifier,
@@ -167,6 +168,11 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                             return res.ok
         return False
 
+    async def _find_class_from_booking_task(
+        self, booking: SatsBooking, class_config: Class
+    ) -> tuple[SatsBooking, Union[RezervoClass, BookingError, AuthenticationError]]:
+        return booking, await self.find_class(class_config)
+
     async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
@@ -181,42 +187,46 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 sats_day_bookings = SatsBookingsResponse(
                     **retrieve_sats_page_props(str(await bookings_res.read()))
                 ).myUpcomingTraining
-        user_sessions = []
+        find_class_tasks = []
         for day_booking in sats_day_bookings:
             for booking in day_booking.upcomingTrainings.trainings:
                 start_time = datetime.fromisoformat(
                     f"{booking.date}T{booking.startTime}"
                 ).replace(tzinfo=pytz.timezone("Europe/Oslo"))
-                _class = await self.find_class(
-                    Class(
-                        activity_id=create_activity_id(
-                            booking.activityName,
-                            club_name_from_center_name(booking.centerName),
-                        ),
-                        weekday=start_time.weekday(),
-                        location_id=self.extract_location_id(
-                            booking.hiddenInput[0].value
-                        ),
-                        start_time=ClassTime(
-                            hour=start_time.hour, minute=start_time.minute
+                find_class_tasks.append(
+                    self._find_class_from_booking_task(
+                        booking,
+                        Class(
+                            activity_id=create_activity_id(
+                                booking.activityName,
+                                club_name_from_center_name(booking.centerName),
+                            ),
+                            weekday=start_time.weekday(),
+                            location_id=self.extract_location_id(
+                                booking.hiddenInput[0].value
+                            ),
+                            start_time=ClassTime(
+                                hour=start_time.hour, minute=start_time.minute
+                            ),
                         ),
                     )
                 )
-                if not isinstance(_class, RezervoClass):
-                    continue
-
-                user_session = UserSession(
-                    chain=chain_user.chain,
-                    class_id=_class.id,
-                    user_id=chain_user.user_id,
-                    status=(
-                        SessionState.WAITLIST
-                        if booking.waitingListIndex > 0
-                        else SessionState.BOOKED
-                    ),
-                    class_data=SessionRezervoClass(**_class.__dict__),
+        user_sessions = []
+        for booking, _class in await asyncio.gather(*find_class_tasks):
+            if isinstance(_class, RezervoClass):
+                user_sessions.append(
+                    UserSession(
+                        chain=chain_user.chain,
+                        class_id=_class.id,
+                        user_id=chain_user.user_id,
+                        status=(
+                            SessionState.WAITLIST
+                            if booking.waitingListIndex > 0
+                            else SessionState.BOOKED
+                        ),
+                        class_data=SessionRezervoClass(**_class.__dict__),
+                    )
                 )
-                user_sessions.append(user_session)
         return user_sessions
 
     async def fetch_schedule(
