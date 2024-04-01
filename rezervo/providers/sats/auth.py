@@ -16,7 +16,7 @@ from rezervo.providers.sats.urls import (
 )
 from rezervo.utils.logging_utils import err
 
-SatsAuthResult: TypeAlias = str
+SatsAuthData: TypeAlias = str
 
 
 def create_public_sats_client_session() -> ClientSession:
@@ -26,17 +26,17 @@ def create_public_sats_client_session() -> ClientSession:
     )
 
 
-def create_authed_sats_session(auth_result: SatsAuthResult) -> ClientSession:
+def create_authed_sats_session(auth_data: SatsAuthData) -> ClientSession:
     return ClientSession(
         connector=create_tcp_connector(),
-        cookies={SATS_AUTH_COOKIE_NAME: auth_result},
+        cookies={SATS_AUTH_COOKIE_NAME: auth_data},
         headers=SATS_REQUEST_HEADERS,
     )
 
 
 async def fetch_authed_sats_cookie(
     username: str, password: Optional[str]
-) -> Union[SatsAuthResult, AuthenticationError]:
+) -> Union[SatsAuthData, AuthenticationError]:
     async with create_public_sats_client_session() as session:
         auth_res = await session.post(
             AUTH_URL,
@@ -64,9 +64,9 @@ async def fetch_authed_sats_cookie(
 
 
 async def validate_token(
-    auth_result: SatsAuthResult,
+    auth_data: SatsAuthData,
 ) -> Union[None, AuthenticationError]:
-    async with create_authed_sats_session(auth_result) as session:
+    async with create_authed_sats_session(auth_data) as session:
         async with session.get(MY_PAGE_URL) as my_page_res:
             if not my_page_res.ok:
                 err.log("Validation of authentication token failed")

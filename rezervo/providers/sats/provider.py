@@ -13,7 +13,7 @@ from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
 from rezervo.providers.provider import Provider
 from rezervo.providers.sats.auth import (
-    SatsAuthResult,
+    SatsAuthData,
     create_authed_sats_session,
     fetch_authed_sats_cookie,
     validate_token,
@@ -61,30 +61,30 @@ from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import err, warn
 
 
-class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
+class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[SatsAuthResult, AuthenticationError]:
+    ) -> Union[SatsAuthData, AuthenticationError]:
         if chain_user.auth_data is not None:
             if await validate_token(chain_user.auth_data) is None:
                 return chain_user.auth_data
             warn.log(
                 "Authentication token validation failed, retrieving fresh token..."
             )
-        token_res = await fetch_authed_sats_cookie(
+        auth_data = await fetch_authed_sats_cookie(
             chain_user.username, chain_user.password
         )
-        if isinstance(token_res, AuthenticationError):
+        if isinstance(auth_data, AuthenticationError):
             err.log("Failed to extract authentication token!")
-            return token_res
-        validation_error = await validate_token(token_res)
+            return auth_data
+        validation_error = await validate_token(auth_data)
         if validation_error is not None:
             return validation_error
         with SessionLocal() as db:
             crud.upsert_chain_user_auth_data(
-                db, chain_user.chain, chain_user.user_id, token_res
+                db, chain_user.chain, chain_user.user_id, auth_data
             )
-        return token_res
+        return auth_data
 
     async def find_class_by_id(
         self, class_id: str
@@ -122,10 +122,10 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
 
     async def _book_class(
         self,
-        auth_result: SatsAuthResult,
+        auth_data: SatsAuthData,
         class_id: str,
     ) -> bool:
-        async with create_authed_sats_session(auth_result) as session:
+        async with create_authed_sats_session(auth_data) as session:
             async with session.post(BOOKING_URL, data={"id": class_id}) as res:
                 if not res.ok:
                     err.log("Booking attempt failed: " + (await res.text()))
@@ -134,13 +134,13 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
 
     async def _cancel_booking(
         self,
-        auth_result: SatsAuthResult,
+        auth_data: SatsAuthData,
         class_id: str,
     ) -> bool:
         _class = await self.find_class_by_id(class_id)
         if not isinstance(_class, RezervoClass):
             return False
-        async with create_authed_sats_session(auth_result) as session:
+        async with create_authed_sats_session(auth_data) as session:
             async with session.get(BOOKINGS_URL) as bookings_res:
                 sats_day_bookings = SatsBookingsResponse(
                     **retrieve_sats_page_props(str(await bookings_res.read()))
@@ -172,11 +172,11 @@ class SatsProvider(Provider[SatsAuthResult, SatsLocationIdentifier], ABC):
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> Optional[list[UserSession]]:
-        auth_result = await self._authenticate(chain_user)
-        if isinstance(auth_result, AuthenticationError):
+        auth_data = await self._authenticate(chain_user)
+        if isinstance(auth_data, AuthenticationError):
             err.log(f"Authentication failed for '{chain_user.username}'!")
             return None
-        async with create_authed_sats_session(auth_result) as session:
+        async with create_authed_sats_session(auth_data) as session:
             async with session.get(BOOKINGS_URL) as bookings_res:
                 sats_day_bookings = SatsBookingsResponse(
                     **retrieve_sats_page_props(str(await bookings_res.read()))
