@@ -15,6 +15,7 @@ from playwright.async_api import (
 from playwright.async_api import (
     TimeoutError as PlaywrightTimeoutError,
 )
+from pydantic import ValidationError
 from pydantic.fields import Field
 from pydantic.main import BaseModel
 from rich import print
@@ -156,7 +157,11 @@ async def refresh_chain_user_auth_data(
     if chain_user.auth_data is None:
         err.log("[FAILED] chain user auth data not found")
         return AuthenticationError.MISSING_TOTP_SESSION
-    auth_data = IBookingAuthData(**json.loads(chain_user.auth_data))
+    try:
+        auth_data = IBookingAuthData(**json.loads(chain_user.auth_data))
+    except (json.JSONDecodeError, ValidationError):
+        err.log("[FAILED] invalid auth data")
+        return AuthenticationError.MISSING_TOTP_SESSION
     current_time = int(time.time())
     if (
         current_time
@@ -404,7 +409,11 @@ async def extend_auth_session_silently(
     print(
         f"Extending '{chain_identifier}' auth session for '{chain_user.username}' ..."
     )
-    cookies = IBookingAuthData(**json.loads(auth_data_str)).cookies
+    try:
+        cookies = IBookingAuthData(**json.loads(auth_data_str)).cookies
+    except (json.JSONDecodeError, ValidationError):
+        err.log("[FAILED] invalid auth data")
+        return None
     async with async_playwright() as p:
         browser = await p.firefox.launch()
         context = await browser.new_context()
