@@ -127,12 +127,12 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
     async def _cancel_booking(
         self,
         auth_data: IBookingAuthData,
-        class_id: str,
+        _class: RezervoClass,
     ) -> bool:
         try:
-            ibooking_class_id = int(class_id)
+            ibooking_class_id = int(_class.id)
         except ValueError:
-            err.log(f"Invalid ibooking class id: {class_id}")
+            err.log(f"Invalid ibooking class id: {_class.id}")
             return False
         return await cancel_booking(
             self.ibooking_domain, auth_data.ibooking_token.token, ibooking_class_id

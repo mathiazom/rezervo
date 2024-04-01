@@ -136,11 +136,8 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
     async def _cancel_booking(
         self,
         auth_data: SatsAuthData,
-        class_id: str,
+        _class: RezervoClass,
     ) -> bool:
-        _class = await self.find_class_by_id(class_id)
-        if not isinstance(_class, RezervoClass):
-            return False
         async with create_authed_sats_session(auth_data) as session:
             async with session.get(BOOKINGS_URL) as bookings_res:
                 sats_day_bookings = SatsBookingsResponse(
@@ -184,7 +181,6 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 sats_day_bookings = SatsBookingsResponse(
                     **retrieve_sats_page_props(str(await bookings_res.read()))
                 ).myUpcomingTraining
-
         user_sessions = []
         for day_booking in sats_day_bookings:
             for booking in day_booking.upcomingTrainings.trainings:
@@ -221,7 +217,6 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                     class_data=SessionRezervoClass(**_class.__dict__),
                 )
                 user_sessions.append(user_session)
-
         return user_sessions
 
     async def fetch_schedule(
@@ -234,7 +229,6 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
             str(self.provider_location_identifier_from_location_identifier(loc) or "")
             for loc in locations
         ]
-
         return RezervoSchedule(
             days=await asyncio.gather(
                 *(
@@ -276,7 +270,6 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         start_time = datetime.fromisoformat(sats_class.metadata.startsAt).replace(
             tzinfo=pytz.timezone("Europe/Oslo")
         )
-
         return RezervoClass(
             id=sats_class.id,
             start_time=start_time,

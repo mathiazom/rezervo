@@ -122,13 +122,13 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
     async def _cancel_booking(
         self,
         auth_data: BrpAuthData,
-        class_id: str,
+        _class: RezervoClass,
     ) -> bool:
         # make sure class_id is a valid brp class id
         try:
-            brp_class_id = int(class_id)
+            brp_class_id = int(_class.id)
         except ValueError:
-            err.log(f"Invalid brp class id: {class_id}")
+            err.log(f"Invalid brp class id: {_class.id}")
             return False
         # TODO: consider memoizing retrieval of booking reference and type
         try:
@@ -142,7 +142,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                 bookings_response = parse_obj_as(list[BookingData], await res.json())
         except requests.exceptions.RequestException as e:
             err.log(
-                f"Failed to retrieve booked classes for cancellation of class '{class_id}'",
+                f"Failed to retrieve booked classes for cancellation of class '{_class.activity.name}' (id={brp_class_id})",
                 e,
             )
             return False
@@ -157,7 +157,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                 break
         if booking_id is None or booking_type is None:
             err.log(
-                f"No sessions active matching the cancellation criteria for class '{class_id}'",
+                f"No sessions active matching the cancellation criteria for class '{_class.activity.name}' (id={brp_class_id})",
             )
             return False
         return await cancel_brp_booking(
