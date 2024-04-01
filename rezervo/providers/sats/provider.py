@@ -152,7 +152,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                         f"{booking.date}T{booking.startTime}"
                     ).replace(tzinfo=pytz.timezone("Europe/Oslo"))
                     if (
-                        booking.activityName == _class.activity.name
+                        club_name_from_center_name(booking.centerName)
+                        == _class.location.studio
+                        and booking.activityName == _class.activity.name
                         and booking.instructor == _class.instructors[0].name
                         and start_time == _class.start_time
                     ):
