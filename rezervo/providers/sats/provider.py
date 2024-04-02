@@ -147,9 +147,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 ).myUpcomingTraining
             for day_bookings in sats_day_bookings:
                 for booking in day_bookings.upcomingTrainings.trainings:
-                    start_time = datetime.fromisoformat(
-                        f"{booking.date}T{booking.startTime}"
-                    ).replace(tzinfo=pytz.timezone("Europe/Oslo"))
+                    start_time = pytz.timezone("Europe/Oslo").localize(
+                        datetime.fromisoformat(f"{booking.date}T{booking.startTime}")
+                    )
                     if (
                         club_name_from_center_name(booking.centerName)
                         == _class.location.studio
@@ -191,9 +191,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         find_class_tasks = []
         for day_booking in sats_day_bookings:
             for booking in day_booking.upcomingTrainings.trainings:
-                start_time = datetime.fromisoformat(
-                    f"{booking.date}T{booking.startTime}"
-                ).replace(tzinfo=pytz.timezone("Europe/Oslo"))
+                start_time = pytz.timezone("Europe/Oslo").localize(
+                    datetime.fromisoformat(f"{booking.date}T{booking.startTime}")
+                )
                 find_class_tasks.append(
                     self._find_class_from_booking_task(
                         booking,
@@ -279,9 +279,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         sats_class: SatsClass,
     ) -> RezervoClass:
         category = determine_activity_category(sats_class.metadata.name)
-        start_time = datetime.fromisoformat(sats_class.metadata.startsAt).replace(
-            tzinfo=pytz.timezone("Europe/Oslo")
-        )
+        start_time = datetime.fromisoformat(sats_class.metadata.startsAt)
         return RezervoClass(
             id=sats_class.id,
             start_time=start_time,
