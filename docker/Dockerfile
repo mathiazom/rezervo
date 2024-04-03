@@ -1,4 +1,4 @@
-FROM python:3.10.9-bullseye
+FROM python:3.10-bookworm
 
 RUN apt-get update && apt-get install -y \
     cron \
@@ -13,15 +13,21 @@ RUN cat ./limits_mods.conf >> /etc/security/limits.conf
 
 WORKDIR /app
 
-RUN curl -sSL https://install.python-poetry.org | python3 - -y --version 1.3.1
+ENV POETRY_HOME=/opt/poetry
 
-RUN /root/.local/bin/poetry config virtualenvs.create false
+RUN python3 -m venv $POETRY_HOME
+
+ENV PATH="$POETRY_HOME/bin:$PATH"
+
+RUN pip install poetry==1.3.1
+
+RUN poetry config virtualenvs.create false
 
 COPY pyproject.toml poetry.lock README.md ./
 
 COPY rezervo rezervo
 
-RUN /root/.local/bin/poetry install --only main
+RUN poetry install --only main
 
 # install Playwright browser and required deps
 RUN playwright install --with-deps firefox
