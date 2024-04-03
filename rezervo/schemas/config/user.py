@@ -43,6 +43,16 @@ class Class(CamelModel):
     start_time: ClassTime  # TODO: make sure time zones are handled...
     display_name: Optional[str] = None
 
+    def calculate_next_occurrence(self) -> datetime.datetime:
+        now = datetime.datetime.now()
+        days_ahead = self.weekday - now.weekday()
+        if days_ahead <= 0:
+            days_ahead += 7
+        target_date = now + datetime.timedelta(days=days_ahead)
+        return target_date.replace(
+            hour=self.start_time.hour, minute=self.start_time.minute
+        )
+
 
 class RecurringBookings(CamelModel):
     recurring_bookings: list[Class]
