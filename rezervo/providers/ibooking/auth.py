@@ -321,9 +321,11 @@ async def login_with_totp(chain_user: ChainUser) -> Optional[IBookingAuthData]:
             err.log(
                 f"[FAILED] TOTP not provided (waited {WAIT_FOR_TOTP_MAX_SECONDS} seconds)."
             )
+            await playwright_trace_stop(context, "login_totp_not_provided")
             return None
         if len(totp) != 6 or not totp.isdigit():
             err.log("[FAILED] invalid TOTP code")
+            await playwright_trace_stop(context, "login_totp_invalid")
             return None
         await page.locator("#verificationCode").fill(totp, timeout=10000)
         await page.locator("button[id='verifyCode']").click(timeout=10000)
@@ -423,16 +425,19 @@ async def extend_auth_session_silently(
         refresh_res = await authenticate_with_session_cookies(page, cookies)
         if refresh_res is None:
             err.log("[FAILED] refresh token extension failed")
+            await playwright_trace_stop(context, "extend_auth_session_failed")
             return None
         ibooking_token = await get_ibooking_token_from_access_token(
             refresh_res.access_token.token
         )
         if ibooking_token is None:
             err.log("[FAILED] ibooking token extraction failed")
+            await playwright_trace_stop(context, "extend_auth_session_failed")
             return None
         ibooking_valid = await validate_ibooking_token(ibooking_token.token)
         if not ibooking_valid:
             err.log("[FAILED] ibooking token is invalid")
+            await playwright_trace_stop(context, "extend_auth_session_failed")
             return None
         cookies = await extract_cookies_from_url(page, SIT_AUTH_COOKIE_URL)
         await playwright_trace_stop(context, "extend_auth_session")
