@@ -19,7 +19,7 @@ from rezervo.models import SlackClassNotificationReceipt
 from rezervo.schemas.config.user import ChainIdentifier, Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.schemas.slack import CancelBookingActionValue
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 
 from .utils import activity_url, upload_ical_to_transfersh
 
@@ -42,7 +42,7 @@ def notify_slack(
         )
         return response.get("ts")
     except SlackApiError as e:
-        err.log(f"Could not post notification to Slack: {e.response['error']}")
+        log.error(f"Could not post notification to Slack: {e.response['error']}")
         return None
 
 
@@ -55,13 +55,15 @@ def delete_scheduled_message_slack(
             scheduled_message_id=scheduled_message_id,
         )
         if not res.get("ok", False):
-            err.log(
+            log.error(
                 f"Could not delete scheduled message from Slack: {res.get('error')}"
             )
             return False
-        print(f"Deleted scheduled message ({scheduled_message_id}) from Slack")
+        log.info(f"Deleted scheduled message ({scheduled_message_id}) from Slack")
     except SlackApiError as e:
-        err.log(f"Could not delete scheduled message from Slack: {e.response['error']}")
+        log.error(
+            f"Could not delete scheduled message from Slack: {e.response['error']}"
+        )
         return False
     return True
 
@@ -70,16 +72,16 @@ def find_user_dm_channel_id(slack_token: str, user_id: str) -> Optional[str]:
     try:
         res = SlackClient(token=slack_token).conversations_open(users=user_id)
         if res is None or not res.get("ok", False):
-            err.log(
+            log.error(
                 f"Could not find user direct message channel id on Slack"
                 f"{(': ' + str(res.get('error'))) if res is not None else ''}"
             )
             return None
         channel_id = res.get("channel").get("id")  # type: ignore
-        print(f"Located channel id of user direct message: {channel_id}")
+        log.debug(f"Located channel id of user direct message: {channel_id}")
         return channel_id
     except SlackApiError as e:
-        err.log(
+        log.error(
             f"Could not find user direct message channel id on Slack: {e.response['error']}"
         )
         return None
@@ -101,17 +103,17 @@ def schedule_dm_slack(
             unfurl_links=False,
             unfurl_media=False,
         )
-        print(f"Scheduled direct message to Slack: {res['message']['text']}")
+        log.info(f"Scheduled direct message to Slack: {res['message']['text']}")
         return res.data["scheduled_message_id"]  # type: ignore
     except SlackApiError as e:
-        err.log(f"Could not schedule direct message to Slack: {e.response['error']}")
+        log.error(f"Could not schedule direct message to Slack: {e.response['error']}")
         return None
 
 
 def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
     channel_id = find_user_dm_channel_id(slack_token, user_id)
     if channel_id is None:
-        err.log(
+        log.error(
             "Could not find correct channel to delete scheduled direct message from Slack"
         )
         return
@@ -156,13 +158,15 @@ def notify_auth_failure_slack(
         f"{':warning: Forhåndssjekk feilet!' if check_run else ':dizzy_face:'} Klarte ikke å logge inn som "
         f"<@{user_id}>{f'. *{AUTH_FAILURE_REASONS[error]}*' if error in AUTH_FAILURE_REASONS else ''}"
     )
-    print(f"Posting auth {'check ' if check_run else ''}failure notification to Slack")
+    log.debug(
+        f"Posting auth {'check ' if check_run else ''}failure notification to Slack"
+    )
     if notify_slack(slack_token, channel, message, thread_ts=thread_ts) is None:
-        err.log(
+        log.error(
             f"Could not post auth {'check ' if check_run else ''}failure notification to Slack"
         )
         return
-    print(
+    log.info(
         f"Auth {'check ' if check_run else ''}failure notification posted successfully to Slack."
     )
     return
@@ -205,11 +209,11 @@ def notify_booking_failure_slack(
             f"*{class_name}* ({class_time}) for <@{user_id}>"
             f"{f'. *{BOOKING_FAILURE_REASONS[error]}*' if error in BOOKING_FAILURE_REASONS else ''}"
         )
-    print("Posting booking failure notification to Slack")
+    log.debug("Posting booking failure notification to Slack")
     if notify_slack(slack_token, channel, msg) is None:
-        err.log("Could not post booking failure notification to Slack")
+        log.error("Could not post booking failure notification to Slack")
         return
-    print("Booking failure notification posted successfully to Slack.")
+    log.info("Booking failure notification posted successfully to Slack.")
     return
 
 
@@ -221,9 +225,9 @@ def notify_working_slack(slack_token: str, channel: str, message_ts: str):
         SlackClient(token=slack_token).reactions_add(
             channel=channel, timestamp=message_ts, name=WORKING_EMOJI_NAME
         )
-        print("'Working' reaction posted successfully to Slack.")
+        log.debug("'Working' reaction posted successfully to Slack.")
     except SlackApiError as e:
-        err.log(f"Could not post 'working' reaction to Slack: {e.response['error']}")
+        log.error(f"Could not post 'working' reaction to Slack: {e.response['error']}")
 
 
 def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
@@ -231,12 +235,12 @@ def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
         SlackClient(token=slack_token).reactions_remove(
             channel=channel, timestamp=message_ts, name=WORKING_EMOJI_NAME
         )
-        print("'Working' reaction removed successfully from Slack message.")
+        log.debug("'Working' reaction removed successfully from Slack message.")
     except SlackApiError as e:
         if e.response["error"] == "no_reaction":
             # reaction not present, assume success
             return
-        err.log(
+        log.error(
             f"Could not remove 'working' reaction from Slack message: {e.response['error']}"
         )
 
@@ -275,7 +279,7 @@ def notify_cancellation_slack(slack_token: str, channel: str, source_ts: str) ->
             thread_ts=source_ts,
         )
     except SlackApiError as e:
-        err.log(
+        log.error(
             f"Could not post cancellation notification to Slack: {e.response['error']}"
         )
         return False
@@ -314,11 +318,11 @@ def notify_cancellation_failure_slack(
         )
         notify_slack(slack_token, channel, message, thread_ts=source_ts)
     except SlackApiError as e:
-        err.log(
+        log.error(
             f"Could not post cancellation failure notification to Slack: {e.response['error']}"
         )
         return
-    print("Cancellation failure notification posted successfully to Slack.")
+    log.info("Cancellation failure notification posted successfully to Slack.")
 
 
 def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
@@ -348,11 +352,11 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
             },
         )
     except SlackApiError as e:
-        err.log(
+        log.error(
             f"Could not display unauthorized action modal in Slack: {e.response['error']}"
         )
         return
-    print("Unauthorized action modal displayed successfully in Slack.")
+    log.debug("Unauthorized action modal displayed successfully in Slack.")
 
 
 async def notify_booking_slack(
@@ -371,7 +375,7 @@ async def notify_booking_slack(
     )
     if transfersh_url:
         filename = f"{booked_class.id}.ics"
-        print(f"Uploading {filename} to {transfersh_url}")
+        log.debug(f"Uploading {filename} to {transfersh_url}")
         try:
             ical_tsh_url = (
                 await upload_ical_to_transfersh(transfersh_url, ical_url, filename)
@@ -387,17 +391,17 @@ async def notify_booking_slack(
                 scheduled_reminder_id,
             )
         except RequestException:
-            warn.log(
+            log.warning(
                 "Could not upload ical event to transfer.sh instance, skipping ical link in notification."
             )
-    print("Posting booking notification to Slack")
+    log.debug("Posting booking notification to Slack")
     slack_notification_ts = notify_slack(
         slack_token, channel, message_blocks["message"], message_blocks["blocks"]
     )
     if slack_notification_ts is None:
-        err.log("Could not post booking notification to Slack")
+        log.error("Could not post booking notification to Slack")
         return
-    print("Booking notification posted successfully to Slack.")
+    log.info("Booking notification posted successfully to Slack.")
     with SessionLocal() as db:
         db.add(
             SlackClassNotificationReceipt(

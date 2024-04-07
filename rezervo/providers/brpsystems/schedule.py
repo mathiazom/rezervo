@@ -14,7 +14,7 @@ from rezervo.providers.brpsystems.schema import (
     BrpSubdomain,
     DetailedBrpClass,
 )
-from rezervo.utils.logging_utils import warn
+from rezervo.utils.logging_utils import log
 
 BRP_MAX_SCHEDULE_DAYS_PER_FETCH = 14
 
@@ -40,7 +40,7 @@ async def fetch_brp_class(
         class_url(subdomain, business_unit, class_id)
     ) as res:
         if res.status != requests.codes.OK:
-            warn.log(
+            log.warning(
                 f"Failed to fetch brp class with id {class_id}, received status {res.status}"
             )
             return None
@@ -48,7 +48,7 @@ async def fetch_brp_class(
     try:
         return BrpClass(**json_result)
     except ValidationError:
-        warn.log("Failed to parse brp class", json_result)
+        log.warning("Failed to parse brp class", json_result)
         return None
 
 
@@ -70,7 +70,7 @@ async def fetch_detailed_brp_schedule(
             detected_activity_ids.add(activity_id)
     for res in await asyncio.gather(*fetch_detailed_activity_tasks):
         if res.status != requests.codes.OK:
-            warn.log(
+            log.warning(
                 f"Failed to fetch class detail for {subdomain}, received status {res.status}"
             )
             continue
@@ -140,7 +140,7 @@ async def fetch_brp_schedule(
             try:
                 classes.append(BrpClass(**item))
             except ValidationError:
-                warn.log("Failed to parse brp class", item)
+                log.warning("Failed to parse brp class", item)
                 continue
     # remove any duplicates (if somehow classes are included in multiple batches)
     return deduplicated_brp_schedule(classes)

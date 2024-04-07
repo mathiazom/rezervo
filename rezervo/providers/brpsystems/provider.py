@@ -54,7 +54,7 @@ from rezervo.schemas.schedule import (
     UserSession,
 )
 from rezervo.utils.category_utils import determine_activity_category
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 
 
 class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
@@ -115,7 +115,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         try:
             brp_class_id = int(class_id)
         except ValueError:
-            err.log(f"Invalid brp class id: {class_id}")
+            log.error(f"Invalid brp class id: {class_id}")
             return False
         return await book_brp_class(self.brp_subdomain, auth_data, brp_class_id)
 
@@ -128,7 +128,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         try:
             brp_class_id = int(_class.id)
         except ValueError:
-            err.log(f"Invalid brp class id: {_class.id}")
+            log.error(f"Invalid brp class id: {_class.id}")
             return False
         # TODO: consider memoizing retrieval of booking reference and type
         try:
@@ -141,7 +141,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             ) as res:
                 bookings_response = parse_obj_as(list[BookingData], await res.json())
         except requests.exceptions.RequestException as e:
-            err.log(
+            log.error(
                 f"Failed to retrieve booked classes for cancellation of class '{_class.activity.name}' (id={brp_class_id})",
                 e,
             )
@@ -156,7 +156,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                 booking_id = booking.dict()[str(booking_type.value)]["id"]
                 break
         if booking_id is None or booking_type is None:
-            err.log(
+            log.error(
                 f"No sessions active matching the cancellation criteria for class '{_class.activity.name}' (id={brp_class_id})",
             )
             return False
@@ -174,7 +174,9 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         ) - datetime.timedelta(weeks=3)
         auth_data = await self._authenticate(chain_user)
         if isinstance(auth_data, AuthenticationError):
-            err.log(f"Authentication failed for '{chain_user.username}'!")
+            log.error(
+                f"Authentication failed for '{chain_user.chain}' user '{chain_user.username}'"
+            )
             return None
         try:
             async with HttpClient.singleton().get(
@@ -189,7 +191,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             ) as res:
                 bookings_response: list[BookingData] = await res.json()
         except requests.exceptions.RequestException as e:
-            err.log(
+            log.error(
                 f"Failed to retrieve sessions for '{chain_user.username}'",
                 e,
             )
@@ -345,7 +347,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             _class_config.location_id
         )
         if business_unit is None:
-            err.log(
+            log.error(
                 f"Could not find business unit matching location id {_class_config.location_id}"
             )
             return BookingError.ERROR
@@ -362,7 +364,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                 from_date=from_date,
             )
             if brp_schedule is None:
-                err.log("Schedule get request denied")
+                log.error("Schedule get request denied")
                 return BookingError.ERROR
             search_result = find_class_in_schedule_by_config(
                 _class_config, self._rezervo_schedule_from_brp_schedule(brp_schedule)
@@ -386,7 +388,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             from_date += datetime.timedelta(days=SCHEDULE_SEARCH_ATTEMPT_DAYS)
             attempts += 1
         if brp_class is None:
-            warn.log(f"Could not find class matching criteria: {_class_config}")
+            log.warning(f"Could not find class matching criteria: {_class_config}")
             if search_result is None:
                 return BookingError.CLASS_MISSING
             return search_result

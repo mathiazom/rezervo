@@ -18,7 +18,7 @@ from rezervo.schemas.config.user import (
 )
 from rezervo.settings import get_settings
 from rezervo.utils.config_utils import class_config_recurrent_id
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 
 
 def upsert_jobs_by_comment(
@@ -71,13 +71,13 @@ async def build_cron_jobs_from_config(
                     jobs.append(reusable_jobs.pop(i))
                     reusing = True
             if reusing:
-                warn.log(
+                log.warning(
                     f"Keeping existing cron job for missing class to ensure failure notification\n"
                     f"  (user='{user.name}' chain='{chain_config.chain}' {class_config})"
                 )
             else:
-                err.log(
-                    f"Cron job could not be created for recurring booking!\n"
+                log.error(
+                    f"Cron job could not be created for recurring booking\n"
                     f"  (user='{user.name}' chain='{chain_config.chain}' {class_config})"
                 )
             continue

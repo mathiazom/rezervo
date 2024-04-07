@@ -6,7 +6,6 @@ from uuid import UUID
 import PIL
 from fastapi import HTTPException, UploadFile
 from PIL import Image, ImageOps
-from rich import print as rprint
 from starlette import status
 
 from rezervo.consts import (
@@ -14,7 +13,7 @@ from rezervo.consts import (
     AVATAR_THUMBNAIL_SIZES,
 )
 from rezervo.schemas.config.config import read_app_config
-from rezervo.utils.logging_utils import warn
+from rezervo.utils.logging_utils import log
 
 
 def save_upload_file(
@@ -30,7 +29,7 @@ def save_upload_file(
                         status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
                     )
                 buffer.write(chunk)
-        rprint(
+        log.debug(
             f"Saved uploaded avatar file '{upload_file.filename}' (size: {total_bytes_read})"
         )
     except HTTPException:
@@ -44,7 +43,7 @@ def build_user_avatars_dir(user_id: UUID) -> Optional[Path]:
     content = read_app_config().content
     avatars_dir_str = content.avatars_dir if content is not None else None
     if avatars_dir_str is None:
-        warn.log("Avatars directory is not configured")
+        log.warning("Avatars directory is not configured")
         return None
     return Path(avatars_dir_str) / str(user_id)
 
@@ -52,7 +51,7 @@ def build_user_avatars_dir(user_id: UUID) -> Optional[Path]:
 def get_user_avatar_file_by_id(user_id: UUID, size_name: str):
     size = AVATAR_THUMBNAIL_SIZES.get(size_name)
     if size is None:
-        warn.log(f"Invalid avatar size '{size_name}'")
+        log.warning(f"Invalid avatar size '{size_name}'")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     user_avatar_dir = build_user_avatars_dir(user_id)
     if user_avatar_dir is None or not user_avatar_dir.exists():
@@ -94,9 +93,9 @@ def generate_avatar_thumbnails(avatar_path: Path):
                 thumb_dir = avatar_path.parent / key
                 thumb_dir.mkdir(parents=False, exist_ok=True)
                 thumb.save(thumb_dir / AVATAR_FILENAME, optimize=True)
-                rprint(f"Generated thumbnail ({size} x {size})")
+                log.debug(f"Generated thumbnail ({size} x {size})")
     except PIL.UnidentifiedImageError as e:
-        warn.log(f"Failed to open avatar image: {e}")
+        log.warning(f"Failed to open avatar image: {e}")
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE
         ) from None

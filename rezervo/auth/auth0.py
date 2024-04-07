@@ -19,7 +19,7 @@ def get_auth0_management_client() -> Auth0:
     client_secret = settings.AUTH0_MANAGEMENT_API_CLIENT_SECRET
     if domain is None or client_id is None or client_secret is None:
         raise ValueError(
-            "Auth0 management API client credentials not configured correctly!"
+            "Auth0 management API client credentials not configured correctly"
         )
     mgmt_api_token = GetToken(
         domain=domain,

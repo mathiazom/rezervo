@@ -4,7 +4,6 @@ import humanize
 import typer
 from cron_descriptor import CasingTypeEnum  # type: ignore[import-untyped]
 from crontab import CronItem, CronTab
-from rich import print as rprint
 from tabulate import tabulate
 
 from rezervo.cli.async_cli import AsyncTyper
@@ -13,6 +12,7 @@ from rezervo.settings import get_settings
 from rezervo.utils.cron_utils import (
     generate_cron_cli_command,
 )
+from rezervo.utils.logging_utils import log
 
 cron_cli = AsyncTyper()
 
@@ -31,7 +31,7 @@ def upsert_cli_cron_job(
     with CronTab(user=True) as crontab:
         crontab.remove_all(comment=comment)
         crontab.append(j)
-    rprint(f":heavy_check_mark: Cronjob '{comment}' created")
+    log.debug(f":heavy_check_mark: Cronjob '{comment}' created")
 
 
 @cron_cli.command(name="init")

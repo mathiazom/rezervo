@@ -6,7 +6,7 @@ import requests
 from rezervo.errors import AuthenticationError
 from rezervo.http_client import HttpClient
 from rezervo.providers.brpsystems.schema import BrpAuthData, BrpSubdomain
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import log
 
 
 def auth_url(subdomain: BrpSubdomain) -> str:
@@ -27,6 +27,6 @@ async def authenticate(
         r"Feil brukernavn eller passord.", auth_soup
     )
     if invalid_credentials_matches is not None:
-        err.log("Authentication failed, invalid credentials")
+        log.error("Authentication failed, invalid credentials")
         return AuthenticationError.INVALID_CREDENTIALS
     return BrpAuthData(**auth_res_json)

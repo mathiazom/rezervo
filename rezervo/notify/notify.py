@@ -15,7 +15,7 @@ from rezervo.notify.slack import (
 from rezervo.schemas.config import config
 from rezervo.schemas.config.user import ChainIdentifier, Class
 from rezervo.schemas.schedule import RezervoClass
-from rezervo.utils.logging_utils import warn
+from rezervo.utils.logging_utils import log
 
 
 def notify_auth_failure(
@@ -40,7 +40,9 @@ def notify_auth_failure(
         )
         notified = True
     if not notified:
-        warn.log("No notification targets, auth failure notification will not be sent!")
+        log.warning(
+            "No notification targets, auth failure notification will not be sent"
+        )
 
 
 def notify_booking_failure(
@@ -69,8 +71,8 @@ def notify_booking_failure(
         )
         notified = True
     if not notified:
-        warn.log(
-            "No notification targets, booking failure notification will not be sent!"
+        log.warning(
+            "No notification targets, booking failure notification will not be sent"
         )
 
 
@@ -110,7 +112,7 @@ async def notify_booking(
         )
         notified = True
     if not notified:
-        warn.log("No notification targets, booking notification will not be sent!")
+        log.warning("No notification targets, booking notification will not be sent")
 
 
 def schedule_class_reminder(
@@ -130,5 +132,5 @@ def schedule_class_reminder(
             booked_class,
             notifications_config.reminder_hours_before,
         )
-    warn.log("No notification targets, class reminder will not be sent!")
+    log.warning("No notification targets, class reminder will not be sent")
     return None

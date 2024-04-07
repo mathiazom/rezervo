@@ -17,7 +17,7 @@ from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import ChainIdentifier, ChainUser
 from rezervo.sessions import pull_sessions, remove_session, upsert_booked_session
 from rezervo.settings import Settings, get_settings
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import log
 
 router = APIRouter()
 
@@ -33,7 +33,7 @@ def authenticate_chain_user_with_config(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     chain_user = crud.get_chain_user(db, chain_identifier, db_user.id)
     if chain_user is None:
-        err.log(f"No '{chain_identifier}' user for given user id")
+        log.warning(f"No '{chain_identifier}' user for given user id")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     return chain_user, crud.get_user_config(db, db_user).config
 
@@ -51,11 +51,11 @@ async def book_class_api(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
-    print("Authenticating rezervo user...")
+    log.debug("Authenticating rezervo user ...")
     chain_user, config = authenticate_chain_user_with_config(
         chain_identifier, db, settings, token
     )
-    print("Searching for class...")
+    log.debug("Searching for class...")
     _class = await find_class_by_id(chain_user, payload.class_id)
     match _class:
         case AuthenticationError():
@@ -64,13 +64,13 @@ async def book_class_api(
             )
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    print("Authenticating chain user...")
+    log.debug("Authenticating chain user...")
     auth_data = await authenticate(chain_user, config.auth.max_attempts)
     if isinstance(auth_data, AuthenticationError):
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
-    print("Booking class...")
+    log.debug("Booking class...")
     booking_result = await book_class(chain_user.chain, auth_data, _class, config)
     match booking_result:
         case AuthenticationError():
@@ -97,11 +97,11 @@ async def cancel_booking_api(
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
-    print("Authenticating rezervo user...")
+    log.debug("Authenticating rezervo user...")
     chain_user, config = authenticate_chain_user_with_config(
         chain_identifier, db, settings, token
     )
-    print("Searching for class...")
+    log.debug("Searching for class...")
     _class = await find_class_by_id(chain_user, payload.class_id)
     match _class:
         case AuthenticationError():
@@ -110,13 +110,13 @@ async def cancel_booking_api(
             )
         case BookingError():
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    print("Authenticating chain user...")
+    log.debug("Authenticating chain user...")
     auth_data = await authenticate(chain_user, config.auth.max_attempts)
     if isinstance(auth_data, AuthenticationError):
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
-    print("Cancelling booking...")
+    log.debug("Cancelling booking...")
     cancellation_res = await cancel_booking(chain_user.chain, auth_data, _class, config)
     match cancellation_res:
         case AuthenticationError():

@@ -13,7 +13,7 @@ from rezervo.schemas.config.config import PushNotificationSubscription
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.settings import get_settings
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 
 AUTH_FAILURE_REASONS = {
     AuthenticationError.INVALID_CREDENTIALS: "Ugyldig brukernavn eller passord 🔐",
@@ -41,11 +41,13 @@ def notify_web_push(subscription: PushNotificationSubscription, message: str) ->
             vapid_claims={"sub": f"mailto:{settings.WEB_PUSH_EMAIL}"},
         )
     except WebPushException as e:
-        err.log(
+        log.error(
             f"Web push notification failed for endpoint {subscription.endpoint}: {e}"
         )
         if re.search(r"(410 Gone)|(404 Not Found)", e.message) is not None:
-            warn.log("Removing expired or invalid web push subscription from database")
+            log.warning(
+                "Removing expired or invalid web push subscription from database"
+            )
             with SessionLocal() as db:
                 crud.delete_push_notification_subscription(db, subscription)
         return False
@@ -62,9 +64,9 @@ def notify_booking_web_push(
         f"{booked_class.activity.name} "
         f"({booked_class.start_time.strftime('%Y-%m-%d %H:%M')}, {booked_class.location.studio}) er booket",
     ):
-        err.log("Failed to send booking notification via web push")
+        log.error("Failed to send booking notification via web push")
         return
-    print("Booking notification posted successfully via web push")
+    log.info("Booking notification posted successfully via web push")
     return
 
 
@@ -96,13 +98,13 @@ def notify_booking_failure_web_push(
             f"{class_name} ({class_time})"
             f"{f'. {BOOKING_FAILURE_REASONS[error]}' if error in BOOKING_FAILURE_REASONS else ''}"
         )
-    print(
+    log.debug(
         f"Posting booking {'check ' if check_run else ''}failure notification via web push"
     )
     if not notify_web_push(subscription, msg):
-        err.log("Failed to send booking failure notification via web push")
+        log.error("Failed to send booking failure notification via web push")
         return
-    print("Booking failure notification posted successfully via web push")
+    log.info("Booking failure notification posted successfully via web push")
     return
 
 
@@ -117,13 +119,13 @@ def notify_auth_failure_web_push(
         if error in AUTH_FAILURE_REASONS
         else ""
     )
-    print(
+    log.debug(
         f"Posting auth {'check ' if check_run else ''}failure notification via web push"
     )
     if not notify_web_push(subscription, msg):
-        err.log("Failed to send auth failure notification via web push")
+        log.error("Failed to send auth failure notification via web push")
         return
-    print(
+    log.info(
         f"Auth {'check ' if check_run else ''}failure notification posted successfully via web push"
     )
     return
@@ -135,7 +137,7 @@ def notify_friend_request_web_push(
     if not notify_web_push(
         subscription, f"{sender_name} har sendt deg en venneforespørsel"
     ):
-        err.log("Failed to send friend request notification via web push")
+        log.error("Failed to send friend request notification via web push")
         return
-    print("Friend request notification posted successfully via web push")
+    log.info("Friend request notification posted successfully via web push")
     return

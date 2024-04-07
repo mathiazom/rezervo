@@ -5,7 +5,6 @@ from uuid import UUID
 
 import typer
 import uvicorn
-from rich import print as rprint
 
 from rezervo.api import api
 from rezervo.chains.active import ACTIVE_CHAINS
@@ -23,7 +22,7 @@ from rezervo.schemas.config.user import (
 )
 from rezervo.sessions import pull_sessions
 from rezervo.utils.config_utils import class_config_recurrent_id
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import log
 from rezervo.utils.time_utils import readable_seconds
 
 cli = AsyncTyper()
@@ -44,16 +43,16 @@ async def book(
     """
     Book the class with config index matching the given class id
     """
-    print("Loading config...")
+    log.debug("Loading config...")
     with SessionLocal() as db:
         user_config = crud.get_user_config_by_id(db, user_id)
         chain_user = crud.get_chain_user(db, chain_identifier, user_id)
     if user_config is None:
-        err.log("Failed to load config, aborted.")
+        log.error("Failed to load config, aborted.")
         return
     config = user_config.config
     if chain_user is None:
-        err.log(f"No {chain_identifier} user for given user id, aborted booking.")
+        log.error(f"No {chain_identifier} user for given user id, aborted booking.")
         if config.notifications is not None:
             notify_auth_failure(
                 config.notifications,
@@ -67,10 +66,10 @@ async def book(
             _class_config = r
             break
     if _class_config is None:
-        err.log(f"Recurring booking with id '{class_id}' not found")
+        log.error(f"Recurring booking with id '{class_id}' not found")
         return
     if config.booking.max_attempts < 1:
-        err.log("Max booking attempts should be a positive number")
+        log.error("Max booking attempts must be a positive number")
         if config.notifications is not None:
             notify_booking_failure(
                 config.notifications,
@@ -79,39 +78,39 @@ async def book(
                 check_run,
             )
         return
-    print("Authenticating chain user...")
+    log.debug("Authenticating chain user...")
     auth_data = await authenticate(chain_user, config.auth.max_attempts)
     if isinstance(auth_data, AuthenticationError):
-        err.log("Abort!")
+        log.error("Abort")
         if config.notifications is not None:
             notify_auth_failure(config.notifications, auth_data, check_run)
         return
-    print("Searching for class...")
+    log.debug("Searching for class...")
     class_search_result = await find_class(chain_identifier, _class_config)
     if isinstance(class_search_result, AuthenticationError):
-        err.log("Abort!")
+        log.error("Abort")
         if config.notifications is not None:
             notify_auth_failure(config.notifications, class_search_result, check_run)
         return
     if isinstance(class_search_result, BookingError):
-        err.log("Abort!")
+        log.error("Abort")
         if config.notifications is not None:
             notify_booking_failure(
                 config.notifications, _class_config, class_search_result, check_run
             )
         return
     if check_run:
-        rprint(":heavy_check_mark: Check complete, all seems fine.")
+        log.info(":heavy_check_mark: Check complete, all seems fine.")
         raise typer.Exit()
     _class = class_search_result
     if _class.is_bookable:
-        print("Booking is already open, booking now!")
+        log.info("Booking is already open, booking now")
     else:
         delta_to_opening = _class.booking_opens_at - datetime.now().astimezone()
         wait_time = delta_to_opening.total_seconds()
         if wait_time < 0:
             # booking is not open, and booking_opens_at is in the past, so we missed it
-            err.log("Booking is closed. Aborting.")
+            log.error("Booking is closed. Aborting.")
             if config.notifications is not None:
                 notify_booking_failure(
                     config.notifications,
@@ -122,7 +121,7 @@ async def book(
             raise typer.Exit(1)
         wait_time_string = readable_seconds(wait_time)
         if wait_time > config.booking.max_waiting_minutes * 60:
-            err.log(
+            log.error(
                 f"Booking waiting time was {wait_time_string}, "
                 f"but max is {config.booking.max_waiting_minutes} minutes. Aborting."
             )
@@ -133,13 +132,13 @@ async def book(
                     BookingError.TOO_LONG_WAITING_TIME,
                 )
             raise typer.Exit(1)
-        print(
+        log.info(
             f"Scheduling booking at {datetime.now().astimezone() + delta_to_opening} "
             f"(about {wait_time_string} from now)"
         )
         time.sleep(wait_time)
-        print(f"Awoke at {datetime.now().astimezone()}")
-    print("Booking class...")
+        log.info(f"Awoke at {datetime.now().astimezone()}")
+    log.debug("Booking class ...")
     booking_result = await book_class(chain_user.chain, auth_data, _class, config)
     if isinstance(booking_result, AuthenticationError):
         if config.notifications is not None:
@@ -151,7 +150,7 @@ async def book(
                 config.notifications, _class_config, booking_result, check_run
             )
         raise typer.Exit(1)
-    print("Pulling sessions...")
+    log.debug("Pulling sessions ...")
     await pull_sessions(chain_identifier, user_id)
 
 
@@ -180,11 +179,11 @@ def purge_slack_receipts_cli():
     with SessionLocal() as db:
         purge_count = crud.purge_slack_receipts(db)
         if purge_count > 0:
-            rprint(
+            log.info(
                 f"Purged {purge_count} expired Slack notification receipt{'s' if purge_count > 1 else ''}"
             )
         else:
-            rprint("No expired Slack notification receipts")
+            log.debug("No expired Slack notification receipts")
 
 
 @cli.command(name="extend_auth_sessions")

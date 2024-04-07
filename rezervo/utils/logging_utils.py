@@ -1,9 +1,13 @@
-from rich.console import Console
+import logging
 
-err = Console(stderr=True, style="bold red")
-warn = Console(style="yellow")
-console = Console()
+from rich.logging import RichHandler
 
+from rezervo.settings import get_settings
 
-def stat(message: str, spinner: str = "bouncingBall"):
-    return console.status(message, spinner=spinner)
+logging.basicConfig(
+    level=logging.NOTSET if get_settings().IS_DEVELOPMENT else logging.INFO,
+    format="%(message)s",
+    datefmt="[%X]",
+    handlers=[RichHandler(markup=True, rich_tracebacks=True)],
+)
+log = logging.getLogger(__name__)

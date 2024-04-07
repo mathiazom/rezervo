@@ -6,7 +6,6 @@ from uuid import UUID
 
 from auth0.management import Auth0  # type: ignore[import-untyped]
 from fastapi import APIRouter, Depends, Header, HTTPException, Response, UploadFile
-from rich import print as rprint
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -25,6 +24,7 @@ from rezervo.utils.avatar_utils import (
     get_user_avatar_file_by_id,
     save_upload_file,
 )
+from rezervo.utils.logging_utils import log
 
 router = APIRouter()
 
@@ -178,7 +178,7 @@ def upsert_user_avatar(
         if user_avatar_dir.exists():
             shutil.rmtree(user_avatar_dir)
         shutil.move(temp_avatar_dir, user_avatar_dir)
-        rprint(f"Successfully updated avatar for {db_user.name}")
+        log.info(f"Successfully updated avatar for {db_user.name}")
 
 
 @router.delete("/user/me/avatar", status_code=status.HTTP_204_NO_CONTENT)

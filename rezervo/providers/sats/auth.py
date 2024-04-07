@@ -14,7 +14,7 @@ from rezervo.providers.sats.urls import (
     LOGIN_PATH,
     MY_PAGE_URL,
 )
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import log
 
 SatsAuthData: TypeAlias = str
 
@@ -59,7 +59,7 @@ async def fetch_authed_sats_cookie(
                     return cookie.value
             return AuthenticationError.ERROR
         except ValidationError as e:
-            err.log("Authentication failed", e)
+            log.error("Authentication failed", e)
             return AuthenticationError.INVALID_CREDENTIALS
 
 
@@ -69,7 +69,7 @@ async def validate_token(
     async with create_authed_sats_session(auth_data) as session:
         async with session.get(MY_PAGE_URL) as my_page_res:
             if not my_page_res.ok:
-                err.log("Validation of authentication token failed")
+                log.error("Validation of Sats authentication token failed")
                 return AuthenticationError.TOKEN_VALIDATION_FAILED
             try:
                 # verify that the response contains some user data

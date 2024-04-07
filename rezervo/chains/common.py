@@ -13,7 +13,7 @@ from rezervo.schemas.config.user import (
     Class,
 )
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
-from rezervo.utils.logging_utils import warn
+from rezervo.utils.logging_utils import log
 
 
 async def find_class_by_id(
@@ -62,8 +62,8 @@ async def cancel_booking(
                 chain_identifier, _class, config.notifications.slack
             )
         else:
-            warn.log(
-                "Slack notifications config not specified, no Slack notifications will updated after cancellation!"
+            log.warning(
+                "Slack notifications config not specified, no Slack notifications will updated after cancellation"
             )
     return res
 

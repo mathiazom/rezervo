@@ -56,7 +56,7 @@ from rezervo.schemas.schedule import (
     UserSession,
 )
 from rezervo.utils.category_utils import determine_activity_category
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 
 
 class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
@@ -87,15 +87,15 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         ibooking_token = await fetch_public_ibooking_token()
         if isinstance(ibooking_token, AuthenticationError):
-            err.log("Failed to authenticate to iBooking")
+            log.error("Failed to retrieve public ibooking token")
             return ibooking_token
-        print(f"Searching for class by id: {class_id}")
+        log.debug(f"Searching for class by id: {class_id}")
         # TODO: handle different domains
         async with HttpClient.singleton().get(
             f"{CLASS_URL}?token={ibooking_token}&id={class_id}&lang=no"
         ) as class_response:
             if not class_response.ok:
-                err.log("Class get request failed")
+                log.error("Class get request failed")
                 return BookingError.ERROR
             ibooking_class = IBookingClass(**(await class_response.json())["class"])
         if ibooking_class is None:
@@ -118,7 +118,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
         try:
             ibooking_class_id = int(class_id)
         except ValueError:
-            err.log(f"Invalid ibooking class id: {class_id}")
+            log.error(f"Invalid ibooking class id: {class_id}")
             return False
         return await book_ibooking_class(
             self.ibooking_domain, auth_data.ibooking_token.token, ibooking_class_id
@@ -132,7 +132,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
         try:
             ibooking_class_id = int(_class.id)
         except ValueError:
-            err.log(f"Invalid ibooking class id: {_class.id}")
+            log.error(f"Invalid ibooking class id: {_class.id}")
             return False
         return await cancel_booking(
             self.ibooking_domain, auth_data.ibooking_token.token, ibooking_class_id
@@ -145,7 +145,9 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
     ) -> Optional[list[UserSession]]:
         auth_res = await self._authenticate(chain_user)
         if isinstance(auth_res, AuthenticationError):
-            err.log(f"Authentication failed for '{chain_user.username}'!")
+            log.error(
+                f"Authentication failed for '{chain_user.chain}' user '{chain_user.username}'"
+            )
             return None
         async with create_client_session() as session:
             async with session.get(
@@ -303,7 +305,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
     ) -> Union[RezervoClass, BookingError, AuthenticationError]:
         ibooking_token = await fetch_public_ibooking_token()
         if isinstance(ibooking_token, AuthenticationError):
-            err.log("Failed to fetch public token")
+            log.error("Failed to retrieve public ibooking token")
             return ibooking_token
         schedule = await self.fetch_ibooking_schedule(
             domain,
@@ -321,11 +323,11 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
             ),
         )
         if schedule is None:
-            err.log("Schedule get request denied")
+            log.error("Schedule get request denied")
             return BookingError.ERROR
         _class = find_class_in_schedule_by_config(_class_config, schedule)
         if isinstance(_class, BookingError):
-            warn.log(f"Could not find class matching criteria: {_class_config}")
+            log.warning(f"Could not find class matching criteria: {_class_config}")
         return _class
 
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:

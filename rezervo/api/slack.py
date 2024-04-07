@@ -28,7 +28,7 @@ from rezervo.notify.slack import (
 from rezervo.schemas.config.config import Config, ConfigValue
 from rezervo.schemas.slack import CancelBookingActionValue, Interaction
 from rezervo.sessions import pull_sessions
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 
 router = APIRouter()
 
@@ -40,13 +40,13 @@ async def handle_cancel_booking_slack_action(
     message_ts: str,
 ):
     if config.notifications is None:
-        warn.log("Notifications config not specified, no notifications will be sent!")
+        log.warning("Notifications config not specified, no notifications will be sent")
         slack_config = None
     else:
         slack_config = config.notifications.slack
         if slack_config is None:
-            warn.log(
-                "Slack notifications config not specified, no Slack notifications will be sent!"
+            log.warning(
+                "Slack notifications config not specified, no Slack notifications will be sent"
             )
         else:
             notify_working_slack(
@@ -55,7 +55,7 @@ async def handle_cancel_booking_slack_action(
     with SessionLocal() as db:
         chain_user = crud.get_chain_user(db, action_value.chain_identifier, user_id)
     if chain_user is None:
-        err.log("Chain user not found, abort!")
+        log.error("Chain user not found, abort")
         if slack_config is not None:
             notify_cancellation_failure_slack(
                 slack_config.bot_token,
@@ -67,7 +67,7 @@ async def handle_cancel_booking_slack_action(
     _class_res = await find_class_by_id(chain_user, action_value.class_id)
     match _class_res:
         case AuthenticationError():
-            err.log("Authentication failed, abort!")
+            log.error("Authentication failed, abort")
             if slack_config is not None:
                 notify_cancellation_failure_slack(
                     slack_config.bot_token,
@@ -77,7 +77,7 @@ async def handle_cancel_booking_slack_action(
                 )
             return
         case BookingError():
-            err.log("Class retrieval by id failed, abort!")
+            log.error("Class retrieval by id failed, abort")
             if slack_config is not None:
                 notify_cancellation_failure_slack(
                     slack_config.bot_token,
@@ -86,7 +86,7 @@ async def handle_cancel_booking_slack_action(
                     _class_res,
                 )
             return
-    print("Authenticating chain user...")
+    log.debug(f"Authenticating '{chain_user.chain}' user '{chain_user.username}' ...")
     auth_data = await authenticate(chain_user, config.auth.max_attempts)
     if isinstance(auth_data, AuthenticationError):
         return Response(
@@ -130,13 +130,13 @@ async def slack_action(
     if action.action_id == SLACK_ACTION_CANCEL_BOOKING:
         raw_action_value = action.value
         if raw_action_value is None:
-            err.log("No action value available, abort!")
+            log.error("No action value available, abort")
             return Response(status_code=status.HTTP_400_BAD_REQUEST)
         action_value = CancelBookingActionValue(**json.loads(raw_action_value))
         user_config = crud.get_user_config_by_slack_id(db, action_value.user_id)
         config = user_config.config if user_config is not None else None
         if user_config is None or config is None:
-            err.log("Could not find config for Slack user, abort!")
+            log.error("Could not find config for Slack user, abort")
             return Response(status_code=status.HTTP_400_BAD_REQUEST)
         if (
             config.notifications is None
@@ -150,7 +150,7 @@ async def slack_action(
             )
         # This check should be performed before retrieving config, but then we wouldn't be able to display a funny modal
         if action_value.user_id is None or action_value.user_id != interaction.user.id:
-            warn.log("Detected cancellation attempt by an unauthorized user")
+            log.error("Detected cancellation attempt by an unauthorized user")
             if (
                 config.notifications is not None
                 and config.notifications.slack is not None

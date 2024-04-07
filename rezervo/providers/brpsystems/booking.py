@@ -10,7 +10,7 @@ from rezervo.providers.brpsystems.schema import (
     BrpAuthData,
     BrpSubdomain,
 )
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import log
 
 SCHEDULE_SEARCH_ATTEMPT_DAYS = 7
 MAX_SCHEDULE_SEARCH_ATTEMPTS = 6
@@ -44,7 +44,7 @@ async def book_brp_class(
         },
     ) as res:
         if res.status != 201:
-            err.log("Booking attempt failed: " + (await res.text()))
+            log.error("Booking attempt failed: " + (await res.text()))
             return False
         return True
 
@@ -55,7 +55,7 @@ async def cancel_brp_booking(
     booking_reference: int,
     booking_type: BookingType,
 ) -> bool:
-    print(f"Cancelling booking of class {booking_reference}")
+    log.debug(f"Cancelling booking of class {booking_reference}")
     async with HttpClient.singleton().delete(
         f"{booking_url(subdomain, auth_data)}/{booking_reference}?bookingType={booking_type.value}",
         headers={
@@ -64,6 +64,6 @@ async def cancel_brp_booking(
         },
     ) as res:
         if res.status != requests.codes.NO_CONTENT:
-            err.log("Booking cancellation attempt failed: " + (await res.text()))
+            log.error("Booking cancellation attempt failed: " + (await res.text()))
             return False
     return True

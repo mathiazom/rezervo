@@ -62,7 +62,7 @@ from rezervo.schemas.schedule import (
     UserSession,
 )
 from rezervo.utils.category_utils import determine_activity_category
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 
 
 class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
@@ -72,14 +72,16 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         if chain_user.auth_data is not None:
             if await validate_token(chain_user.auth_data) is None:
                 return chain_user.auth_data
-            warn.log(
-                "Authentication token validation failed, retrieving fresh token..."
+            log.warning(
+                f"Validation of Sats authentication token failed for '{chain_user.username}', retrieving fresh token..."
             )
         auth_data = await fetch_authed_sats_cookie(
             chain_user.username, chain_user.password
         )
         if isinstance(auth_data, AuthenticationError):
-            err.log("Failed to extract authentication token!")
+            log.error(
+                f"Failed to authenticate '{chain_user.chain}' user '{chain_user.username}'"
+            )
             return auth_data
         validation_error = await validate_token(auth_data)
         if validation_error is not None:
@@ -165,7 +167,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         async with create_authed_sats_session(auth_data) as session:
             async with session.post(BOOKING_URL, data={"id": class_id}) as res:
                 if not res.ok:
-                    err.log("Booking attempt failed: " + (await res.text()))
+                    log.error("Booking attempt failed: " + (await res.text()))
                     return False
                 return True
 
@@ -215,7 +217,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
     ) -> Optional[list[UserSession]]:
         auth_data = await self._authenticate(chain_user)
         if isinstance(auth_data, AuthenticationError):
-            err.log(f"Authentication failed for '{chain_user.username}'!")
+            log.error(
+                f"Authentication failed for '{chain_user.chain}' user '{chain_user.username}'"
+            )
             return None
         async with create_authed_sats_session(auth_data) as session:
             async with session.get(BOOKINGS_URL) as bookings_res:

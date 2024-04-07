@@ -17,7 +17,7 @@ from rezervo.utils.config_utils import (
     class_config_recurrent_id,
     rezervo_class_recurrent_id,
 )
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import log
 
 
 async def pull_chain_sessions(
@@ -27,7 +27,9 @@ async def pull_chain_sessions(
         with SessionLocal() as db:
             chain_user = crud.get_chain_user(db, chain_identifier, user_id)
         if chain_user is None:
-            err.log(f"Chain user {user_id} not found for chain {chain_identifier}")
+            log.error(
+                f"Chain user '{user_id}' not found for chain '{chain_identifier}'"
+            )
             return
         chain_users = [chain_user]
     else:
@@ -177,7 +179,7 @@ async def update_planned_sessions(
             )
     for session_class_data in await asyncio.gather(*find_session_class_tasks):
         if not isinstance(session_class_data, RezervoClass):
-            err.log(
+            log.error(
                 f"Failed to generate planned session. Class not found: {session_class_data}"
             )
             continue

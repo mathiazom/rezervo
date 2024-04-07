@@ -2,7 +2,6 @@ from typing import Optional
 from uuid import UUID
 
 import typer
-from rich import print as rprint
 
 from rezervo import models
 from rezervo.chains.active import get_chain
@@ -11,6 +10,7 @@ from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.schemas.config.user import ChainIdentifier, ChainUserCredentials
 from rezervo.utils.cron_utils import delete_booking_crontab
+from rezervo.utils.logging_utils import log
 
 users_cli = AsyncTyper()
 
@@ -23,7 +23,7 @@ def create_user(
 ):
     with SessionLocal() as db:
         db_user = crud.create_user(db, name, jwt_sub, slack_id)
-        rprint(f"User '{db_user.name}' created")
+        log.info(f"User '{db_user.name}' created")
 
 
 @users_cli.command(name="integrate")
@@ -36,7 +36,7 @@ def upsert_chain_user(
     with SessionLocal() as db:
         user = db.query(models.User).filter_by(name=name).first()
         if user is None:
-            rprint(f"User '{name}' not found")
+            log.error(f"User '{name}' not found")
             raise typer.Exit(1)
         crud.upsert_chain_user_creds(
             db,
@@ -44,7 +44,9 @@ def upsert_chain_user(
             chain_identifier,
             ChainUserCredentials(username=username, password=password),
         )
-        rprint(f"User '{user.name}' integrated with {get_chain(chain_identifier).name}")
+        log.info(
+            f"User '{user.name}' integrated with {get_chain(chain_identifier).name}"
+        )
 
 
 @users_cli.command(name="delete")

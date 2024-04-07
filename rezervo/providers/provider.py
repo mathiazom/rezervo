@@ -6,8 +6,6 @@ from datetime import datetime
 from typing import Generic, Optional, Union
 from uuid import UUID
 
-from rich import print as rprint
-
 from rezervo.consts import (
     BOOKING_INITIAL_BURST_ATTEMPTS,
     PLANNED_SESSIONS_NEXT_WHOLE_WEEKS,
@@ -31,7 +29,7 @@ from rezervo.schemas.config.user import (
     config_from_chain_user,
 )
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule, UserSession
-from rezervo.utils.logging_utils import err, warn
+from rezervo.utils.logging_utils import log
 from rezervo.utils.time_utils import (
     first_date_of_week_by_offset,
     total_days_for_next_whole_weeks,
@@ -103,18 +101,20 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             if success:
                 break
             if result == AuthenticationError.INVALID_CREDENTIALS:
-                err.log("Invalid credentials, aborting authentication to avoid lockout")
+                log.error(
+                    "Invalid credentials, aborting authentication to avoid lockout"
+                )
                 break
             if result == AuthenticationError.AUTH_TEMPORARILY_BLOCKED:
-                err.log("Authentication temporarily blocked, aborting")
+                log.error("Authentication temporarily blocked, aborting")
                 break
             if attempts >= max_attempts:
                 break
             sleep_seconds = 2**attempts
-            print(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
+            log.warning(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
             time.sleep(sleep_seconds)
         if not success:
-            err.log(
+            log.error(
                 f"Authentication failed after {attempts} attempt"
                 + ("s" if attempts != 1 else "")
             )
@@ -153,10 +153,10 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     ) -> Union[None, BookingError, AuthenticationError]:
         max_attempts = config.booking.max_attempts
         if max_attempts < 1:
-            err.log("Max booking attempts should be a positive number")
+            log.error("Max booking attempts must be a positive number")
             return BookingError.INVALID_CONFIG
         if isinstance(auth_data, AuthenticationError):
-            err.log("Invalid authentication")
+            log.error("Invalid authentication")
             return auth_data
         booked = False
         attempts = 0
@@ -169,17 +169,19 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
                 break
             if attempts >= BOOKING_INITIAL_BURST_ATTEMPTS:
                 sleep_seconds = 2 ** (attempts - BOOKING_INITIAL_BURST_ATTEMPTS)
-                warn.log(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
+                log.warning(
+                    f"Exponential backoff, retrying in {sleep_seconds} seconds..."
+                )
                 await asyncio.sleep(sleep_seconds)
         if not booked:
-            err.log(
+            log.error(
                 f"Booking failed after {attempts} attempt"
                 + ("s" if attempts != 1 else "")
             )
             return BookingError.ERROR
-        print(
-            "Successfully booked class"
-            + (f" after {attempts} attempts!" if attempts != 1 else "!")
+        log.info(
+            f"Successfully booked class '{_class.activity.name}'"
+            + (f" after {attempts} attempts" if attempts != 1 else "")
         )
         if config.notifications:
             # ical_url = f"{ICAL_URL}/?id={_class.id}&token={token}"    # TODO: consider re-introducing ical
@@ -198,10 +200,10 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         self, auth_data: AuthData, _class: RezervoClass, config: ConfigValue
     ) -> Union[None, BookingError, AuthenticationError]:
         if config.booking.max_attempts < 1:
-            err.log("Max booking cancellation attempts should be a positive number")
+            log.error("Max booking cancellation attempts must be a positive number")
             return BookingError.INVALID_CONFIG
         if isinstance(auth_data, AuthenticationError):
-            err.log("Invalid authentication")
+            log.error("Invalid authentication")
             return auth_data
         cancelled = False
         attempts = 0
@@ -214,17 +216,19 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
                 break
             if attempts >= BOOKING_INITIAL_BURST_ATTEMPTS:
                 sleep_seconds = 2 ** (attempts - BOOKING_INITIAL_BURST_ATTEMPTS)
-                warn.log(f"Exponential backoff, retrying in {sleep_seconds} seconds...")
+                log.warning(
+                    f"Exponential backoff, retrying in {sleep_seconds} seconds..."
+                )
                 await asyncio.sleep(sleep_seconds)
         if not cancelled:
-            err.log(
+            log.error(
                 f"Booking cancellation failed after {attempts} attempt"
                 + ("s" if attempts != 1 else "")
             )
             return BookingError.ERROR
-        print(
-            "Successfully cancelled booking"
-            + (f" after {attempts} attempts!" if attempts != 1 else "!")
+        log.info(
+            f"Successfully cancelled '{_class.activity.name}'"
+            + (f" after {attempts} attempts" if attempts != 1 else "")
         )
         return None
 
@@ -233,7 +237,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         chain_user: ChainUser,
         locations: Optional[list[LocationIdentifier]] = None,
     ) -> list[UserSession]:
-        rprint(
+        log.info(
             f":right_arrow_curving_down:  Pulling user sessions from '{chain_user.chain}' for '{chain_user.username}' ..."
         )
         schedule = await self.fetch_schedule(

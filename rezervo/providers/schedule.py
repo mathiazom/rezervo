@@ -6,14 +6,14 @@ from rezervo.consts import WEEKDAYS
 from rezervo.errors import BookingError
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
-from rezervo.utils.logging_utils import err
+from rezervo.utils.logging_utils import log
 
 
 def find_class_in_schedule_by_config(
     _class_config: Class, schedule: RezervoSchedule
 ) -> Union[RezervoClass, BookingError]:
     if not 0 <= _class_config.weekday < len(WEEKDAYS):
-        err.log(f"Invalid weekday number ({_class_config.weekday=})")
+        log.error(f"Invalid weekday number ({_class_config.weekday=})")
         return BookingError.MALFORMED_SEARCH
     weekday_str = WEEKDAYS[_class_config.weekday]
     result = None
