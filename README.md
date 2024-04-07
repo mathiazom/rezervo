@@ -15,6 +15,9 @@ Automatic booking of group classes
    <a href="https://www.3t.no">
       <img src="assets/badges/chains/3t.svg" alt="3t" height="45">
    </a>
+   <a href="https://www.sats.no">
+      <img src="assets/badges/chains/sats.svg" alt="sats" height="45">
+   </a>
 </div>
 
 #### ⚙️ Providers

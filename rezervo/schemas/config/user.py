@@ -3,6 +3,7 @@ import enum
 from typing import Annotated, Literal, Optional, TypeAlias, Union
 from uuid import UUID
 
+import pytz
 from pydantic.fields import Field
 
 from rezervo.schemas.base import OrmBase
@@ -42,6 +43,21 @@ class Class(CamelModel):
     location_id: str
     start_time: ClassTime  # TODO: make sure time zones are handled...
     display_name: Optional[str] = None
+
+    def calculate_next_occurrence(self) -> datetime.datetime:
+        now = datetime.datetime.now().astimezone(
+            pytz.timezone("Europe/Oslo")
+        )  # TODO: clean this
+        days_ahead = self.weekday - now.weekday()
+        if days_ahead < 0 or (
+            days_ahead == 0
+            and (self.start_time.hour, self.start_time.minute) < (now.hour, now.minute)
+        ):
+            days_ahead += 7
+        target_date = now + datetime.timedelta(days=days_ahead)
+        return target_date.replace(
+            hour=self.start_time.hour, minute=self.start_time.minute
+        )
 
 
 class RecurringBookings(CamelModel):

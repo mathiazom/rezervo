@@ -190,7 +190,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     async def _cancel_booking(
         self,
         auth_data: AuthData,
-        class_id: str,
+        _class: RezervoClass,
     ) -> bool:
         raise NotImplementedError()
 
@@ -206,7 +206,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         cancelled = False
         attempts = 0
         while not cancelled:
-            cancelled = await self._cancel_booking(auth_data, _class.id)
+            cancelled = await self._cancel_booking(auth_data, _class)
             attempts += 1
             if cancelled:
                 break
