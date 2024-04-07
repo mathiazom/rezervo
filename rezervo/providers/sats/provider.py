@@ -29,6 +29,8 @@ from rezervo.providers.sats.helpers import (
 )
 from rezervo.providers.sats.schedule import (
     fetch_sats_classes,
+    find_sats_class,
+    is_schedule_fetchable_for_date,
 )
 from rezervo.providers.sats.schema import (
     SatsBooking,
@@ -88,7 +90,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
             )
         return auth_data
 
-    async def search_for_class(
+    async def _search_for_class(
         self,
         from_date: datetime,
         days: int,
@@ -96,40 +98,31 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         comparator_fn: Callable[[SatsClass], bool],
     ):
         club_ids = self.club_ids_from_locations(locations)
-        cancellation_event = asyncio.Event()
-        result: SatsClass | None = None
-
-        def retrieve_result(sats_class: SatsClass):
-            nonlocal result
-            result = sats_class
-            cancellation_event.set()
-
         tasks = []
         for i in range(days):
-            task = asyncio.create_task(
-                self.fetch_fetchable_sats_classes(
-                    from_date + timedelta(days=i),
-                    club_ids,
-                    comparator_fn,
-                    retrieve_result,
+            fetch_date = from_date + timedelta(days=i)
+            if is_schedule_fetchable_for_date(fetch_date.date()):
+                tasks.append(
+                    asyncio.create_task(
+                        find_sats_class(
+                            club_ids,
+                            fetch_date,
+                            comparator_fn,
+                        )
+                    )
                 )
-            )
-            tasks.append(task)
-        cancellation_waiter = asyncio.create_task(cancellation_event.wait())
-
-        await asyncio.wait(
-            [*tasks, cancellation_waiter], return_when=asyncio.FIRST_COMPLETED
-        )
-
-        if cancellation_event.is_set():
-            for task in tasks:
-                task.cancel()
-        else:
-            cancellation_waiter.cancel()
-
-        if result is None:
-            return BookingError.CLASS_MISSING
-        return self.rezervo_class_from_sats_class(result)
+        for coro in asyncio.as_completed(tasks):
+            try:
+                res = await coro
+            except asyncio.CancelledError:
+                for t in tasks:
+                    t.cancel()
+                raise
+            if res is not None:
+                for t in tasks:
+                    t.cancel()
+                return self.rezervo_class_from_sats_class(res)
+        return BookingError.CLASS_MISSING
 
     async def find_class_by_id(
         self, class_id: str
@@ -137,7 +130,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         def comparator_fn(sats_class: SatsClass):
             return class_id == sats_class.id
 
-        return await self.search_for_class(
+        return await self._search_for_class(
             datetime.now(),
             SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE,
             [self.extract_location_id(class_id)],
@@ -157,7 +150,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 and _class.start_time.minute == _class_config.start_time.minute
             )
 
-        return await self.search_for_class(
+        return await self._search_for_class(
             _class_config.calculate_next_occurrence(),
             1,
             [_class_config.location_id],
@@ -297,37 +290,20 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
             )
         )
 
-    async def fetch_fetchable_sats_classes(
-        self,
-        date: datetime,
-        club_ids: list[str],
-        comparator_fn: Optional[Callable[[SatsClass], bool]] = None,
-        retrieve_result_fn: Optional[Callable[[SatsClass], None]] = None,
-    ):
-        now_date = datetime.now().date()
-        classes_are_fetchable = (
-            now_date
-            <= date.date()
-            < (now_date + timedelta(days=SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE))
-        )
-        return (
-            await fetch_sats_classes(club_ids, date, comparator_fn, retrieve_result_fn)
-            if classes_are_fetchable
-            else []
-        )
-
     async def fetch_sats_classes_as_rezervo_day(
         self, date: datetime, club_ids: list[str]
     ) -> RezervoDay:
         return RezervoDay(
             day_name=WEEKDAYS[date.weekday()],
             date=date.isoformat(),
-            classes=[
-                self.rezervo_class_from_sats_class(sats_class)
-                for sats_class in await self.fetch_fetchable_sats_classes(
-                    date, club_ids
-                )
-            ],
+            classes=(
+                [
+                    self.rezervo_class_from_sats_class(sats_class)
+                    for sats_class in await fetch_sats_classes(club_ids, date)
+                ]
+                if is_schedule_fetchable_for_date(date.date())
+                else []
+            ),
         )
 
     def rezervo_class_from_sats_class(
