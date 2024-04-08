@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Mapping, Optional, Sequence, Union
 from uuid import UUID
 
+import humanize
 import pytz
 from playwright.async_api import (
     Cookie,
@@ -484,4 +485,8 @@ async def extend_auth_session_silently(
         )
         db_chain_user.auth_data = auth_data.json()
         db.commit()
+    log.info(
+        f":heavy_check_mark: Auth session extended for '{chain_user.chain}' user '{chain_user.username}' \n"
+        f"  (refresh token expires in {humanize.naturaldelta(refresh_res.refresh_token.expires_at - int(time.time()))})"
+    )
     return auth_data

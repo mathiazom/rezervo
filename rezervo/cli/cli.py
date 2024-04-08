@@ -1,4 +1,3 @@
-import asyncio
 import time
 from datetime import datetime
 from uuid import UUID
@@ -196,7 +195,8 @@ async def extend_auth_sessions_cli():
         for chain in ACTIVE_CHAINS:
             for chain_user in crud.get_chain_users(db, chain.identifier):
                 extend_jobs.append(chain.extend_auth_session(chain_user))
-    await asyncio.gather(*extend_jobs)
+    for job in extend_jobs:
+        await job
 
 
 @cli.callback()
