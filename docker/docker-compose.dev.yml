@@ -47,6 +47,8 @@ services:
       - "../rezervo/config.json:/app/config.json:ro"
       # supply env variables as file to allow access from cron
       - "../rezervo/.env:/app/.env:ro"
+      # apprise config file
+      - "../rezervo/apprise.yml:/app/config/apprise.yml:ro"
       - "rezervo-avatars:/app/content/avatars"
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -19,6 +19,8 @@ dist/
 **/.LSOverride
 
 config.json
+apprise.yml
+apprise.yaml
 
 *.log
 

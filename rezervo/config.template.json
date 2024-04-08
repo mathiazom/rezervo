@@ -25,6 +25,9 @@
       "bot_token": "xoxb-SOMETHING",
       "signing_secret": "SOMETHING-SECRET",
       "channel_id": "SOME-CHANNEL-ID"
+    },
+    "apprise": {
+      "config_file": "/app/config/apprise.yml"
     }
   }
 }

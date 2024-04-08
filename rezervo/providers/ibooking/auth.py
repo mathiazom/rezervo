@@ -25,6 +25,7 @@ from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
 from rezervo.http_client import HttpClient
+from rezervo.notify.apprise import aprs
 from rezervo.providers.ibooking.urls import (
     AUTH_URL,
     BOOKING_URL,
@@ -185,6 +186,11 @@ async def refresh_chain_user_auth_data(
         if extend_res is None:
             log.critical(
                 f"Refresh token expired and session extension failed for '{chain_user.chain}' user '{chain_user.username}'"
+            )
+            aprs.notify(
+                title="Auth session extension failed",
+                body=f"Refresh token expired and session extension failed "
+                f"for '{chain_user.chain}' user '{chain_user.username}'",
             )
             return AuthenticationError.TOKEN_INVALID
         auth_data = extend_res

@@ -12,6 +12,7 @@ from rezervo.consts import (
 )
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
+from rezervo.notify.apprise import aprs
 from rezervo.notify.notify import notify_booking
 from rezervo.providers.schema import (
     AuthData,
@@ -182,6 +183,11 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         log.info(
             f"Successfully booked class '{_class.activity.name}'"
             + (f" after {attempts} attempts" if attempts != 1 else "")
+        )
+        aprs.notify(
+            title=f"Successfully booked '{_class.activity.name}'",
+            body=f"Successfully booked '{chain_identifier}' class '{_class.activity.name}'"
+            + (f" after {attempts} attempts" if attempts != 1 else ""),
         )
         if config.notifications:
             # ical_url = f"{ICAL_URL}/?id={_class.id}&token={token}"    # TODO: consider re-introducing ical

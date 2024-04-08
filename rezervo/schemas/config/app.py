@@ -34,10 +34,15 @@ class Slack(CamelOrmBase):
     channel_id: str
 
 
+class Apprise(CamelOrmBase):
+    config_file: str
+
+
 class Notifications(CamelOrmBase):
     host: Optional[str] = None
     transfersh: Transfersh
     slack: Optional[Slack] = None
+    apprise: Optional[Apprise] = None
 
 
 class Content(OrmBase):
