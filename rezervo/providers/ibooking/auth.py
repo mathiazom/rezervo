@@ -292,6 +292,8 @@ async def verify_sit_credentials(username: str, password: str):
         except PlaywrightTimeoutError:
             valid = False
         await playwright_trace_stop(context, "verify_sit_creds")
+        await context.close()
+        await browser.close()
         return valid
 
 
@@ -334,12 +336,16 @@ async def login_with_totp(chain_user: ChainUser) -> Optional[IBookingAuthData]:
                 f"TOTP not provided for '{chain_user.chain}' user '{chain_user.username}' (waited {WAIT_FOR_TOTP_MAX_SECONDS} seconds)"
             )
             await playwright_trace_stop(context, "login_totp_not_provided")
+            await context.close()
+            await browser.close()
             return None
         if len(totp) != 6 or not totp.isdigit():
             log.error(
                 f"Invalid TOTP code from '{chain_user.chain}' user '{chain_user.username}'"
             )
             await playwright_trace_stop(context, "login_totp_invalid")
+            await context.close()
+            await browser.close()
             return None
         await page.locator("#verificationCode").fill(totp, timeout=10000)
         await page.locator("button[id='verifyCode']").click(timeout=10000)
@@ -355,6 +361,7 @@ async def login_with_totp(chain_user: ChainUser) -> Optional[IBookingAuthData]:
         )
         await playwright_trace_stop(verification_context, "login_totp_verification")
         await verification_context.close()
+        await browser.close()
         if verification_res is None:
             log.error(
                 f"TOTP flow verification failed for '{chain_user.chain}' user '{chain_user.username}'"
@@ -450,6 +457,8 @@ async def extend_auth_session_silently(
                 f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'"
             )
             await playwright_trace_stop(context, "extend_auth_session_failed")
+            await context.close()
+            await browser.close()
             return None
         ibooking_token = await get_ibooking_token_from_access_token(
             refresh_res.access_token.token
@@ -459,6 +468,8 @@ async def extend_auth_session_silently(
                 f"Ibooking token extraction failed for '{chain_user.chain}' user '{chain_user.username}'"
             )
             await playwright_trace_stop(context, "extend_auth_session_failed")
+            await context.close()
+            await browser.close()
             return None
         ibooking_valid = await validate_ibooking_token(ibooking_token.token)
         if not ibooking_valid:
@@ -466,10 +477,13 @@ async def extend_auth_session_silently(
                 f"Ibooking token is invalid for '{chain_user.chain}' user '{chain_user.username}'"
             )
             await playwright_trace_stop(context, "extend_auth_session_failed")
+            await context.close()
+            await browser.close()
             return None
         cookies = await extract_cookies_from_url(page, SIT_AUTH_COOKIE_URL)
         await playwright_trace_stop(context, "extend_auth_session")
         await context.close()
+        await browser.close()
     with SessionLocal() as db:
         db_chain_user = crud.get_db_chain_user(db, chain_identifier, user_id)
         if db_chain_user is None:
