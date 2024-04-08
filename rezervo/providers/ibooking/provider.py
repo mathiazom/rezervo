@@ -9,6 +9,7 @@ import pydantic
 
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.http_client import HttpClient, create_client_session
+from rezervo.models import SessionState
 from rezervo.providers.ibooking.auth import (
     IBookingAuthData,
     extend_auth_session_silently,
@@ -154,23 +155,26 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
                 MY_SESSIONS_URL, headers={"x-b2c-token": auth_res.access_token.token}
             ) as res:
                 sessions_json = await res.json()
-        ibooking_sessions = []
-        for s in sessions_json["bookings"]:
-            if s["type"] != "groupclass":
+        datetime_now = datetime.now().astimezone()
+        past_and_booked_sessions = []
+        for session_json in sessions_json["bookings"]:
+            if session_json["type"] != "groupclass":
                 continue
-            ibooking_sessions.append(pydantic.parse_obj_as(SitSession, s))
-        past_and_booked_sessions = [
-            UserSession(
+            ibooking_session = pydantic.parse_obj_as(SitSession, session_json)
+            session = UserSession(
                 chain=chain_user.chain,
-                class_id=str(s.class_field.id),
+                class_id=str(ibooking_session.class_field.id),
                 user_id=chain_user.user_id,
-                status=session_state_from_ibooking(s.status),
+                status=session_state_from_ibooking(ibooking_session.status),
                 class_data=self.rezervo_class_from_ibooking_class(
-                    ibooking_class_from_sit_session_class(s.class_field)
+                    ibooking_class_from_sit_session_class(ibooking_session.class_field)
                 ),  # type: ignore
             )
-            for s in ibooking_sessions
-        ]
+            if datetime_now < session.class_data.start_time or session.status in [
+                SessionState.CONFIRMED,
+                SessionState.NOSHOW,
+            ]:
+                past_and_booked_sessions.append(session)
         return past_and_booked_sessions
 
     async def fetch_schedule(
