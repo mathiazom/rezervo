@@ -240,9 +240,14 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         return await fetch_detailed_brp_schedule(self.brp_subdomain, schedule)
 
     def _rezervo_schedule_from_brp_schedule(
-        self, schedule: list[BrpClass] | list[DetailedBrpClass]
+        self,
+        from_date: datetime.datetime,
+        schedule: list[BrpClass] | list[DetailedBrpClass],
     ) -> RezervoSchedule:
-        days_map: defaultdict[datetime.date, list[RezervoClass]] = defaultdict(list)
+        days_map: defaultdict[datetime.date, list[RezervoClass]] = defaultdict(
+            list, {from_date.date() + datetime.timedelta(days=i): [] for i in range(7)}
+        )
+
         for _class in schedule:
             class_date = datetime.datetime.fromisoformat(
                 tz_aware_iso_from_brp_date_str(_class.duration.start)
@@ -287,7 +292,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             ]
         ):
             schedule.extend(res)
-        return self._rezervo_schedule_from_brp_schedule(schedule)
+        return self._rezervo_schedule_from_brp_schedule(from_date, schedule)
 
     def rezervo_class_from_brp_class(
         self,
@@ -377,7 +382,8 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                 log.error("Schedule get request denied")
                 return BookingError.ERROR
             search_result = find_class_in_schedule_by_config(
-                _class_config, self._rezervo_schedule_from_brp_schedule(brp_schedule)
+                _class_config,
+                self._rezervo_schedule_from_brp_schedule(from_date, brp_schedule),
             )
             if (
                 search_result is not None
