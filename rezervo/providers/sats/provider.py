@@ -153,7 +153,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
             )
 
         return await self._search_for_class(
-            _class_config.calculate_next_occurrence(),
+            _class_config.calculate_next_occurrence(include_today=False),
             1,
             [_class_config.location_id],
             comparator_fn,

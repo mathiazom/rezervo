@@ -44,14 +44,20 @@ class Class(CamelModel):
     start_time: ClassTime  # TODO: make sure time zones are handled...
     display_name: Optional[str] = None
 
-    def calculate_next_occurrence(self) -> datetime.datetime:
+    def calculate_next_occurrence(
+        self, include_today: bool = True
+    ) -> datetime.datetime:
         now = datetime.datetime.now().astimezone(
             pytz.timezone("Europe/Oslo")
         )  # TODO: clean this
         days_ahead = self.weekday - now.weekday()
         if days_ahead < 0 or (
             days_ahead == 0
-            and (self.start_time.hour, self.start_time.minute) < (now.hour, now.minute)
+            and not (
+                include_today
+                and (now.hour, now.minute)
+                < (self.start_time.hour, self.start_time.minute)
+            )
         ):
             days_ahead += 7
         target_date = now + datetime.timedelta(days=days_ahead)
