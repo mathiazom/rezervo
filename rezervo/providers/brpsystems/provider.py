@@ -2,7 +2,6 @@ import asyncio
 import datetime
 import re
 from abc import abstractmethod
-from collections import defaultdict
 from typing import Optional, Union
 
 import pydantic
@@ -240,9 +239,14 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         return await fetch_detailed_brp_schedule(self.brp_subdomain, schedule)
 
     def _rezervo_schedule_from_brp_schedule(
-        self, schedule: list[BrpClass] | list[DetailedBrpClass]
+        self,
+        from_date: datetime.datetime,
+        days: int,
+        schedule: list[BrpClass] | list[DetailedBrpClass],
     ) -> RezervoSchedule:
-        days_map: defaultdict[datetime.date, list[RezervoClass]] = defaultdict(list)
+        days_map: dict[datetime.date, list[RezervoClass]] = {
+            from_date.date() + datetime.timedelta(days=i): [] for i in range(days)
+        }
         for _class in schedule:
             class_date = datetime.datetime.fromisoformat(
                 tz_aware_iso_from_brp_date_str(_class.duration.start)
@@ -287,7 +291,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             ]
         ):
             schedule.extend(res)
-        return self._rezervo_schedule_from_brp_schedule(schedule)
+        return self._rezervo_schedule_from_brp_schedule(from_date, days, schedule)
 
     def rezervo_class_from_brp_class(
         self,
@@ -366,18 +370,22 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         now_date = datetime.datetime.now()
         from_date = datetime.datetime(now_date.year, now_date.month, now_date.day)
         search_result = None
+        days_per_search = SCHEDULE_SEARCH_ATTEMPT_DAYS
         while attempts < MAX_SCHEDULE_SEARCH_ATTEMPTS:
             brp_schedule = await fetch_brp_schedule(
                 subdomain,
                 business_unit,
-                days=SCHEDULE_SEARCH_ATTEMPT_DAYS,
+                days=days_per_search,
                 from_date=from_date,
             )
             if brp_schedule is None:
                 log.error("Schedule get request denied")
                 return BookingError.ERROR
             search_result = find_class_in_schedule_by_config(
-                _class_config, self._rezervo_schedule_from_brp_schedule(brp_schedule)
+                _class_config,
+                self._rezervo_schedule_from_brp_schedule(
+                    from_date, days_per_search, brp_schedule
+                ),
             )
             if (
                 search_result is not None
@@ -395,7 +403,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                         brp_class = search_result
                     else:
                         break
-            from_date += datetime.timedelta(days=SCHEDULE_SEARCH_ATTEMPT_DAYS)
+            from_date += datetime.timedelta(days=days_per_search)
             attempts += 1
         if brp_class is None:
             log.warning(f"Could not find class matching criteria: {_class_config}")
