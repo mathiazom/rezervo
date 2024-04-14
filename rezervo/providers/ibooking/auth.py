@@ -8,6 +8,7 @@ from uuid import UUID
 
 import humanize
 import pytz
+from apprise import NotifyType
 from playwright.async_api import (
     Cookie,
     Page,
@@ -36,6 +37,7 @@ from rezervo.providers.ibooking.urls import (
 )
 from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.user import ChainIdentifier, ChainUser
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 from rezervo.utils.playwright_utils import (
     playwright_trace_start,
@@ -187,11 +189,14 @@ async def refresh_chain_user_auth_data(
             log.critical(
                 f"Refresh token expired and session extension failed for '{chain_user.chain}' user '{chain_user.username}'"
             )
-            aprs.notify(
-                title="Auth session extension failed",
-                body=f"Refresh token expired and session extension failed "
-                f"for '{chain_user.chain}' user '{chain_user.username}'",
-            )
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Auth session extension failed",
+                    body=f"Refresh token expired and session extension failed "
+                    f"for '{chain_user.chain}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return AuthenticationError.TOKEN_INVALID
         auth_data = extend_res
     refresh_res = await get_tokens_from_refresh_token(auth_data.refresh_token.token)
@@ -409,6 +414,13 @@ async def initiate_auth_session_interactively(
             log.error(
                 f"TOTP flow failed for '{chain_user.chain}' user '{chain_user.username}'"
             )
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="TOTP flow failed",
+                    body=f"TOTP flow failed for '{chain_user.chain}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return
         db.query(models.ChainUser).filter_by(
             user_id=chain_user.user_id, chain=chain_user.chain
@@ -465,6 +477,13 @@ async def extend_auth_session_silently(
             await playwright_trace_stop(context, "extend_auth_session_failed")
             await context.close()
             await browser.close()
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Auth session extension failed",
+                    body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return None
         ibooking_token = await get_ibooking_token_from_access_token(
             refresh_res.access_token.token
@@ -476,6 +495,13 @@ async def extend_auth_session_silently(
             await playwright_trace_stop(context, "extend_auth_session_failed")
             await context.close()
             await browser.close()
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Auth session extension failed",
+                    body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return None
         ibooking_valid = await validate_ibooking_token(ibooking_token.token)
         if not ibooking_valid:
@@ -485,6 +511,13 @@ async def extend_auth_session_silently(
             await playwright_trace_stop(context, "extend_auth_session_failed")
             await context.close()
             await browser.close()
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Auth session extension failed",
+                    body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return None
         cookies = await extract_cookies_from_url(page, SIT_AUTH_COOKIE_URL)
         await playwright_trace_stop(context, "extend_auth_session")
@@ -496,6 +529,13 @@ async def extend_auth_session_silently(
             log.error(
                 f"Chain user not found for '{chain_user.chain}' user '{chain_user.username}'"
             )
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Auth session extension failed",
+                    body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return None
         auth_data = IBookingAuthData(
             access_token=refresh_res.access_token,

@@ -4,6 +4,7 @@ from uuid import UUID
 
 import typer
 import uvicorn
+from apprise import NotifyType
 
 from rezervo.api import api
 from rezervo.chains.active import ACTIVE_CHAINS
@@ -15,11 +16,13 @@ from rezervo.cli.users import users_cli
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.apprise import aprs
 from rezervo.notify.notify import notify_auth_failure, notify_booking_failure
 from rezervo.schemas.config.user import (
     ChainIdentifier,
 )
 from rezervo.sessions import pull_sessions
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.config_utils import class_config_recurrent_id
 from rezervo.utils.logging_utils import log
 from rezervo.utils.time_utils import readable_seconds
@@ -48,10 +51,24 @@ async def book(
         chain_user = crud.get_chain_user(db, chain_identifier, user_id)
     if user_config is None:
         log.error("Failed to load config, aborted.")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title=f"Failed to load '{chain_identifier}' user config",
+                body=f"Failed to load user config when attempting to book '{chain_identifier}' class",
+                attach=[error_ctx],
+            )
         return
     config = user_config.config
     if chain_user is None:
         log.error(f"No {chain_identifier} user for given user id, aborted booking.")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Missing user when booking",
+                body="No user for given user id when attempting to book class",
+                attach=[error_ctx],
+            )
         if config.notifications is not None:
             notify_auth_failure(
                 config.notifications,
@@ -66,9 +83,23 @@ async def book(
             break
     if _class_config is None:
         log.error(f"Recurring booking with id '{class_id}' not found")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Recurring booking not found",
+                body="Recurring booking not found for given id",
+                attach=[error_ctx],
+            )
         return
     if config.booking.max_attempts < 1:
         log.error("Max booking attempts must be a positive number")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Invalid app-level booking config",
+                body="Max booking attempts must be a positive number",
+                attach=[error_ctx],
+            )
         if config.notifications is not None:
             notify_booking_failure(
                 config.notifications,
@@ -81,6 +112,13 @@ async def book(
     auth_data = await authenticate(chain_user, config.auth.max_attempts)
     if isinstance(auth_data, AuthenticationError):
         log.error("Abort")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Authentication failure",
+                body="Failed to authenticate when attempting to book class",
+                attach=[error_ctx],
+            )
         if config.notifications is not None:
             notify_auth_failure(config.notifications, auth_data, check_run)
         return
@@ -88,11 +126,25 @@ async def book(
     class_search_result = await find_class(chain_identifier, _class_config)
     if isinstance(class_search_result, AuthenticationError):
         log.error("Abort")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Authentication failure",
+                body="Failed to authenticate when attempting to book class",
+                attach=[error_ctx],
+            )
         if config.notifications is not None:
             notify_auth_failure(config.notifications, class_search_result, check_run)
         return
     if isinstance(class_search_result, BookingError):
         log.error("Abort")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Class retrieval failure",
+                body="Failed to retrieve class when attempting to book",
+                attach=[error_ctx],
+            )
         if config.notifications is not None:
             notify_booking_failure(
                 config.notifications, _class_config, class_search_result, check_run
@@ -110,6 +162,13 @@ async def book(
         if wait_time < 0:
             # booking is not open, and booking_opens_at is in the past, so we missed it
             log.error("Booking is closed. Aborting.")
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Booking is closed",
+                    body="Booking is closed, booking_opens_at is in the past",
+                    attach=[error_ctx],
+                )
             if config.notifications is not None:
                 notify_booking_failure(
                     config.notifications,
@@ -124,6 +183,16 @@ async def book(
                 f"Booking waiting time was {wait_time_string}, "
                 f"but max is {config.booking.max_waiting_minutes} minutes. Aborting."
             )
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Booking waiting time too long",
+                    body=(
+                        f"Booking waiting time was {wait_time_string}, "
+                        f"but max is {config.booking.max_waiting_minutes} minutes.\n"
+                    ),
+                    attach=[error_ctx],
+                )
             if config.notifications is not None:
                 notify_booking_failure(
                     config.notifications,
@@ -140,10 +209,24 @@ async def book(
     log.debug("Booking class ...")
     booking_result = await book_class(chain_user.chain, auth_data, _class, config)
     if isinstance(booking_result, AuthenticationError):
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Authentication failure",
+                body="Failed to authenticate when attempting to book class",
+                attach=[error_ctx],
+            )
         if config.notifications is not None:
             notify_auth_failure(config.notifications, booking_result, check_run)
         raise typer.Exit(1)
     if isinstance(booking_result, BookingError):
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Booking failure",
+                body="Failed to book class",
+                attach=[error_ctx],
+            )
         if config.notifications is not None:
             notify_booking_failure(
                 config.notifications, _class_config, booking_result, check_run

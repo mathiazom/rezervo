@@ -1,3 +1,4 @@
+from apprise import NotifyType
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
@@ -12,11 +13,13 @@ from rezervo.chains.common import (
 )
 from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.apprise import aprs
 from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.config import ConfigValue
 from rezervo.schemas.config.user import ChainIdentifier, ChainUser
 from rezervo.sessions import pull_sessions, remove_session, upsert_booked_session
 from rezervo.settings import Settings, get_settings
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
 router = APIRouter()
@@ -59,14 +62,35 @@ async def book_class_api(
     _class = await find_class_by_id(chain_user, payload.class_id)
     match _class:
         case AuthenticationError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to authenticate when booking",
+                    body=f"Failed to authenticate '{chain_identifier}' user '{chain_user.username}' for finding class to book manually",
+                    attach=[error_ctx],
+                )
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
         case BookingError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to find class to book manually",
+                    body=f"Failed to find class to book manually for '{chain_identifier}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     log.debug("Authenticating chain user...")
     auth_data = await authenticate(chain_user, config.auth.max_attempts)
     if isinstance(auth_data, AuthenticationError):
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Failed to authenticate when booking",
+                body=f"Failed to authenticate '{chain_identifier}' user '{chain_user.username}' for class booking",
+                attach=[error_ctx],
+            )
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
@@ -74,10 +98,24 @@ async def book_class_api(
     booking_result = await book_class(chain_user.chain, auth_data, _class, config)
     match booking_result:
         case AuthenticationError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to authenticate when booking",
+                    body=f"Failed to authenticate '{chain_identifier}' user '{chain_user.username}' for class booking",
+                    attach=[error_ctx],
+                )
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
         case BookingError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to book class manually",
+                    body=f"Failed to book class manually for '{chain_identifier}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     # optimistically update session data, but start proper sync in background
     upsert_booked_session(chain_identifier, chain_user.user_id, _class)
@@ -105,14 +143,35 @@ async def cancel_booking_api(
     _class = await find_class_by_id(chain_user, payload.class_id)
     match _class:
         case AuthenticationError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to authenticate when cancelling booking",
+                    body=f"Failed to authenticate '{chain_identifier}' user '{chain_user.username}' for finding class to cancel booking manually",
+                    attach=[error_ctx],
+                )
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
         case BookingError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to find class to cancel booking manually",
+                    body=f"Failed to find class to cancel booking manually for '{chain_identifier}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     log.debug("Authenticating chain user...")
     auth_data = await authenticate(chain_user, config.auth.max_attempts)
     if isinstance(auth_data, AuthenticationError):
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Failed to authenticate when cancelling booking",
+                body=f"Failed to authenticate '{chain_identifier}' user '{chain_user.username}' for class booking cancellation",
+                attach=[error_ctx],
+            )
         return Response(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
@@ -120,10 +179,24 @@ async def cancel_booking_api(
     cancellation_res = await cancel_booking(chain_user.chain, auth_data, _class, config)
     match cancellation_res:
         case AuthenticationError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to authenticate when cancelling booking",
+                    body=f"Failed to authenticate '{chain_identifier}' user '{chain_user.username}' for class booking cancellation",
+                    attach=[error_ctx],
+                )
             return Response(
                 status_code=status.HTTP_401_UNAUTHORIZED,
             )
         case BookingError():
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Failed to cancel booking manually",
+                    body=f"Failed to cancel booking manually for '{chain_identifier}' user '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return Response(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
     # optimistically update session data, but start proper sync in background
     await remove_session(chain_identifier, chain_user.user_id, _class.id)

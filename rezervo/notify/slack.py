@@ -2,6 +2,7 @@ import datetime
 import time
 from typing import Any, Dict, Optional
 
+from apprise import NotifyType
 from requests import RequestException
 from slack_sdk import WebClient as SlackClient
 from slack_sdk.errors import SlackApiError
@@ -16,9 +17,11 @@ from rezervo.consts import (
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SlackClassNotificationReceipt
+from rezervo.notify.apprise import aprs
 from rezervo.schemas.config.user import ChainIdentifier, Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.schemas.slack import CancelBookingActionValue
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
 from .utils import activity_url, upload_ical_to_transfersh
@@ -43,6 +46,13 @@ def notify_slack(
         return response.get("ts")
     except SlackApiError as e:
         log.error(f"Could not post notification to Slack: {e.response['error']}")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.WARNING,
+                title="Slack notification failure",
+                body=f"Slack notification failed for message:\n{message}",
+                attach=[error_ctx],
+            )
         return None
 
 
@@ -58,12 +68,26 @@ def delete_scheduled_message_slack(
             log.error(
                 f"Could not delete scheduled message from Slack: {res.get('error')}"
             )
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Slack scheduled message deletion failure",
+                    body="Failed to delete scheduled Slack scheduled message",
+                    attach=[error_ctx],
+                )
             return False
         log.info(f"Deleted scheduled message ({scheduled_message_id}) from Slack")
     except SlackApiError as e:
         log.error(
             f"Could not delete scheduled message from Slack: {e.response['error']}"
         )
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Slack scheduled message deletion failure",
+                body="Failed to delete scheduled Slack scheduled message",
+                attach=[error_ctx],
+            )
         return False
     return True
 
@@ -116,6 +140,13 @@ def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
         log.error(
             "Could not find correct channel to delete scheduled direct message from Slack"
         )
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Slack scheduled direct message deletion failure",
+                body="Could not find correct channel to delete scheduled direct message from Slack",
+                attach=[error_ctx],
+            )
         return
     delete_scheduled_message_slack(slack_token, channel_id, reminder_id)
 
@@ -228,6 +259,13 @@ def notify_working_slack(slack_token: str, channel: str, message_ts: str):
         log.debug("'Working' reaction posted successfully to Slack.")
     except SlackApiError as e:
         log.error(f"Could not post 'working' reaction to Slack: {e.response['error']}")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.WARNING,
+                title="Slack working reaction failure",
+                body="Could not post 'working' reaction to Slack",
+                attach=[error_ctx],
+            )
 
 
 def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
@@ -243,6 +281,13 @@ def notify_not_working_slack(slack_token: str, channel: str, message_ts: str):
         log.error(
             f"Could not remove 'working' reaction from Slack message: {e.response['error']}"
         )
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.WARNING,
+                title="Slack working reaction removal failure",
+                body="Could not remove 'working' reaction from Slack message",
+                attach=[error_ctx],
+            )
 
 
 def notify_cancellation_slack(slack_token: str, channel: str, source_ts: str) -> bool:
@@ -355,6 +400,13 @@ def show_unauthorized_action_modal_slack(slack_token: str, trigger_id: str):
         log.error(
             f"Could not display unauthorized action modal in Slack: {e.response['error']}"
         )
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.WARNING,
+                title="Slack unauthorized action modal failure",
+                body="Could not display unauthorized action modal in Slack",
+                attach=[error_ctx],
+            )
         return
     log.debug("Unauthorized action modal displayed successfully in Slack.")
 

@@ -7,11 +7,13 @@ from typing import Optional, Union
 
 import pydantic
 import requests
+from apprise import NotifyType
 from pydantic.tools import parse_obj_as
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.http_client import HttpClient
+from rezervo.notify.apprise import aprs
 from rezervo.providers.brpsystems.auth import authenticate
 from rezervo.providers.brpsystems.booking import (
     MAX_SCHEDULE_SEARCH_ATTEMPTS,
@@ -53,6 +55,7 @@ from rezervo.schemas.schedule import (
     RezervoSchedule,
     UserSession,
 )
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import log
 
@@ -195,6 +198,13 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                 f"Failed to retrieve sessions for '{chain_user.username}'",
                 e,
             )
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title=f"Failed to retrieve '{chain_user.chain}' sessions",
+                    body=f"Failed to retrieve '{chain_user.chain}' sessions for '{chain_user.username}'",
+                    attach=[error_ctx],
+                )
             return None
         brp_sessions = []
         for s in bookings_response:

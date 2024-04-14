@@ -3,6 +3,7 @@ from typing import Optional
 from uuid import UUID
 
 import pydantic
+from apprise import NotifyType
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from starlette import status
@@ -19,6 +20,7 @@ from rezervo.consts import (
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.apprise import aprs
 from rezervo.notify.slack import (
     notify_cancellation_failure_slack,
     notify_working_slack,
@@ -28,6 +30,7 @@ from rezervo.notify.slack import (
 from rezervo.schemas.config.config import Config, ConfigValue
 from rezervo.schemas.slack import CancelBookingActionValue, Interaction
 from rezervo.sessions import pull_sessions
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
 router = APIRouter()
@@ -56,6 +59,13 @@ async def handle_cancel_booking_slack_action(
         chain_user = crud.get_chain_user(db, action_value.chain_identifier, user_id)
     if chain_user is None:
         log.error("Chain user not found, abort")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.FAILURE,
+                title="Slack cancellation failure",
+                body="Chain user not found when responding to cancellation request from Slack",
+                attach=[error_ctx],
+            )
         if slack_config is not None:
             notify_cancellation_failure_slack(
                 slack_config.bot_token,
@@ -68,6 +78,13 @@ async def handle_cancel_booking_slack_action(
     match _class_res:
         case AuthenticationError():
             log.error("Authentication failed, abort")
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Slack cancellation failure",
+                    body="Authentication failed when responding to cancellation request from Slack",
+                    attach=[error_ctx],
+                )
             if slack_config is not None:
                 notify_cancellation_failure_slack(
                     slack_config.bot_token,
@@ -78,6 +95,13 @@ async def handle_cancel_booking_slack_action(
             return
         case BookingError():
             log.error("Class retrieval by id failed, abort")
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Slack cancellation failure",
+                    body="Class retrieval by id failed when responding to cancellation request from Slack",
+                    attach=[error_ctx],
+                )
             if slack_config is not None:
                 notify_cancellation_failure_slack(
                     slack_config.bot_token,
@@ -131,12 +155,26 @@ async def slack_action(
         raw_action_value = action.value
         if raw_action_value is None:
             log.error("No action value available, abort")
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Slack cancellation failure",
+                    body="No action value available when responding to cancellation request from Slack",
+                    attach=[error_ctx],
+                )
             return Response(status_code=status.HTTP_400_BAD_REQUEST)
         action_value = CancelBookingActionValue(**json.loads(raw_action_value))
         user_config = crud.get_user_config_by_slack_id(db, action_value.user_id)
         config = user_config.config if user_config is not None else None
         if user_config is None or config is None:
             log.error("Could not find config for Slack user, abort")
+            with aprs_ctx() as error_ctx:
+                aprs.notify(
+                    notify_type=NotifyType.FAILURE,
+                    title="Slack cancellation failure",
+                    body="Could not find user config when responding to cancellation request from Slack",
+                    attach=[error_ctx],
+                )
             return Response(status_code=status.HTTP_400_BAD_REQUEST)
         if (
             config.notifications is None

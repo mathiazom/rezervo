@@ -3,16 +3,19 @@ import json
 import re
 from typing import Optional
 
+from apprise import NotifyType
 from pywebpush import WebPushException, webpush  # type: ignore[import-untyped]
 
 from rezervo.consts import WEEKDAYS
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.notify.apprise import aprs
 from rezervo.schemas.config.config import PushNotificationSubscription
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.settings import get_settings
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
 AUTH_FAILURE_REASONS = {
@@ -44,6 +47,13 @@ def notify_web_push(subscription: PushNotificationSubscription, message: str) ->
         log.error(
             f"Web push notification failed for endpoint {subscription.endpoint}: {e}"
         )
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.WARNING,
+                title="Web push notification failure",
+                body=f"Web push notification failed for message:\n{message}",
+                attach=[error_ctx],
+            )
         if re.search(r"(410 Gone)|(404 Not Found)", e.message) is not None:
             log.warning(
                 "Removing expired or invalid web push subscription from database"

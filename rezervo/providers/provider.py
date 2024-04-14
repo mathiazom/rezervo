@@ -6,6 +6,8 @@ from datetime import datetime
 from typing import Generic, Optional, Union
 from uuid import UUID
 
+from apprise import NotifyType
+
 from rezervo.consts import (
     BOOKING_INITIAL_BURST_ATTEMPTS,
     PLANNED_SESSIONS_NEXT_WHOLE_WEEKS,
@@ -185,6 +187,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             + (f" after {attempts} attempts" if attempts != 1 else "")
         )
         aprs.notify(
+            notify_type=NotifyType.INFO,
             title=f"Successfully booked '{_class.activity.name}'",
             body=f"Successfully booked '{chain_identifier}' class '{_class.activity.name}'"
             + (f" after {attempts} attempts" if attempts != 1 else ""),
