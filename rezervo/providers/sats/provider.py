@@ -152,6 +152,8 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 and _class.start_time.minute == _class_config.start_time.minute
             )
 
+        # TODO: booking opening time is, in a non-obvious way, assumed to be 7 days before the class starts
+        #       booking rules should possibly be hardcoded instead to determine class with closest booking time
         return await self._search_for_class(
             _class_config.calculate_next_occurrence(include_today=False),
             1,
