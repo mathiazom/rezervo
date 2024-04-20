@@ -30,3 +30,7 @@ def first_date_of_week_by_offset(week_offset: int) -> datetime.datetime:
     )
     # convert to datetime by attaching "earliest representable time" (aka midnight)
     return datetime.datetime.combine(first_date, datetime.datetime.min.time())
+
+
+def compact_iso_week_str(date: datetime.datetime):
+    return date.strftime("%YW%W")

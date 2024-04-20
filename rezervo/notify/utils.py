@@ -1,9 +1,11 @@
 from typing import Optional
 from urllib.parse import urlparse
 
+from rezervo.consts import URL_QUERY_PARAM_CLASS_ID, URL_QUERY_PARAM_ISO_WEEK
 from rezervo.http_client import HttpClient
 from rezervo.schemas.config.user import ChainIdentifier
 from rezervo.schemas.schedule import RezervoClass
+from rezervo.utils.time_utils import compact_iso_week_str
 
 
 async def upload_ical_to_transfersh(
@@ -26,6 +28,11 @@ def activity_url(
     host: Optional[str], chain_identifier: ChainIdentifier, _class: RezervoClass
 ):
     if host:
-        return f"<{host}/{chain_identifier}?classId={_class.id}&startTime={_class.start_time.isoformat()}|*{_class.activity.name}*>"
+        return (
+            f"<{host}/{chain_identifier}"
+            f"?{URL_QUERY_PARAM_ISO_WEEK}={compact_iso_week_str(_class.start_time)}"
+            f"&{URL_QUERY_PARAM_CLASS_ID}={_class.id}"
+            f"|*{_class.activity.name}*>"
+        )
 
     return f"*{_class.activity.name}*"
