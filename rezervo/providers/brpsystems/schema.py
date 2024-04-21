@@ -60,7 +60,7 @@ class Slots(BaseModel):
     inWaitingList: Optional[int] = None
 
 
-class BrpClass(BaseModel):
+class BaseBrpClass(BaseModel):
     id: int
     name: str
     duration: Duration
@@ -68,12 +68,26 @@ class BrpClass(BaseModel):
     businessUnit: BusinessUnit
     locations: list[Location]
     instructors: list[Instructor]
-    bookableEarliest: str
-    bookableLatest: str
     externalMessage: Optional[str] = None
     internalMessage: Optional[str] = None
     cancelled: bool
     slots: Slots
+
+
+class RawBrpClass(BaseBrpClass):
+    """
+    used to parse the raw JSON response from the BRP API
+    useful for handling known malformed or sparse classes that are
+    always dropped and never "promoted" to proper BrpClass instances
+    """
+
+    bookableEarliest: Optional[str] = None
+    bookableLatest: Optional[str] = None
+
+
+class BrpClass(BaseBrpClass):
+    bookableEarliest: str
+    bookableLatest: str
 
 
 class BrpActivityAsset(BaseModel):

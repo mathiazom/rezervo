@@ -4,17 +4,22 @@ from typing import Optional
 from urllib.parse import urlencode
 
 import requests
+from apprise import NotifyType
 from pydantic import ValidationError
 
 from rezervo.http_client import HttpClient
+from rezervo.notify.apprise import aprs
 from rezervo.providers.brpsystems.schema import (
     BrpActivityDetails,
     BrpClass,
     BrpReceivedActivityDetails,
     BrpSubdomain,
     DetailedBrpClass,
+    RawBrpClass,
 )
+from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
+from rezervo.utils.pydantic_utils import hashable_validation_errors
 
 BRP_MAX_SCHEDULE_DAYS_PER_FETCH = 14
 
@@ -46,9 +51,23 @@ async def fetch_brp_class(
             return None
         json_result = await res.json()
     try:
-        return BrpClass(**json_result)
-    except ValidationError:
-        log.warning("Failed to parse brp class", json_result)
+        raw_brp_class = RawBrpClass(**json_result)
+        if (
+            raw_brp_class.bookableEarliest is None
+            or raw_brp_class.bookableLatest is None
+        ):
+            return None
+        return BrpClass(**raw_brp_class.dict())
+    except ValidationError as e:
+        errors = e.errors()
+        log.warning(f"Failed to parse brp class\n{errors}")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.WARNING,
+                title="Failed to parse brp class",
+                body=f"Failed to parse brp class\n\n{errors}",
+                attach=[error_ctx],
+            )
         return None
 
 
@@ -128,19 +147,34 @@ async def fetch_brp_schedule(
             )
         )
         from_date = to_date
+    parse_errors = set()
     for res in await asyncio.gather(*fetch_schedule_tasks):
         if res.status != requests.codes.OK:
             raise Exception("Failed to fetch brp schedule")
         for item in await res.json():
-            if (
-                item.get("bookableEarliest") is None
-                or item.get("bookableLatest") is None
-            ):
-                continue
             try:
-                classes.append(BrpClass(**item))
-            except ValidationError:
-                log.warning("Failed to parse brp class", item)
+                raw_brp_class = RawBrpClass(**item)
+            except ValidationError as e:
+                parse_errors.update(hashable_validation_errors(e))
                 continue
+            if (
+                raw_brp_class.bookableEarliest is not None
+                and raw_brp_class.bookableLatest is not None
+            ):
+                try:
+                    brp_class = BrpClass(**raw_brp_class.dict())
+                except ValidationError as e:
+                    parse_errors.update(hashable_validation_errors(e))
+                    continue
+                classes.append(brp_class)
+    if len(parse_errors) > 0:
+        log.warning(f"Failed to parse some brp classes\n{parse_errors}")
+        with aprs_ctx() as error_ctx:
+            aprs.notify(
+                notify_type=NotifyType.WARNING,
+                title="Failed to parse brp class",
+                body="Failed to parse some brp classes",
+                attach=[error_ctx],
+            )
     # remove any duplicates (if somehow classes are included in multiple batches)
     return deduplicated_brp_schedule(classes)
