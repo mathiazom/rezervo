@@ -11,7 +11,7 @@ class User(BaseModel):
 
 class Action(BaseModel):
     action_id: str
-    value: Optional[str]
+    value: Optional[str] = None
 
 
 class CancelBookingActionValue(BaseModel):

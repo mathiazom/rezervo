@@ -4,6 +4,7 @@ from typing import Annotated, Literal, Optional, TypeAlias, Union
 from uuid import UUID
 
 import pytz
+from pydantic import RootModel
 from pydantic.fields import Field
 
 from rezervo.schemas.base import OrmBase
@@ -118,8 +119,9 @@ class InitiatedTOTPFlowResponse(CamelModel):
     totp_regex: Optional[str] = None
 
 
-class PutChainUserCredsResponse(CamelModel):
-    __root__: Annotated[
+PutChainUserCredsResponse = RootModel[
+    Annotated[
         Union[UpdatedChainUserCredsResponse, InitiatedTOTPFlowResponse],
         Field(discriminator="status"),
     ]
+]

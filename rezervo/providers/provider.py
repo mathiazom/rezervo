@@ -31,7 +31,12 @@ from rezervo.schemas.config.user import (
     Class,
     config_from_chain_user,
 )
-from rezervo.schemas.schedule import RezervoClass, RezervoSchedule, UserSession
+from rezervo.schemas.schedule import (
+    RezervoClass,
+    RezervoSchedule,
+    SessionRezervoClass,
+    UserSession,
+)
 from rezervo.utils.logging_utils import log
 from rezervo.utils.time_utils import (
     first_date_of_week_by_offset,
@@ -281,7 +286,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
                 class_id=str(p.id),
                 user_id=chain_user.user_id,
                 status=SessionState.PLANNED,
-                class_data=p,  # type: ignore
+                class_data=SessionRezervoClass(**p.dict()),
             )
             for p in planned_classes
         ]

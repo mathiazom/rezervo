@@ -135,7 +135,7 @@ class WaitingListBooking(BaseModel):
 class Order(BaseModel):
     id: int
     number: str
-    externalId: Optional[str]
+    externalId: Optional[str] = None
     lastModified: str
 
 

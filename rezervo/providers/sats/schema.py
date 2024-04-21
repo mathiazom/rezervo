@@ -22,7 +22,7 @@ class SatsClassDetail(BaseModel):
 class SatsClass(BaseModel):
     id: str
     hasWaitingList: bool
-    image: Optional[SatsClassImage]
+    image: Optional[SatsClassImage] = None
     isBooked: bool
     metadata: SatsClassDetail
     text: Optional[str] = ""

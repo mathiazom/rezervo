@@ -1,8 +1,9 @@
 from typing import Any, Optional
 from uuid import UUID
 
+import pydantic
 from deepmerge import Merger  # type: ignore[import]
-from pydantic import BaseModel, parse_file_as
+from pydantic import BaseModel
 
 from rezervo.schemas.base import OrmBase
 from rezervo.schemas.config import admin, app, user
@@ -91,4 +92,5 @@ def config_from_stored(
 
 
 def read_app_config() -> AppConfig:
-    return parse_file_as(app.AppConfig, app.CONFIG_FILE)
+    with open(app.CONFIG_FILE) as f:
+        return pydantic.TypeAdapter(app.AppConfig).validate_json(f.read())

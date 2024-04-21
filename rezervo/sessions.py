@@ -10,6 +10,7 @@ from rezervo.models import SessionState
 from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
 from rezervo.schemas.schedule import (
     RezervoClass,
+    SessionRezervoClass,
     UserSession,
     session_model_from_user_session,
 )
@@ -73,7 +74,7 @@ def upsert_session(
             class_id=_class.id,
             user_id=user_id,
             status=status,
-            class_data=_class,  # type: ignore
+            class_data=SessionRezervoClass(**_class.dict()),
         )
     )
     with SessionLocal() as db:

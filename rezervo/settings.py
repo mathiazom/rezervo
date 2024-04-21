@@ -1,7 +1,7 @@
 from functools import lru_cache
 
 from dotenv import find_dotenv
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 @lru_cache()
@@ -26,7 +26,6 @@ class Settings(BaseSettings):
 
     WEB_PUSH_EMAIL: str | None = None
     WEB_PUSH_PRIVATE_KEY: str | None = None
-
-    class Config:
-        env_file = find_dotenv(".env")
-        env_file_encoding = "utf-8"
+    model_config = SettingsConfigDict(
+        env_file=find_dotenv(".env"), env_file_encoding="utf-8"
+    )

@@ -52,6 +52,7 @@ from rezervo.schemas.schedule import (
     RezervoInstructor,
     RezervoLocation,
     RezervoSchedule,
+    SessionRezervoClass,
     UserSession,
 )
 from rezervo.utils.apprise_utils import aprs_ctx
@@ -155,7 +156,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         for booking in bookings_response:
             if booking.groupActivity.id == brp_class_id:
                 booking_type = booking.type
-                booking_id = booking.dict()[str(booking_type.value)]["id"]
+                booking_id = booking.dict()[str(booking.type.value)]["id"]
                 break
         if booking_id is None or booking_type is None:
             log.error(
@@ -222,7 +223,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                     status=session_state_from_brp(
                         s.type, _class.start_time, s.checkedIn
                     ),
-                    class_data=_class,  # type: ignore
+                    class_data=SessionRezervoClass(**_class.dict()),
                 )
             )
         return past_and_imminent_sessions

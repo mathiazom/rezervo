@@ -54,6 +54,7 @@ from rezervo.schemas.schedule import (
     RezervoInstructor,
     RezervoLocation,
     RezervoSchedule,
+    SessionRezervoClass,
     UserSession,
 )
 from rezervo.utils.category_utils import determine_activity_category
@@ -166,9 +167,13 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
                 class_id=str(ibooking_session.class_field.id),
                 user_id=chain_user.user_id,
                 status=session_state_from_ibooking(ibooking_session.status),
-                class_data=self.rezervo_class_from_ibooking_class(
-                    ibooking_class_from_sit_session_class(ibooking_session.class_field)
-                ),  # type: ignore
+                class_data=SessionRezervoClass(
+                    **self.rezervo_class_from_ibooking_class(
+                        ibooking_class_from_sit_session_class(
+                            ibooking_session.class_field
+                        )
+                    ).dict()
+                ),
             )
             if datetime_now < session.class_data.start_time or session.status in [
                 SessionState.CONFIRMED,

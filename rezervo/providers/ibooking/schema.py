@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, TypeAlias
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from pytz import timezone
 
 from rezervo.models import SessionState
@@ -99,9 +99,7 @@ def ibooking_class_from_sit_session_class(
 class SitSession(BaseModel):
     class_field: SitSessionClass = Field(..., alias="class")
     status: str
-
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 def session_state_from_ibooking(status: str) -> SessionState:
