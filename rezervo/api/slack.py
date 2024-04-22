@@ -4,7 +4,7 @@ from uuid import UUID
 
 import pydantic
 from apprise import NotifyType
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile
 from sqlalchemy.orm import Session
 from starlette import status
 from starlette.background import BackgroundTasks
@@ -137,7 +137,9 @@ async def slack_action(
 ):
     raw_body = await request.body()  # must read body before retrieving form data
     payload = (await request.form())["payload"]
-    interaction: Interaction = pydantic.parse_raw_as(type_=Interaction, b=payload)  # type: ignore
+    if isinstance(payload, UploadFile):
+        return Response("Unsupported payload", status_code=status.HTTP_400_BAD_REQUEST)
+    interaction = pydantic.TypeAdapter(Interaction).validate_json(payload)  # type: ignore
     if interaction.type != "block_actions":
         return Response(
             f"Unsupported interaction type '{interaction.type}'",
