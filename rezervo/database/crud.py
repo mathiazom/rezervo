@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from rezervo import models
-from rezervo.auth import auth0
+from rezervo.auth.jwt import decode_jwt_sub
 from rezervo.models import SessionState, UserRelation
 from rezervo.schemas.community import (
     Community,
@@ -41,9 +41,9 @@ from rezervo.utils.ical_utils import generate_calendar_token
 
 
 def user_from_token(db: Session, settings, token) -> Optional[models.User]:
-    jwt_sub = auth0.sub_from_jwt(
-        token,
-        settings.JWT_DOMAIN,
+    jwt_sub = decode_jwt_sub(
+        token.credentials,
+        settings.decoded_jwt_public_key(),
         settings.JWT_ALGORITHMS,
         settings.JWT_AUDIENCE,
         settings.JWT_ISSUER,

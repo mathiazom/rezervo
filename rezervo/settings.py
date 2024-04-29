@@ -18,11 +18,12 @@ class Settings(BaseSettings):
     JWT_ALGORITHMS: list[str] | None = None
     JWT_AUDIENCE: str | None = None
     JWT_ISSUER: str | None = None
+    JWT_PUBLIC_KEY: str | None = None
+
+    def decoded_jwt_public_key(self):
+        return self.JWT_PUBLIC_KEY.replace("\\n", "\n").encode()
 
     CRON_JOB_COMMENT_PREFIX: str = "rezervo"
-
-    AUTH0_MANAGEMENT_API_CLIENT_ID: str | None = None
-    AUTH0_MANAGEMENT_API_CLIENT_SECRET: str | None = None
 
     WEB_PUSH_EMAIL: str | None = None
     WEB_PUSH_PRIVATE_KEY: str | None = None
