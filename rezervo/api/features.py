@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.database import crud
 from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.admin import AdminConfig
@@ -17,7 +18,7 @@ class Features(CamelModel):
 
 @router.get("/features", response_model=Features)
 def get_features(
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

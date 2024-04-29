@@ -4,7 +4,8 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.responses import Response
 
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.chains.common import (
     authenticate,
     book_class,
@@ -50,7 +51,7 @@ async def book_class_api(
     chain_identifier: ChainIdentifier,
     payload: BookingPayload,
     background_tasks: BackgroundTasks,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -131,7 +132,7 @@ async def cancel_booking_api(
     chain_identifier: ChainIdentifier,
     payload: BookingCancellationPayload,
     background_tasks: BackgroundTasks,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

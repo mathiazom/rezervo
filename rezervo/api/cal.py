@@ -5,7 +5,8 @@ from starlette import status
 from starlette.responses import Response
 
 from rezervo import models
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.database import crud
 from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.schedule import UserSession
@@ -17,7 +18,7 @@ router = APIRouter()
 
 @router.get("/cal-token", response_model=str)
 def get_calendar_token(
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

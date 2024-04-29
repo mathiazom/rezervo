@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.database import crud
 from rezervo.database.crud import get_user_config_by_id
 from rezervo.notify.push import notify_friend_request_web_push
@@ -18,7 +19,7 @@ router = APIRouter()
 
 @router.get("/community", response_model=Community)
 def get_community(
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -31,7 +32,7 @@ def get_community(
 @router.put("/community/relationship", response_model=UserRelationship)
 def update_relationship(
     payload: UserRelationshipActionPayload,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

@@ -42,7 +42,7 @@ from rezervo.utils.ical_utils import generate_calendar_token
 
 def user_from_token(db: Session, settings, token) -> Optional[models.User]:
     jwt_sub = decode_jwt_sub(
-        token.credentials,
+        token,
         settings.decoded_jwt_public_key(),
         settings.JWT_ALGORITHMS,
         settings.JWT_AUDIENCE,

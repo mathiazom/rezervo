@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
 
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.database import crud
 from rezervo.schemas.config.config import PushNotificationSubscription
 from rezervo.settings import Settings, get_settings
@@ -13,7 +14,7 @@ router = APIRouter()
 @router.put("/notifications/push", response_model=PushNotificationSubscription)
 def subscribe_to_push_notifications(
     subscription: PushNotificationSubscription,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -29,7 +30,7 @@ def subscribe_to_push_notifications(
 @router.delete("/notifications/push", status_code=status.HTTP_204_NO_CONTENT)
 def unsubscribe_from_push_notifications(
     subscription: PushNotificationSubscription,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -45,7 +46,7 @@ def unsubscribe_from_push_notifications(
 @router.post("/notifications/push/verify", response_model=bool)
 def verify_push_notifications_subscription(
     subscription: PushNotificationSubscription,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

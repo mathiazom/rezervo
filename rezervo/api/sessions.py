@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from rezervo import models
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.database import crud
 from rezervo.schemas.community import UserRelationship
 from rezervo.schemas.config.user import ChainIdentifier
@@ -19,7 +20,7 @@ router = APIRouter()
 )
 def get_sessions_index(
     chain_identifier: ChainIdentifier,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

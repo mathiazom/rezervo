@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from rezervo import models
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.auth.jwt import decode_jwt_sub
 from rezervo.consts import AVATAR_FILENAME_STEM, MAX_AVATAR_FILE_SIZE_BYTES
 from rezervo.database import crud
@@ -30,12 +31,12 @@ router = APIRouter()
 @router.put("/user", response_model=UUID)
 def upsert_user(
     response: Response,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
     jwt_sub = decode_jwt_sub(
-        token.credentials,
+        token,
         settings.decoded_jwt_public_key(),
         settings.JWT_ALGORITHMS,
         settings.JWT_AUDIENCE,
@@ -45,7 +46,7 @@ def upsert_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     db_user = db.query(models.User).filter_by(jwt_sub=jwt_sub).one_or_none()
     if db_user is not None:
-        # TODO: update user data without being rate limited by Auth0
+        # TODO: update user data without being rate limited by FusionAuth
         return db_user.id
     # TODO
     raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
@@ -60,7 +61,7 @@ def upsert_user(
     response_model=list[BaseUserSession],
 )
 def get_user_sessions(
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -98,7 +99,7 @@ def get_user_sessions(
     response_model=dict[ChainIdentifier, ChainConfig],
 )
 def get_user_chain_configs(
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -115,7 +116,7 @@ def get_user_chain_configs(
 @router.get("/user/me/avatar/{size_name}")
 def get_user_avatar(
     size_name: str,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -132,7 +133,7 @@ def get_user_avatar(
 def get_user_avatar_by_id(
     user_id: UUID,
     size_name: str,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -151,7 +152,7 @@ def get_user_avatar_by_id(
 )
 def upsert_user_avatar(
     file: UploadFile,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
     content_length: Annotated[int | None, Header()] = None,
@@ -182,7 +183,7 @@ def upsert_user_avatar(
 
 @router.delete("/user/me/avatar", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user_avatar(
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

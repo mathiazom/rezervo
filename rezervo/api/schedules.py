@@ -22,6 +22,7 @@ async def get_chain_week_schedule(
         raise HTTPException(
             status_code=404, detail=f"Chain '{chain_identifier}' not recognized."
         )
+    print(locations)
     if locations is None:
         locations = []
     chain = get_chain(chain_identifier)

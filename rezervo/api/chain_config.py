@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.background import BackgroundTasks
 
-from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.api.common import get_db
+from rezervo.auth.cookie import AuthCookie
 from rezervo.chains.active import get_chain
 from rezervo.cron import refresh_recurring_booking_cron_jobs
 from rezervo.database import crud
@@ -39,7 +40,7 @@ router = APIRouter()
 @router.get("/{chain_identifier}/user", response_model=ChainUserProfile)
 def get_chain_user_profile(
     chain_identifier: ChainIdentifier,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -57,7 +58,7 @@ async def put_chain_user_creds(
     chain_identifier: ChainIdentifier,
     chain_user_creds: ChainUserCredentials,
     background_tasks: BackgroundTasks,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -94,7 +95,7 @@ async def put_chain_user_totp(
     chain_identifier: ChainIdentifier,
     payload: ChainUserTOTPPayload,
     background_tasks: BackgroundTasks,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -138,7 +139,7 @@ async def put_chain_user_totp(
 @router.get("/{chain_identifier}/config", response_model=BaseChainConfig)
 def get_chain_config(
     chain_identifier: ChainIdentifier,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -156,7 +157,7 @@ async def put_chain_config(
     chain_identifier: ChainIdentifier,
     chain_config: BaseChainConfig,
     background_tasks: BackgroundTasks,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):
@@ -193,7 +194,7 @@ async def put_chain_config(
 )
 def get_all_configs_index(
     chain_identifier: ChainIdentifier,
-    token=Depends(token_auth_scheme),
+    token: AuthCookie,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
 ):

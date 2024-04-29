@@ -1,17 +1,17 @@
 import jwt
 
 
-def decode_jwt_sub(token, signing_key, algorithms, api_audience, issuer):
-    return decode_jwt(token, signing_key, algorithms, api_audience, issuer).get(
+def decode_jwt_sub(token, public_key, algorithms, api_audience, issuer):
+    return decode_jwt(token, public_key, algorithms, api_audience, issuer).get(
         "sub", None
     )
 
 
-def decode_jwt(token, signing_key, algorithms, api_audience, issuer):
+def decode_jwt(token, public_key, algorithms, api_audience, issuer):
     try:
         return jwt.decode(
             token,
-            signing_key,
+            public_key,
             algorithms=algorithms,
             audience=api_audience,
             issuer=issuer,
