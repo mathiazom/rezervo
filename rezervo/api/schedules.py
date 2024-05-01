@@ -10,10 +10,10 @@ from rezervo.schemas.schedule import RezervoSchedule
 router = APIRouter()
 
 
-@router.get("/schedule/{chain_identifier}/{week_offset}")
+@router.get("/schedule/{chain_identifier}/{compact_iso_week}")
 async def get_chain_week_schedule(
     chain_identifier: ChainIdentifier,
-    week_offset: int,
+    compact_iso_week: str,
     locations: Annotated[
         list[LocationIdentifier] | None, Query(alias="location")
     ] = None,
@@ -31,4 +31,4 @@ async def get_chain_week_schedule(
             raise HTTPException(
                 status_code=404, detail=f"Location '{location}' not recognized."
             )
-    return await fetch_week_schedule(chain_identifier, week_offset, locations)
+    return await fetch_week_schedule(chain_identifier, compact_iso_week, locations)

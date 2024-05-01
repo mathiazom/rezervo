@@ -39,7 +39,7 @@ from rezervo.schemas.schedule import (
 )
 from rezervo.utils.logging_utils import log
 from rezervo.utils.time_utils import (
-    first_date_of_week_by_offset,
+    from_compact_iso_week,
     total_days_for_next_whole_weeks,
 )
 
@@ -310,11 +310,11 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
 
     async def fetch_week_schedule(
         self,
-        week_offset: int,
+        compact_iso_week: str,
         locations: list[LocationIdentifier],
     ) -> RezervoSchedule:
         return await self.fetch_schedule(
-            first_date_of_week_by_offset(week_offset), 7, locations
+            from_compact_iso_week(compact_iso_week), 7, locations
         )
 
     @abstractmethod

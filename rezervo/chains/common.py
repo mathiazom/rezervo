@@ -103,7 +103,9 @@ def update_slack_notifications_with_cancellation(
 
 async def fetch_week_schedule(
     chain_identifier: ChainIdentifier,
-    week_offset: int,
+    compact_iso_week: str,
     locations: list[LocationIdentifier],
 ) -> RezervoSchedule:
-    return await get_chain(chain_identifier).fetch_week_schedule(week_offset, locations)
+    return await get_chain(chain_identifier).fetch_week_schedule(
+        compact_iso_week, locations
+    )
