@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Generic, Optional, Union
 from uuid import UUID
 
+import pytz
 from apprise import NotifyType
 
 from rezervo.consts import (
@@ -198,8 +199,17 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             + (f" after {attempts} attempts" if attempts != 1 else ""),
         )
         if config.notifications:
+            time_zone_adjusted_class = _class
+            time_zone_adjusted_class.start_time = _class.start_time.astimezone(
+                pytz.timezone("Europe/Oslo")
+            )  # TODO: clean this
+            time_zone_adjusted_class.end_time = _class.end_time.astimezone(
+                pytz.timezone("Europe/Oslo")
+            )  # TODO: clean this
             # ical_url = f"{ICAL_URL}/?id={_class.id}&token={token}"    # TODO: consider re-introducing ical
-            await notify_booking(config.notifications, chain_identifier, _class)
+            await notify_booking(
+                config.notifications, chain_identifier, time_zone_adjusted_class
+            )
         return None
 
     @abstractmethod
