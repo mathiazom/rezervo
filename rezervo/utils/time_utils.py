@@ -1,5 +1,7 @@
 import datetime
 
+from isoweek import Week  # type: ignore[import-untyped]
+
 
 def readable_seconds(s: float):
     minutes = int(s / 60)
@@ -21,13 +23,11 @@ def total_days_for_next_whole_weeks(weeks: int):
     return (7 - datetime.datetime.now().weekday()) + (weeks * 7)
 
 
-def first_date_of_week_by_offset(week_offset: int) -> datetime.datetime:
-    # return the date of the first day of the week, given a week offset from the current week
-    # e.g. if week_offset is 0, return the date of the first day of the current week
-    #      if week_offset is 1, return the date of the first day of the next week
-    first_date = datetime.date.today() + datetime.timedelta(
-        days=week_offset * 7 - datetime.date.today().weekday()
-    )
+def from_compact_iso_week(compact_iso_week: str) -> datetime.datetime:
+    week_year = int(compact_iso_week[0:4])
+    week_number = int(compact_iso_week[5:7])
+
+    first_date = Week(week_year, week_number).monday()
     # convert to datetime by attaching "earliest representable time" (aka midnight)
     return datetime.datetime.combine(first_date, datetime.datetime.min.time())
 
