@@ -20,10 +20,9 @@ class Settings(BaseSettings):
     JWT_ALGORITHMS: list[str] | None = None
     JWT_AUDIENCE: str | None = None
     JWT_ISSUER: str | None = None
-    JWT_PUBLIC_KEY: str | None = None
 
-    def decoded_jwt_public_key(self):
-        return self.JWT_PUBLIC_KEY.replace("\\n", "\n").encode()
+    FUSIONAUTH_API_KEY: str | None = None
+    FUSIONAUTH_URL: str | None = None
 
     CRON_JOB_COMMENT_PREFIX: str = "rezervo"
 
