@@ -2,7 +2,6 @@ from fastapi import (
     FastAPI,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from rezervo.settings import get_settings
 from starlette.staticfiles import StaticFiles
 
 from rezervo.api import (
@@ -21,6 +20,7 @@ from rezervo.api import (
 )
 from rezervo.api.notifications import push
 from rezervo.http_client import HttpClient
+from rezervo.settings import get_settings
 
 api = FastAPI(
     on_startup=[HttpClient.singleton], on_shutdown=[HttpClient.close_singleton]
