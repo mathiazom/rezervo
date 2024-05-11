@@ -4,15 +4,13 @@ from tempfile import TemporaryDirectory
 from typing import Annotated
 from uuid import UUID
 
-from auth0.management import Auth0  # type: ignore[import-untyped]
 from fastapi import APIRouter, Depends, Header, HTTPException, Response, UploadFile
 from sqlalchemy.orm import Session
 from starlette import status
 
 from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
-from rezervo.auth import auth0
-from rezervo.auth.auth0 import get_auth0_management_client
+from rezervo.auth.jwt import decode_jwt_sub
 from rezervo.consts import AVATAR_FILENAME_STEM, MAX_AVATAR_FILE_SIZE_BYTES
 from rezervo.database import crud
 from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
@@ -35,25 +33,24 @@ def upsert_user(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
-    auth0_mgmt_client: Auth0 = Depends(get_auth0_management_client),
 ):
-    jwt_sub = auth0.sub_from_jwt(
-        token,
-        settings.JWT_DOMAIN,
+    jwt_sub = decode_jwt_sub(
+        token.credentials,
+        settings.decoded_jwt_public_key(),
         settings.JWT_ALGORITHMS,
-        settings.JWT_AUDIENCE,
+        str(settings.JWT_AUDIENCE),
         settings.JWT_ISSUER,
     )
     if not isinstance(jwt_sub, str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     db_user = db.query(models.User).filter_by(jwt_sub=jwt_sub).one_or_none()
     if db_user is not None:
-        # TODO: update user data without being rate limited by Auth0
         return db_user.id
-    name = auth0.get_auth0_user_name(auth0_mgmt_client, jwt_sub)
-    db_created_user = crud.create_user(db, name, jwt_sub)
-    response.status_code = status.HTTP_201_CREATED
-    return db_created_user.id
+    # TODO: create user
+    # db_created_user = crud.create_user(db, name, jwt_sub)
+    # response.status_code = status.HTTP_201_CREATED
+    # return db_created_user.id
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
 
 @router.get(
