@@ -14,6 +14,8 @@ class Settings(BaseSettings):
 
     DATABASE_CONNECTION_STRING: str | None = None
 
+    CORS_ALLOWED_ORIGINS: list[str] | None = None
+
     JWT_DOMAIN: str | None = None
     JWT_ALGORITHMS: list[str] | None = None
     JWT_AUDIENCE: str | None = None
