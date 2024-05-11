@@ -1,13 +1,13 @@
 import jwt
 
 
-def decode_jwt(token, domain, algorithms, api_audience, issuer):
-    jwks_url = f"https://{domain}/.well-known/jwks.json"
-    jwks_client = jwt.PyJWKClient(jwks_url)
-    try:
-        signing_key = jwks_client.get_signing_key_from_jwt(token).key
-    except (jwt.exceptions.PyJWKClientError, jwt.exceptions.DecodeError) as error:
-        return {"status": "error", "msg": error.__str__()}
+def decode_jwt_sub(token, signing_key, algorithms, api_audience, issuer):
+    return decode_jwt(token, signing_key, algorithms, api_audience, issuer).get(
+        "sub", None
+    )
+
+
+def decode_jwt(token, signing_key, algorithms, api_audience, issuer):
     try:
         return jwt.decode(
             token,
