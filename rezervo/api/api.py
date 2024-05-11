@@ -1,6 +1,8 @@
 from fastapi import (
     FastAPI,
 )
+from fastapi.middleware.cors import CORSMiddleware
+from rezervo.settings import get_settings
 from starlette.staticfiles import StaticFiles
 
 from rezervo.api import (
@@ -22,6 +24,14 @@ from rezervo.http_client import HttpClient
 
 api = FastAPI(
     on_startup=[HttpClient.singleton], on_shutdown=[HttpClient.close_singleton]
+)
+
+api.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().CORS_ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 api.mount("/images", StaticFiles(directory="rezervo/static"), name="images")
