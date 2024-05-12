@@ -294,8 +294,8 @@ async def verify_sit_credentials(username: str, password: str):
         browser = await p.firefox.launch()
         context = await browser.new_context()
         await playwright_trace_start(context)
-        page = await context.new_page()
         try:
+            page = await context.new_page()
             await init_login_with_credentials(page, username, password)
             valid = await page.locator("button[id='sendCode']").is_enabled(
                 timeout=10000
@@ -326,50 +326,70 @@ async def login_with_totp(chain_user: ChainUser) -> Optional[IBookingAuthData]:
         browser = await p.firefox.launch()
         context = await browser.new_context()
         await playwright_trace_start(context)
-        page = await context.new_page()
-        await init_login_with_credentials(
-            page, chain_user.username, chain_user.password
-        )
-        await page.locator("button[id='sendCode']").click(timeout=30000)
-        totp_wait_start = asyncio.get_event_loop().time()
-        with SessionLocal() as db:
-            while (
-                asyncio.get_event_loop().time() - totp_wait_start
-            ) < WAIT_FOR_TOTP_MAX_SECONDS:
-                totp = crud.get_chain_user_totp(
-                    db, chain_user.chain, chain_user.user_id
+        try:
+            page = await context.new_page()
+            await init_login_with_credentials(
+                page, chain_user.username, chain_user.password
+            )
+            await page.locator("button[id='sendCode']").click(timeout=30000)
+            totp_wait_start = asyncio.get_event_loop().time()
+            with SessionLocal() as db:
+                while (
+                    asyncio.get_event_loop().time() - totp_wait_start
+                ) < WAIT_FOR_TOTP_MAX_SECONDS:
+                    totp = crud.get_chain_user_totp(
+                        db, chain_user.chain, chain_user.user_id
+                    )
+                    if totp is not None:
+                        break
+                    await page.wait_for_timeout(WAIT_FOR_TOTP_MILLISECONDS)
+            if totp is None:
+                log.error(
+                    f"TOTP not provided for '{chain_user.chain}' user '{chain_user.username}' (waited {WAIT_FOR_TOTP_MAX_SECONDS} seconds)"
                 )
-                if totp is not None:
-                    break
-                await page.wait_for_timeout(WAIT_FOR_TOTP_MILLISECONDS)
-        if totp is None:
+                await playwright_trace_stop(context, "login_totp_not_provided")
+                await context.close()
+                await browser.close()
+                return None
+            if len(totp) != 6 or not totp.isdigit():
+                log.error(
+                    f"Invalid TOTP code from '{chain_user.chain}' user '{chain_user.username}'"
+                )
+                await playwright_trace_stop(context, "login_totp_invalid")
+                await context.close()
+                await browser.close()
+                return None
+            await page.locator("#verificationCode").fill(totp, timeout=10000)
+            await page.locator("button[id='verifyCode']").click(timeout=10000)
+            await page.wait_for_url(SIT_LOGIN_URL, timeout=10000)
+            cookies = await extract_cookies_from_url(page, SIT_AUTH_COOKIE_URL)
+        except PlaywrightTimeoutError:
             log.error(
-                f"TOTP not provided for '{chain_user.chain}' user '{chain_user.username}' (waited {WAIT_FOR_TOTP_MAX_SECONDS} seconds)"
+                f"Timeout during TOTP login for '{chain_user.chain}' user '{chain_user.username}'"
             )
-            await playwright_trace_stop(context, "login_totp_not_provided")
+            await playwright_trace_stop(context, "login_totp_timeout")
             await context.close()
             await browser.close()
             return None
-        if len(totp) != 6 or not totp.isdigit():
-            log.error(
-                f"Invalid TOTP code from '{chain_user.chain}' user '{chain_user.username}'"
-            )
-            await playwright_trace_stop(context, "login_totp_invalid")
-            await context.close()
-            await browser.close()
-            return None
-        await page.locator("#verificationCode").fill(totp, timeout=10000)
-        await page.locator("button[id='verifyCode']").click(timeout=10000)
-        await page.wait_for_url(SIT_LOGIN_URL, timeout=10000)
-        cookies = await extract_cookies_from_url(page, SIT_AUTH_COOKIE_URL)
         await playwright_trace_stop(context, "login_totp")
         await context.close()
         verification_context = await browser.new_context()
         await playwright_trace_start(verification_context)
-        verification_page = await verification_context.new_page()
-        verification_res = await authenticate_with_session_cookies(
-            verification_page, cookies
-        )
+        try:
+            verification_page = await verification_context.new_page()
+            verification_res = await authenticate_with_session_cookies(
+                verification_page, cookies
+            )
+        except PlaywrightTimeoutError:
+            log.error(
+                f"Timeout during TOTP verification for '{chain_user.chain}' user '{chain_user.username}'"
+            )
+            await playwright_trace_stop(
+                verification_context, "login_totp_verification_timeout"
+            )
+            await verification_context.close()
+            await browser.close()
+            return None
         await playwright_trace_stop(verification_context, "login_totp_verification")
         await verification_context.close()
         await browser.close()
@@ -467,59 +487,68 @@ async def extend_auth_session_silently(
         browser = await p.firefox.launch()
         context = await browser.new_context()
         await playwright_trace_start(context)
-        page = await context.new_page()
-        await page.goto(SIT_LOGIN_URL)
-        refresh_res = await authenticate_with_session_cookies(page, cookies)
-        if refresh_res is None:
-            log.error(
-                f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'"
+        try:
+            page = await context.new_page()
+            await page.goto(SIT_LOGIN_URL)
+            refresh_res = await authenticate_with_session_cookies(page, cookies)
+            if refresh_res is None:
+                log.error(
+                    f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'"
+                )
+                await playwright_trace_stop(context, "extend_auth_session_failed")
+                await context.close()
+                await browser.close()
+                with aprs_ctx() as error_ctx:
+                    aprs.notify(
+                        notify_type=NotifyType.FAILURE,
+                        title="Auth session extension failed",
+                        body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
+                        attach=[error_ctx],
+                    )
+                return None
+            ibooking_token = await get_ibooking_token_from_access_token(
+                refresh_res.access_token.token
             )
-            await playwright_trace_stop(context, "extend_auth_session_failed")
+            if ibooking_token is None:
+                log.error(
+                    f"Ibooking token extraction failed for '{chain_user.chain}' user '{chain_user.username}'"
+                )
+                await playwright_trace_stop(context, "extend_auth_session_failed")
+                await context.close()
+                await browser.close()
+                with aprs_ctx() as error_ctx:
+                    aprs.notify(
+                        notify_type=NotifyType.FAILURE,
+                        title="Auth session extension failed",
+                        body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
+                        attach=[error_ctx],
+                    )
+                return None
+            ibooking_valid = await validate_ibooking_token(ibooking_token.token)
+            if not ibooking_valid:
+                log.error(
+                    f"Ibooking token is invalid for '{chain_user.chain}' user '{chain_user.username}'"
+                )
+                await playwright_trace_stop(context, "extend_auth_session_failed")
+                await context.close()
+                await browser.close()
+                with aprs_ctx() as error_ctx:
+                    aprs.notify(
+                        notify_type=NotifyType.FAILURE,
+                        title="Auth session extension failed",
+                        body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
+                        attach=[error_ctx],
+                    )
+                return None
+            cookies = await extract_cookies_from_url(page, SIT_AUTH_COOKIE_URL)
+        except PlaywrightTimeoutError:
+            log.error(
+                f"Timeout during silent auth session extension for '{chain_user.chain}' user '{chain_user.username}'"
+            )
+            await playwright_trace_stop(context, "extend_auth_session_timeout")
             await context.close()
             await browser.close()
-            with aprs_ctx() as error_ctx:
-                aprs.notify(
-                    notify_type=NotifyType.FAILURE,
-                    title="Auth session extension failed",
-                    body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
-                    attach=[error_ctx],
-                )
             return None
-        ibooking_token = await get_ibooking_token_from_access_token(
-            refresh_res.access_token.token
-        )
-        if ibooking_token is None:
-            log.error(
-                f"Ibooking token extraction failed for '{chain_user.chain}' user '{chain_user.username}'"
-            )
-            await playwright_trace_stop(context, "extend_auth_session_failed")
-            await context.close()
-            await browser.close()
-            with aprs_ctx() as error_ctx:
-                aprs.notify(
-                    notify_type=NotifyType.FAILURE,
-                    title="Auth session extension failed",
-                    body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
-                    attach=[error_ctx],
-                )
-            return None
-        ibooking_valid = await validate_ibooking_token(ibooking_token.token)
-        if not ibooking_valid:
-            log.error(
-                f"Ibooking token is invalid for '{chain_user.chain}' user '{chain_user.username}'"
-            )
-            await playwright_trace_stop(context, "extend_auth_session_failed")
-            await context.close()
-            await browser.close()
-            with aprs_ctx() as error_ctx:
-                aprs.notify(
-                    notify_type=NotifyType.FAILURE,
-                    title="Auth session extension failed",
-                    body=f"Refresh token extension failed for '{chain_user.chain}' user '{chain_user.username}'",
-                    attach=[error_ctx],
-                )
-            return None
-        cookies = await extract_cookies_from_url(page, SIT_AUTH_COOKIE_URL)
         await playwright_trace_stop(context, "extend_auth_session")
         await context.close()
         await browser.close()
