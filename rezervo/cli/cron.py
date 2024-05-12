@@ -56,6 +56,11 @@ def initialize_cron():
         schedule="0 0 * * *",
         comment="purge slack receipts",
     )
+    upsert_cli_cron_job(
+        command="purge_playwright",
+        schedule="*/5 * * * *",
+        comment="purge playwright processes",
+    )
 
 
 @cron_cli.command(name="refresh")

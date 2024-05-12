@@ -1,7 +1,9 @@
+import asyncio
 import time
 from datetime import datetime
 from uuid import UUID
 
+import psutil
 import typer
 import uvicorn
 from apprise import NotifyType
@@ -278,8 +280,29 @@ async def extend_auth_sessions_cli():
         for chain in ACTIVE_CHAINS:
             for chain_user in crud.get_chain_users(db, chain.identifier):
                 extend_jobs.append(chain.extend_auth_session(chain_user))
-    for job in extend_jobs:
-        await job
+    await asyncio.gather(*extend_jobs)
+
+
+@cli.command(name="purge_playwright")
+def purge_playwright_cli(
+    minutes: int = typer.Option(
+        10,
+        help="Purge Playwright browser instances older than this many minutes",
+    )
+):
+    """
+    Purge Playwright browser instances
+    """
+    current_time = time.time()
+    for proc in psutil.process_iter(["pid", "cmdline"]):
+        cmd = " ".join(proc.info["cmdline"])
+        if "playwright/driver/node" in cmd or "firefox" in cmd:
+            process_age_seconds = current_time - proc.create_time()
+            if process_age_seconds > (minutes * 60):
+                log.info(
+                    f"Killing playwright process {proc.pid} because it is older than {minutes} minutes ({cmd})"
+                )
+                proc.kill()
 
 
 @cli.callback()
