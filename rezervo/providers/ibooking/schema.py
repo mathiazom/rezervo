@@ -29,6 +29,7 @@ class IBookingCategory(CamelModel):
 class IBookingWaitlist(CamelModel):
     active: bool
     count: int
+    user_position: Optional[int] = None
 
 
 class IBookingBaseClass(CamelModel):
