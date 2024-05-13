@@ -223,6 +223,11 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                     status=session_state_from_brp(
                         s.type, _class.start_time, s.checkedIn
                     ),
+                    position_in_wait_list=(
+                        s.waitingListBooking.waitingListPosition
+                        if s.waitingListBooking is not None
+                        else None
+                    ),
                     class_data=SessionRezervoClass(**_class.dict()),
                 )
             )

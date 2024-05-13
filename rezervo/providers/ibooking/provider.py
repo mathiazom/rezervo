@@ -167,6 +167,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
                 class_id=str(ibooking_session.class_field.id),
                 user_id=chain_user.user_id,
                 status=session_state_from_ibooking(ibooking_session.status),
+                position_in_wait_list=ibooking_session.class_field.wait_list.user_position,
                 class_data=SessionRezervoClass(
                     **self.rezervo_class_from_ibooking_class(
                         ibooking_class_from_sit_session_class(

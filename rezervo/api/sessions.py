@@ -54,6 +54,7 @@ def get_sessions_index(
                 user_id=session.user_id,
                 user_name=user_name_lookup[session.user_id],
                 status=session.status,
+                position_in_wait_list=session.position_in_wait_list,
             )
         )
     return session_dict
