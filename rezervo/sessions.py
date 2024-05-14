@@ -105,16 +105,16 @@ def upsert_booked_session(
         user_id,
         _class,
         (
-            booking_result.status
-            if booking_result is not SessionState.UNKNOWN
-            else (
+            (
                 SessionState.BOOKED
                 if (_class.available_slots or (1 - (_class.waiting_list_count or 0)))
                 > 0
                 else SessionState.WAITLIST
             )
+            if booking_result.status is SessionState.UNKNOWN
+            else booking_result.status
         ),
-        booking_result.position_in_wait_list if booking_result is not None else None,
+        booking_result.position_in_wait_list,
     )
 
 
