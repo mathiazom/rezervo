@@ -71,6 +71,12 @@ class SitSessionClass(IBookingBaseClass):
     wait_list: IBookingWaitlist
 
 
+class IBookingBookingResponse(CamelModel):
+    success: bool
+    waitlist: bool
+    waitlist_position: int
+
+
 def ibooking_class_from_sit_session_class(
     sit_session_class: SitSessionClass,
 ) -> IBookingClass:

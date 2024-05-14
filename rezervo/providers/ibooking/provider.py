@@ -48,6 +48,7 @@ from rezervo.schemas.config.user import (
     Class,
 )
 from rezervo.schemas.schedule import (
+    BookingResult,
     RezervoActivity,
     RezervoClass,
     RezervoDay,
@@ -116,12 +117,12 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
         self,
         auth_data: IBookingAuthData,
         class_id: str,
-    ) -> bool:
+    ) -> BookingResult | BookingError:
         try:
             ibooking_class_id = int(class_id)
         except ValueError:
             log.error(f"Invalid ibooking class id: {class_id}")
-            return False
+            return BookingError.MALFORMED_CLASS
         return await book_ibooking_class(
             self.ibooking_domain, auth_data.ibooking_token.token, ibooking_class_id
         )

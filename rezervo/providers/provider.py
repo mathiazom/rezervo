@@ -33,6 +33,7 @@ from rezervo.schemas.config.user import (
     config_from_chain_user,
 )
 from rezervo.schemas.schedule import (
+    BookingResult,
     RezervoClass,
     RezervoSchedule,
     SessionRezervoClass,
@@ -150,7 +151,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         self,
         auth_data: AuthData,
         class_id: str,
-    ) -> bool:
+    ) -> BookingResult | BookingError:
         raise NotImplementedError()
 
     async def try_book_class(
@@ -159,7 +160,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         auth_data: AuthData,
         _class: RezervoClass,
         config: ConfigValue,
-    ) -> Union[None, BookingError, AuthenticationError]:
+    ) -> Union[BookingResult, BookingError, AuthenticationError]:
         max_attempts = config.booking.max_attempts
         if max_attempts < 1:
             log.error("Max booking attempts must be a positive number")
@@ -167,14 +168,12 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         if isinstance(auth_data, AuthenticationError):
             log.error("Invalid authentication")
             return auth_data
-        booked = False
+        booking_result = None
         attempts = 0
-        while not booked:
-            booked = await self._book_class(auth_data, _class.id)
+        while attempts < max_attempts:
+            booking_result = await self._book_class(auth_data, _class.id)
             attempts += 1
-            if booked:
-                break
-            if attempts >= max_attempts:
+            if isinstance(booking_result, BookingResult):
                 break
             if attempts >= BOOKING_INITIAL_BURST_ATTEMPTS:
                 sleep_seconds = 2 ** (attempts - BOOKING_INITIAL_BURST_ATTEMPTS)
@@ -182,7 +181,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
                     f"Exponential backoff, retrying in {sleep_seconds} seconds..."
                 )
                 await asyncio.sleep(sleep_seconds)
-        if not booked:
+        if not isinstance(booking_result, BookingResult):
             log.error(
                 f"Booking failed after {attempts} attempt"
                 + ("s" if attempts != 1 else "")
@@ -210,7 +209,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             await notify_booking(
                 config.notifications, chain_identifier, time_zone_adjusted_class
             )
-        return None
+        return booking_result
 
     @abstractmethod
     async def _cancel_booking(
