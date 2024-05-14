@@ -68,6 +68,11 @@ class RezervoSchedule(CamelModel):
     days: list[RezervoDay]
 
 
+class BookingResult(CamelModel):
+    status: SessionState
+    position_in_wait_list: Optional[int] = None
+
+
 class BaseUserSession(CamelOrmBase):
     chain: ChainIdentifier
     status: SessionState

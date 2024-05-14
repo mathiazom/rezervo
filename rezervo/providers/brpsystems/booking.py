@@ -4,12 +4,16 @@ from typing import Optional
 import pytz
 import requests
 
+from rezervo.errors import BookingError
 from rezervo.http_client import HttpClient
+from rezervo.models import SessionState
 from rezervo.providers.brpsystems.schema import (
+    BookingData,
     BookingType,
     BrpAuthData,
     BrpSubdomain,
 )
+from rezervo.schemas.schedule import BookingResult
 from rezervo.utils.logging_utils import log
 
 SCHEDULE_SEARCH_ATTEMPT_DAYS = 7
@@ -34,7 +38,7 @@ def booking_url(
 
 async def book_brp_class(
     subdomain: BrpSubdomain, auth_data: BrpAuthData, class_id: int
-) -> bool:
+) -> BookingResult | BookingError:
     async with HttpClient.singleton().post(
         booking_url(subdomain, auth_data, datetime.now()),
         json={"groupActivity": class_id, "allowWaitingList": True},
@@ -45,8 +49,20 @@ async def book_brp_class(
     ) as res:
         if res.status != 201:
             log.error("Booking attempt failed: " + (await res.text()))
-            return False
-        return True
+            return BookingError.ERROR
+        booking_data = BookingData(**await res.json())
+        return BookingResult(
+            status=(
+                SessionState.WAITLIST
+                if booking_data.type is BookingType.WAITING_LIST
+                else SessionState.BOOKED
+            ),
+            position_in_wait_list=(
+                booking_data.waitingListBooking.waitingListPosition
+                if booking_data.waitingListBooking is not None
+                else None
+            ),
+        )
 
 
 async def cancel_brp_booking(

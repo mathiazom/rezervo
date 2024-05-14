@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Optional, TypeAlias
 
 from pydantic import BaseModel
@@ -73,3 +74,17 @@ class SatsMembershipSettings(BaseModel):
 
 class SatsMyPageResponse(BaseModel):
     settings: SatsMembershipSettings
+
+
+class SatsBookingStatus(Enum):
+    BOOKED = "Booked"
+    ON_WAITING_LIST = "OnWaitingList"
+
+
+class SatsBookingResponsePayload(BaseModel):
+    status: SatsBookingStatus
+    waitingListPosition: int
+
+
+class SatsBookingResponse(BaseModel):
+    payload: SatsBookingResponsePayload
