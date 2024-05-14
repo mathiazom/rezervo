@@ -76,7 +76,7 @@ async def validate_token(
                 my_page_data = SatsMyPageResponse(
                     **retrieve_sats_page_props(str(await my_page_res.read()))
                 )
-                if len("".join(my_page_data.membershipSettings.profile.info)) == 0:
+                if len(my_page_data.settings.profile.data) == 0:
                     return AuthenticationError.TOKEN_INVALID
             except ValidationError:
                 return AuthenticationError.TOKEN_INVALID
