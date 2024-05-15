@@ -64,7 +64,7 @@ class SatsBookingsResponse(BaseModel):
 
 
 class SatsMembershipSettingsProfile(BaseModel):
-    info: list[str]
+    data: list[str]
 
 
 class SatsMembershipSettings(BaseModel):
@@ -72,4 +72,4 @@ class SatsMembershipSettings(BaseModel):
 
 
 class SatsMyPageResponse(BaseModel):
-    membershipSettings: SatsMembershipSettings
+    settings: SatsMembershipSettings
