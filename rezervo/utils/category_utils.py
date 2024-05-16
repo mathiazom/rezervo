@@ -1,4 +1,3 @@
-
 from pydantic.main import BaseModel
 
 
@@ -31,7 +30,7 @@ ACTIVITY_CATEGORIES = [
     ),
     RezervoCategory(
         name="Mosjon",
-        color="#00B050",
+        color="#00A050",
         keywords=[
             "mosjon",
             "godt voksen",
@@ -81,7 +80,7 @@ ACTIVITY_CATEGORIES = [
     ),
     RezervoCategory(
         name="Kondisjon",
-        color="#6AD3B4",
+        color="#C040A0",
         keywords=[
             "kondis",
             "step",
