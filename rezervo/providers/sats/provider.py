@@ -34,7 +34,9 @@ from rezervo.providers.sats.schedule import (
 )
 from rezervo.providers.sats.schema import (
     SatsBooking,
+    SatsBookingResponse,
     SatsBookingsResponse,
+    SatsBookingStatus,
     SatsClass,
     SatsLocationIdentifier,
 )
@@ -52,6 +54,7 @@ from rezervo.schemas.config.user import (
     ClassTime,
 )
 from rezervo.schemas.schedule import (
+    BookingResult,
     RezervoActivity,
     RezervoClass,
     RezervoDay,
@@ -165,13 +168,25 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         self,
         auth_data: SatsAuthData,
         class_id: str,
-    ) -> bool:
+    ) -> BookingResult | BookingError:
         async with create_authed_sats_session(auth_data) as session:
             async with session.post(BOOKING_URL, data={"id": class_id}) as res:
                 if not res.ok:
                     log.error("Booking attempt failed: " + (await res.text()))
-                    return False
-                return True
+                    return BookingError.ERROR
+                booking_data = SatsBookingResponse(**await res.json())
+                return BookingResult(
+                    status=(
+                        SessionState.BOOKED
+                        if booking_data.payload.status is SatsBookingStatus.BOOKED
+                        else SessionState.WAITLIST
+                    ),
+                    position_in_wait_list=(
+                        booking_data.payload.waitingListPosition
+                        if booking_data.payload.waitingListPosition > 0
+                        else None
+                    ),
+                )
 
     async def _cancel_booking(
         self,
@@ -264,6 +279,11 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                             SessionState.WAITLIST
                             if booking.waitingListIndex > 0
                             else SessionState.BOOKED
+                        ),
+                        position_in_wait_list=(
+                            booking.waitingListIndex
+                            if booking.waitingListIndex > 0
+                            else None
                         ),
                         class_data=SessionRezervoClass(**_class.dict()),
                     )

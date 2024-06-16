@@ -147,12 +147,13 @@ class Session(Base):
         ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
     status: Mapped[SessionState] = mapped_column()
+    position_in_wait_list: Mapped[Optional[int]] = mapped_column()
     class_data: Mapped[dict] = mapped_column()
 
     def __repr__(self):
         return (
             f"<Session (chain='{self.chain}' class_id='{self.class_id}' user_id='{self.user_id}' "
-            f"status='{self.status}' class_data={self.class_data})>"
+            f"status='{self.status}' position_in_wait_list='{self.position_in_wait_list}' class_data={self.class_data})>"
         )
 
 

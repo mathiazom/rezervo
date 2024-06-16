@@ -68,9 +68,15 @@ class RezervoSchedule(CamelModel):
     days: list[RezervoDay]
 
 
+class BookingResult(CamelModel):
+    status: SessionState
+    position_in_wait_list: Optional[int] = None
+
+
 class BaseUserSession(CamelOrmBase):
     chain: ChainIdentifier
     status: SessionState
+    position_in_wait_list: Optional[int] = None
     class_data: SessionRezervoClass
 
 
@@ -84,6 +90,7 @@ class UserNameSessionStatus(CamelModel):
     user_id: UUID
     user_name: str
     status: SessionState
+    position_in_wait_list: Optional[int] = None
 
 
 def session_model_from_user_session(user_session: UserSession):
@@ -91,6 +98,7 @@ def session_model_from_user_session(user_session: UserSession):
         class_id=user_session.class_id,
         user_id=user_session.user_id,
         status=user_session.status,
+        position_in_wait_list=user_session.position_in_wait_list,
         class_data=json.loads(user_session.class_data.json()),
         chain=user_session.chain,
     )
