@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic.main import BaseModel
 
 
@@ -32,7 +30,7 @@ ACTIVITY_CATEGORIES = [
     ),
     RezervoCategory(
         name="Mosjon",
-        color="#00B050",
+        color="#00A050",
         keywords=[
             "mosjon",
             "godt voksen",
@@ -41,6 +39,10 @@ ACTIVITY_CATEGORIES = [
             "senior",
             "baby",
             "mama",
+            "familie",
+            "kids",
+            "sprek",
+            "walk",
         ],
     ),
     RezervoCategory(
@@ -68,6 +70,7 @@ ACTIVITY_CATEGORIES = [
             "ashtanga",
             "shape",
             "flexibility",
+            "balance",
         ],
     ),
     RezervoCategory(
@@ -77,7 +80,7 @@ ACTIVITY_CATEGORIES = [
     ),
     RezervoCategory(
         name="Kondisjon",
-        color="#6AD3B4",
+        color="#C040A0",
         keywords=[
             "kondis",
             "step",
@@ -118,16 +121,17 @@ ACTIVITY_CATEGORIES = [
             "bootcamp",
             "olympia",
             "absolution",
+            "bodyweight",
+            "x-fit",
+            "kettlebell",
+            "skill athletic",
+            "sirkel",
         ],
     ),
 ]
 
 
-def determine_activity_category(
-    activity_name: str, has_additional_information: Optional[bool] = False
-) -> RezervoCategory:
-    if has_additional_information:
-        return OTHER_ACTIVITY_CATEGORY
+def determine_activity_category(activity_name: str) -> RezervoCategory:
     for category in ACTIVITY_CATEGORIES:
         for keyword in category.keywords:
             if keyword in activity_name.lower():
