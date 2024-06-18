@@ -16,7 +16,6 @@ from rezervo.schemas.config.user import (
     ChainIdentifier,
     Class,
 )
-from rezervo.settings import get_settings
 from rezervo.utils.config_utils import class_config_recurrent_id
 from rezervo.utils.logging_utils import log
 
@@ -114,7 +113,7 @@ def build_cron_comment_prefix_for_user_chain(
 
 
 def build_cron_comment_prefix_for_user(user_id: UUID):
-    return f"{get_settings().CRON_JOB_COMMENT_PREFIX}-{user_id}"
+    return f"{read_app_config().cron.job_comment_prefix}-{user_id}"
 
 
 def build_booking_cron_job(

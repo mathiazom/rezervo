@@ -14,6 +14,8 @@ from rezervo.providers.ibooking.auth import (
     WAIT_FOR_TOTP_VERIFICATION_MILLISECONDS,
 )
 from rezervo.schemas.community import UserRelationship
+from rezervo.schemas.config.app import AppConfig
+from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.config.user import (
     BaseChainConfig,
     ChainConfig,
@@ -30,7 +32,6 @@ from rezervo.sessions import (
     pull_sessions,
     update_planned_sessions,
 )
-from rezervo.settings import Settings, get_settings
 from rezervo.utils.config_utils import class_config_recurrent_id
 
 router = APIRouter()
@@ -41,9 +42,9 @@ def get_chain_user_profile(
     chain_identifier: ChainIdentifier,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     user_profile = crud.get_chain_user_profile(db, chain_identifier, db_user.id)
@@ -59,9 +60,9 @@ async def put_chain_user_creds(
     background_tasks: BackgroundTasks,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     chain = get_chain(chain_identifier)
@@ -96,9 +97,9 @@ async def put_chain_user_totp(
     background_tasks: BackgroundTasks,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     chain = get_chain(chain_identifier)
@@ -140,9 +141,9 @@ def get_chain_config(
     chain_identifier: ChainIdentifier,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     config = crud.get_chain_config(db, chain_identifier, db_user.id)
@@ -158,9 +159,9 @@ async def put_chain_config(
     background_tasks: BackgroundTasks,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     previous_config = crud.get_chain_config(db, chain_identifier, db_user.id)
@@ -195,9 +196,9 @@ def get_all_configs_index(
     chain_identifier: ChainIdentifier,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     active_chain_users = crud.get_chain_users(db, chain_identifier, active_only=True)

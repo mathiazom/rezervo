@@ -1,8 +1,8 @@
 from pathlib import Path
 
-from rezervo.settings import get_settings
+from rezervo.schemas.config.config import read_app_config
 
-PLAYWRIGHT_TRACING = get_settings().IS_DEVELOPMENT
+PLAYWRIGHT_TRACING = read_app_config().is_development
 PLAYWRIGHT_TRACING_DIR = Path("playwright_traces")
 
 

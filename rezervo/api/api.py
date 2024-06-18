@@ -17,10 +17,11 @@ from rezervo.api import (
     sessions,
     slack,
     user,
+    webhooks,
 )
 from rezervo.api.notifications import push
 from rezervo.http_client import HttpClient
-from rezervo.settings import get_settings
+from rezervo.schemas.config.config import read_app_config
 
 api = FastAPI(
     on_startup=[HttpClient.singleton], on_shutdown=[HttpClient.close_singleton]
@@ -28,7 +29,7 @@ api = FastAPI(
 
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=get_settings().CORS_ALLOWED_ORIGINS,
+    allow_origins=read_app_config().allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,3 +50,4 @@ api.include_router(push.router, tags=["notifications"])
 api.include_router(slack.router, tags=["slack"])
 api.include_router(user.router, tags=["user"])
 api.include_router(community.router, tags=["community"])
+api.include_router(webhooks.router, tags=["webhooks"])

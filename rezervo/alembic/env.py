@@ -3,7 +3,7 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-from rezervo.database.database import get_settings
+from rezervo.schemas.config.config import read_app_config
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -14,7 +14,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-DATABASE_CONNECTION_STRING = get_settings().DATABASE_CONNECTION_STRING
+DATABASE_CONNECTION_STRING = read_app_config().database_connection_string
 
 # add your model's MetaData object here
 # for 'autogenerate' support

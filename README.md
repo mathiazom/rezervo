@@ -39,7 +39,7 @@ Automatic booking of group classes
     ```shell
     poetry install
     ```
-3. In the [`rezervo`](rezervo) directory, define `.env` and `config.json` based on [`.env.template`](rezervo/.env.template) and [`config.template.json`](rezervo/config.template.json). This includes defining Auth0 tenant details, credentials for Slack notifications and app-wide booking preferences.
+3. In the [`rezervo`](rezervo) directory, define `db.env`, `fusionauth.env` and `config.json` based on [`db.env.template`](rezervo/db.env.template), [`fusionauth.env.template`](rezervo/fusionauth.env.template) and [`config.template.json`](rezervo/config.template.json). This includes defining FusionAuth configuration, credentials for Slack notifications and app-wide booking preferences.
    
    <details>
       <summary>📳 Web Push variables</summary>
@@ -49,7 +49,7 @@ Automatic booking of group classes
       ```shell
       openssl ecparam -name prime256v1 -genkey -noout -out vapid_keypair.pem
       ```
-      The private key can then be encoded as base64 and added to the `.env` file as `WEB_PUSH_PRIVATE_KEY`:
+      The private key can then be encoded as base64 and added to the `config.json` file as `notifications.web_push.private_key`:
       ```shell
       openssl ec -in ./vapid_keypair.pem -outform DER|tail -c +8|head -c 32|base64|tr -d '=' |tr '/+' '_-' >> vapid_private.txt
       ```
@@ -61,7 +61,7 @@ Automatic booking of group classes
 
 
 #### 🐋 Run with Docker
-1. Make sure you have defined `.env` and `config.json` as described above
+1. Make sure you have defined `db.env`, `fusionauth.env` and `config.json` as described above
 2. With [docker](https://docs.docker.com/get-docker/) and [docker compose](https://docs.docker.com/compose/) installed, run
     ```shell
     docker compose -f docker/docker-compose.dev.yml up -d --build

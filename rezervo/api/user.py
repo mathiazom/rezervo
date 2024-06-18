@@ -17,9 +17,11 @@ from rezervo.auth.fusionauth import (
 from rezervo.auth.jwt import decode_jwt_sub
 from rezervo.consts import AVATAR_FILENAME_STEM, MAX_AVATAR_FILE_SIZE_BYTES
 from rezervo.database import crud
+from rezervo.schemas.camel import CamelModel
+from rezervo.schemas.config.app import AppConfig
+from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
 from rezervo.schemas.schedule import BaseUserSession
-from rezervo.settings import Settings, get_settings
 from rezervo.utils.avatar_utils import (
     build_user_avatars_dir,
     generate_avatar_thumbnails,
@@ -31,29 +33,35 @@ from rezervo.utils.logging_utils import log
 router = APIRouter()
 
 
-@router.put("/user", response_model=UUID)
+class UpsertUserResponse(CamelModel):
+    id: UUID
+    name: str
+
+
+@router.put("/user", response_model=UpsertUserResponse)
 def upsert_user(
     response: Response,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
+    fusionauth_config = app_config.fusionauth
     jwt_sub = decode_jwt_sub(
         token.credentials,
         get_jwt_public_key(),
-        settings.JWT_ALGORITHMS,
-        settings.JWT_AUDIENCE,
-        settings.JWT_ISSUER,
+        fusionauth_config.jwt_algorithms,
+        fusionauth_config.application_id,
+        fusionauth_config.issuer,
     )
     if not isinstance(jwt_sub, str):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     db_user = db.query(models.User).filter_by(jwt_sub=jwt_sub).one_or_none()
     if db_user is not None:
-        return db_user.id
+        return UpsertUserResponse(id=db_user.id, name=db_user.name)
     name = retrieve_username_by_user_id(jwt_sub)
     db_created_user = crud.create_user(db, name, jwt_sub)
     response.status_code = status.HTTP_201_CREATED
-    return db_created_user.id
+    return UpsertUserResponse(id=db_created_user.id, name=db_created_user.name)
 
 
 @router.get(
@@ -63,9 +71,9 @@ def upsert_user(
 def get_user_sessions(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     db_sessions = (
@@ -101,9 +109,9 @@ def get_user_sessions(
 def get_user_chain_configs(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     db_chain_users = db.query(models.ChainUser).filter_by(user_id=db_user.id).all()
@@ -118,9 +126,9 @@ def get_user_avatar(
     size_name: str,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     file = get_user_avatar_file_by_id(db_user.id, size_name)
@@ -135,9 +143,9 @@ def get_user_avatar_by_id(
     size_name: str,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     file = get_user_avatar_file_by_id(user_id, size_name)
@@ -154,10 +162,10 @@ def upsert_user_avatar(
     file: UploadFile,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
     content_length: Annotated[int | None, Header()] = None,
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     if content_length is None or file is None or file.filename is None:
@@ -185,9 +193,9 @@ def upsert_user_avatar(
 def delete_user_avatar(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     user_avatar_dir = build_user_avatars_dir(db_user.id)
