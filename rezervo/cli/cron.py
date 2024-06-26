@@ -18,53 +18,61 @@ cron_cli = AsyncTyper()
 
 
 def upsert_cli_cron_job(
+    crontab: CronTab,
     command: str,
     schedule: str,
     comment: str,
 ):
+    full_comment = f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{comment}]"
     j = CronItem(
         command=generate_cron_cli_command(command),
-        comment=f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{comment}]",
+        comment=full_comment,
         pre_comment=True,
     )
     j.setall(schedule)
-    with CronTab(user=True) as crontab:
-        crontab.remove_all(comment=comment)
-        crontab.append(j)
+    crontab.remove_all(comment=full_comment)
+    crontab.append(j)
     log.debug(f":heavy_check_mark: Cronjob '{comment}' created")
 
 
 @cron_cli.command(name="init")
 def initialize_cron():
-    upsert_cli_cron_job(
-        command="cron refresh",
-        schedule="0,30 4-23 * * *",
-        comment="refresh booking cron jobs",
-    )
-    upsert_cli_cron_job(
-        command="extend_auth_sessions",
-        schedule="50 * * * *",
-        comment="extend auth sessions",
-    )
-    upsert_cli_cron_job(
-        command="sessions pull",
-        schedule="2,17,32,47 4-23 * * *",
-        comment="pull sessions",
-    )
-    upsert_cli_cron_job(
-        command="purge_slack_receipts",
-        schedule="0 0 * * *",
-        comment="purge slack receipts",
-    )
-    upsert_cli_cron_job(
-        command="purge_playwright",
-        schedule="*/5 * * * *",
-        comment="purge playwright processes",
-    )
+    with CronTab(user=True) as crontab:
+        upsert_cli_cron_job(
+            crontab,
+            command="cron refresh",
+            schedule="0,30 4-23 * * *",
+            comment="refresh booking cron jobs",
+        )
+        upsert_cli_cron_job(
+            crontab,
+            command="extend_auth_sessions",
+            schedule="50 * * * *",
+            comment="extend auth sessions",
+        )
+        upsert_cli_cron_job(
+            crontab,
+            command="sessions pull",
+            schedule="2,17,32,47 4-23 * * *",
+            comment="pull sessions",
+        )
+        upsert_cli_cron_job(
+            crontab,
+            command="purge_slack_receipts",
+            schedule="0 0 * * *",
+            comment="purge slack receipts",
+        )
+        upsert_cli_cron_job(
+            crontab,
+            command="purge_playwright",
+            schedule="*/5 * * * *",
+            comment="purge playwright processes",
+        )
 
 
 @cron_cli.command(name="refresh")
-async def refresh_recurring_booking_cron_jobs_cli():
+async def refresh_cron():
+    initialize_cron()
     await refresh_recurring_booking_cron_jobs()
 
 
