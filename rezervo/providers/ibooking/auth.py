@@ -268,7 +268,7 @@ async def authenticate_with_session_cookies(
     """
     await inject_cookies_from_url(page, SIT_AUTH_COOKIE_URL, cookies)
     await page.goto(SIT_LOGIN_URL)
-    await page.get_by_title("Logg inn med e-post").click(timeout=10000)
+    await page.get_by_text("Logg inn med e-post").click(timeout=10000)
     wait_start = asyncio.get_event_loop().time()
     while (
         asyncio.get_event_loop().time() - wait_start
@@ -310,7 +310,7 @@ async def verify_sit_credentials(username: str, password: str):
 
 async def init_login_with_credentials(page: Page, username: str, password: str):
     await page.goto(SIT_LOGIN_URL)
-    await page.get_by_title("Logg inn med e-post").click(timeout=30000)
+    await page.get_by_text("Logg inn med e-post").click(timeout=30000)
     await page.locator("#email").fill(username, timeout=10000)
     await page.locator("#password").fill(password, timeout=10000)
     await page.locator("button[id='next']").click(timeout=10000)
