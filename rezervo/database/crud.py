@@ -48,7 +48,7 @@ def user_from_token(db: Session, app_config: AppConfig, token) -> Optional[model
         token.credentials,
         get_jwt_public_key(),
         fusionauth_config.jwt_algorithms,
-        fusionauth_config.application_id,
+        str(fusionauth_config.application_id),
         fusionauth_config.issuer,
     )
     if jwt_sub is None:
