@@ -44,6 +44,7 @@ class SitChain(Chain, IBookingProvider):
                 Location(
                     identifier="portalen", name="Portalen", provider_identifier=308
                 ),
+                Location(identifier="oya", name="Øya", provider_identifier=2825),
             ],
         ),
         Branch(
