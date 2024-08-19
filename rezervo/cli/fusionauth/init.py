@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from fusionauth.fusionauth_client import FusionAuthClient
+from fusionauth.fusionauth_client import FusionAuthClient  # type: ignore
 
 from rezervo.cli.async_cli import AsyncTyper
 from rezervo.cli.fusionauth.consts import (
