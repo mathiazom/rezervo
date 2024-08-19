@@ -1,10 +1,10 @@
 import uuid
 from functools import lru_cache
 
-from auth0.authentication import GetToken
-from auth0.management import Auth0
-from auth0.rest import RestClientOptions
-from fusionauth.fusionauth_client import FusionAuthClient
+from auth0.authentication import GetToken  # type: ignore
+from auth0.management import Auth0  # type: ignore
+from auth0.rest import RestClientOptions  # type: ignore
+from fusionauth.fusionauth_client import FusionAuthClient  # type: ignore
 
 from rezervo import models
 from rezervo.database.database import SessionLocal

@@ -35,7 +35,11 @@ BOOKING_FAILURE_REASONS = {
 
 
 def notify_web_push(subscription: PushNotificationSubscription, message: str) -> bool:
-    push_config = read_app_config().notifications.web_push
+    notifications = read_app_config().notifications
+    if notifications is None:
+        log.warning(f"Notifications configuration not found in '{CONFIG_FILE}'")
+        return False
+    push_config = notifications.web_push
     if push_config is None:
         log.warning(f"Web push configuration not found in '{CONFIG_FILE}'")
         return False
