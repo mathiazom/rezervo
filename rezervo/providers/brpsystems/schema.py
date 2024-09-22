@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional, TypeAlias, Union
 
 import pytz
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from rezervo.models import SessionState
 
@@ -133,10 +133,11 @@ class WaitingListBooking(BaseModel):
 
 
 class Order(BaseModel):
+    model_config = ConfigDict(coerce_numbers_to_str=True)
     id: int
     number: str
     externalId: Optional[str] = None
-    lastModified: str
+    lastModified: Optional[str] = None
 
 
 class GroupActivityBooking(BaseModel):
