@@ -46,6 +46,7 @@ from rezervo.schemas.config.user import (
     Class,
 )
 from rezervo.schemas.schedule import (
+    BookingResult,
     RezervoActivity,
     RezervoClass,
     RezervoDay,
@@ -113,13 +114,13 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         self,
         auth_data: BrpAuthData,
         class_id: str,
-    ) -> bool:
+    ) -> BookingResult | BookingError:
         # make sure class_id is a valid brp class id
         try:
             brp_class_id = int(class_id)
         except ValueError:
             log.error(f"Invalid brp class id: {class_id}")
-            return False
+            return BookingError.MALFORMED_CLASS
         return await book_brp_class(self.brp_subdomain, auth_data, brp_class_id)
 
     async def _cancel_booking(
@@ -222,6 +223,11 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                     user_id=chain_user.user_id,
                     status=session_state_from_brp(
                         s.type, _class.start_time, s.checkedIn
+                    ),
+                    position_in_wait_list=(
+                        s.waitingListBooking.waitingListPosition
+                        if s.waitingListBooking is not None
+                        else None
                     ),
                     class_data=SessionRezervoClass(**_class.dict()),
                 )

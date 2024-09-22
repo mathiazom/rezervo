@@ -9,6 +9,7 @@ from rezervo.database.database import SessionLocal
 from rezervo.models import SessionState
 from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
 from rezervo.schemas.schedule import (
+    BookingResult,
     RezervoClass,
     SessionRezervoClass,
     UserSession,
@@ -67,6 +68,7 @@ def upsert_session(
     user_id: UUID,
     _class: RezervoClass,
     status: SessionState,
+    position_in_wait_list: Optional[int] = None,
 ):
     session = session_model_from_user_session(
         UserSession(
@@ -74,6 +76,7 @@ def upsert_session(
             class_id=_class.id,
             user_id=user_id,
             status=status,
+            position_in_wait_list=position_in_wait_list,
             class_data=SessionRezervoClass(**_class.dict()),
         )
     )
@@ -92,17 +95,26 @@ def upsert_session(
 
 
 def upsert_booked_session(
-    chain_identifier: ChainIdentifier, user_id: UUID, _class: RezervoClass
+    chain_identifier: ChainIdentifier,
+    user_id: UUID,
+    _class: RezervoClass,
+    booking_result: BookingResult,
 ):
     upsert_session(
         chain_identifier,
         user_id,
         _class,
         (
-            SessionState.BOOKED
-            if (_class.available_slots or (1 - (_class.waiting_list_count or 0))) > 0
-            else SessionState.WAITLIST
+            (
+                SessionState.BOOKED
+                if (_class.available_slots or (1 - (_class.waiting_list_count or 0)))
+                > 0
+                else SessionState.WAITLIST
+            )
+            if booking_result.status is SessionState.UNKNOWN
+            else booking_result.status
         ),
+        booking_result.position_in_wait_list,
     )
 
 

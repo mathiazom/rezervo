@@ -29,6 +29,7 @@ class IBookingCategory(CamelModel):
 class IBookingWaitlist(CamelModel):
     active: bool
     count: int
+    user_position: Optional[int] = None
 
 
 class IBookingBaseClass(CamelModel):
@@ -68,6 +69,12 @@ class IBookingSchedule(CamelModel):
 
 class SitSessionClass(IBookingBaseClass):
     wait_list: IBookingWaitlist
+
+
+class IBookingBookingResponse(CamelModel):
+    success: bool
+    waitlist: bool
+    waitlist_position: int
 
 
 def ibooking_class_from_sit_session_class(

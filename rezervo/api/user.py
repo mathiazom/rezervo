@@ -88,6 +88,7 @@ def get_user_sessions(
         BaseUserSession(
             chain=session.chain,
             status=session.status,
+            position_in_wait_list=session.position_in_wait_list,
             class_data=session.class_data,  # type: ignore[arg-type]
         )
         for session in db_sessions

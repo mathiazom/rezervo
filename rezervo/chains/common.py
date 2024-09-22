@@ -12,7 +12,7 @@ from rezervo.schemas.config.user import (
     ChainUser,
     Class,
 )
-from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
+from rezervo.schemas.schedule import BookingResult, RezervoClass, RezervoSchedule
 from rezervo.utils.logging_utils import log
 
 
@@ -41,7 +41,7 @@ async def book_class(
     auth_data: AuthData,
     _class: RezervoClass,
     config: ConfigValue,
-) -> Union[None, BookingError, AuthenticationError]:
+) -> Union[BookingResult, BookingError, AuthenticationError]:
     return await get_chain(chain_identifier).try_book_class(
         chain_identifier, auth_data, _class, config
     )
