@@ -37,6 +37,9 @@ class SatsChain(Chain, SatsProvider):
                 ),
                 Location(identifier="asker", name="Asker", provider_identifier=206),
                 Location(identifier="bislett", name="Bislett", provider_identifier=156),
+                Location(
+                    identifier="bjorvika", name="Bjørvika", provider_identifier=208
+                ),
             ],
         ),
         Branch(
