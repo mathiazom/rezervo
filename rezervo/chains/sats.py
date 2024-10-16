@@ -40,6 +40,16 @@ class SatsChain(Chain, SatsProvider):
                 Location(
                     identifier="bjorvika", name="Bjørvika", provider_identifier=208
                 ),
+                Location(
+                    identifier="ringnes-park",
+                    name="Ringnes Park",
+                    provider_identifier=218,
+                ),
+                Location(
+                    identifier="aker-brygge",
+                    name="Aker Brygge",
+                    provider_identifier=802,
+                ),
             ],
         ),
         Branch(
