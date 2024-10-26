@@ -818,13 +818,13 @@ cryptography = ">=2.5"
 
 [[package]]
 name = "humanize"
-version = "4.9.0"
+version = "4.11.0"
 description = "Python humanize utilities"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 files = [
-    {file = "humanize-4.9.0-py3-none-any.whl", hash = "sha256:ce284a76d5b1377fd8836733b983bfb0b76f1aa1c090de2566fcf008d7f6ab16"},
-    {file = "humanize-4.9.0.tar.gz", hash = "sha256:582a265c931c683a7e9b8ed9559089dea7edcf6cc95be39a3cbc2c5d5ac2bcfa"},
+    {file = "humanize-4.11.0-py3-none-any.whl", hash = "sha256:b53caaec8532bcb2fff70c8826f904c35943f8cecaca29d272d9df38092736c0"},
+    {file = "humanize-4.11.0.tar.gz", hash = "sha256:e66f36020a2d5a974c504bd2555cf770621dbdbb6d82f94a6857c0b1ea2608be"},
 ]
 
 [package.extras]
@@ -2473,4 +2473,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "ad09f6b7b3717850e4392fdf059cea0348e96c601176f7fe77783e2c08f036ca"
+content-hash = "2e7d44d3d41bef7abcfa981d0497c37b6cb5b115dfe56fd17e9169932bb842f5"
