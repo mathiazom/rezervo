@@ -32,7 +32,7 @@ fastapi = "^0.115.3"
 requests = "^2.32.3"
 pytz = "^2024.2"
 typer = "^0.12.5"
-slack-sdk = "^3.19.5"
+slack-sdk = "^3.33.2"
 uvicorn = "^0.32.0"
 python-multipart = "^0.0.9"
 dataclass-wizard = {extras = ["yaml"], version = "^0.23.0"}
