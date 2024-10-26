@@ -39,7 +39,7 @@ dataclass-wizard = {extras = ["yaml"], version = "^0.23.0"}
 pyjwt = {extras = ["crypto"], version = "^2.9.0"}
 sqlalchemy = {extras = ["mypy"], version = "^2.0.36"}
 alembic = "^1.9.4"
-psycopg2-binary = "^2.9.6"
+psycopg2-binary = "^2.9.10"
 rich = "^13.9.3"
 python-crontab = "^3.0.0"
 deepmerge = "^1.1.0"
