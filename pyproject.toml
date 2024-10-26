@@ -56,7 +56,7 @@ aiohttp = "^3.10.10"
 pillow = "^10.3.0"
 playwright = "^1.42.0"
 xxhash = "^3.5.0"
-apprise = "^1.7.5"
+apprise = "^1.9.0"
 isoweek = "^1.3.3"
 psutil = "^5.9.8"
 

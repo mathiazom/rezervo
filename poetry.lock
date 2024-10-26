@@ -191,13 +191,13 @@ trio = ["trio (>=0.23)"]
 
 [[package]]
 name = "apprise"
-version = "1.7.6"
+version = "1.9.0"
 description = "Push Notifications that work with just about every platform!"
 optional = false
 python-versions = ">=3.6"
 files = [
-    {file = "apprise-1.7.6-py3-none-any.whl", hash = "sha256:a98d815dbf950c92b5d8e7c2a4ec30e86257cece26a38ae62ec8fd8f7c551cb0"},
-    {file = "apprise-1.7.6.tar.gz", hash = "sha256:077f09309cc8a6c9063dbd614b343807d527d546693b7fe8fc5a4433502fea6c"},
+    {file = "apprise-1.9.0-py3-none-any.whl", hash = "sha256:7192c953eeb282a7afee012512d3de0104b5a6a11bdda29283435df5a79dfe7f"},
+    {file = "apprise-1.9.0.tar.gz", hash = "sha256:b5c93afd6331afe4b63a55d1cea9076e47becb4ba89b562b181c13e25bb0c7d6"},
 ]
 
 [package.dependencies]
@@ -2615,4 +2615,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "2faa55bb184b977ca0c957ae952b3c433f85e7e766ac0e86a75df0296a49961d"
+content-hash = "3638a51f631f43f409475d7635f883847074330dd0a7ea962e6cfdb1a3c010d2"
