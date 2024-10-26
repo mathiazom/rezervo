@@ -1748,12 +1748,12 @@ files = [
 
 [[package]]
 name = "pywebpush"
-version = "2.0.0"
+version = "2.0.1"
 description = "WebPush publication library"
 optional = false
 python-versions = "*"
 files = [
-    {file = "pywebpush-2.0.0.tar.gz", hash = "sha256:03ccc3e975b60374b7634c495595616be523bf2c7da0d976e84fda9ac8c63301"},
+    {file = "pywebpush-2.0.1.tar.gz", hash = "sha256:72e3586aec89a06373c0585e6f97c6fd0b81519e41f32896a3639909ecf45db0"},
 ]
 
 [package.dependencies]
@@ -2473,4 +2473,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "c9cb73e04443f14953f2ffc0941288b47cf9fa4eead7dfaf6e9638c8f9416187"
+content-hash = "ad09f6b7b3717850e4392fdf059cea0348e96c601176f7fe77783e2c08f036ca"
