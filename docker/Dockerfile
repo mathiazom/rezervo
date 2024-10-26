@@ -19,7 +19,7 @@ RUN python3 -m venv $POETRY_HOME
 
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
-RUN pip install poetry==1.3.1
+RUN pip install poetry==1.8.3
 
 RUN poetry config virtualenvs.create false
 
