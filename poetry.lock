@@ -194,13 +194,13 @@ files = [
 
 [[package]]
 name = "asyncer"
-version = "0.0.5"
+version = "0.0.8"
 description = "Asyncer, async and await, focused on developer experience."
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = ">=3.8"
 files = [
-    {file = "asyncer-0.0.5-py3-none-any.whl", hash = "sha256:ba06d6de3c750763868dffacf89b18d40b667605b0241d31c2ee43f188e2ab74"},
-    {file = "asyncer-0.0.5.tar.gz", hash = "sha256:2979f3e04cbedfe5cfeb79027dcf7d004fcc4430a0ca0066ae20490f218ec06e"},
+    {file = "asyncer-0.0.8-py3-none-any.whl", hash = "sha256:5920d48fc99c8f8f0f1576e1882f5022885589c5fcbc46ce4224ec3e53776eeb"},
+    {file = "asyncer-0.0.8.tar.gz", hash = "sha256:a589d980f57e20efb07ed91d0dbe67f1d2fd343e7142c66d3a099f05c620739c"},
 ]
 
 [package.dependencies]
@@ -2473,4 +2473,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "2e7d44d3d41bef7abcfa981d0497c37b6cb5b115dfe56fd17e9169932bb842f5"
+content-hash = "63a16327d153a856ff4043b2411801f97e351c57bdda46e378d11195ef4b9859"
