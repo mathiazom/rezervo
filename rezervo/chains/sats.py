@@ -16,10 +16,10 @@ class SatsChain(Chain, SatsProvider):
     name = "Sats"
     images = ChainProfileImages(
         light=ThemeSpecificImages(
-            large_logo=f"images/chains/sats/light/logo_large{'_santa.png' if is_santa_time else ''}.png"
+            large_logo=f"images/chains/sats/light/logo_large{'_santa' if is_santa_time else ''}.png"
         ),
         dark=ThemeSpecificImages(
-            large_logo=f"images/chains/sats/dark/logo_large{'_santa.png' if is_santa_time else ''}.png"
+            large_logo=f"images/chains/sats/dark/logo_large{'_santa' if is_santa_time else ''}.png"
         ),
         common=ThemeAgnosticImages(
             small_logo=f"images/chains/sats/common/logo_small{'_santa' if is_santa_time else ''}.png"
