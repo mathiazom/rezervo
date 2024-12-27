@@ -6,13 +6,13 @@ services:
     restart: unless-stopped
     volumes:
       - rezervo-data:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: UPDATE_TO_SOMETHING_STRONG
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
       timeout: 5s
       retries: 5
+    env_file:
+      - "db.env"
 #  db-admin:
 #    container_name: rezervo-db-admin
 #    image: dpage/pgadmin4
@@ -29,15 +29,55 @@ services:
         condition: service_healthy
     restart: unless-stopped
     env_file:
-      - .env
+      - "fusionauth.env"
     volumes:
       # app-wide configuration applied to all users
       - "./config.json:/app/config.json:ro"
-      # supply env variables as file to allow access from cron
-      - "./.env:/app/.env:ro"
       # apprise config file
       - "../rezervo/apprise.yml:/app/config/apprise.yml:ro"
       - "rezervo-avatars:/app/content/avatars"
+  auth-db:
+    container_name: rezervo-auth-db
+    image: postgres:16.0-bookworm
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: postgres
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - "fusionauth.env"
+    volumes:
+      - rezervo-auth-data:/var/lib/postgresql/data
+  auth:
+    container_name: rezervo-auth
+    image: fusionauth/fusionauth-app:latest
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: jdbc:postgresql://auth-db:5432/fusionauth
+      DATABASE_ROOT_USERNAME: postgres
+      DATABASE_USERNAME: fusionauth
+      FUSIONAUTH_APP_RUNTIME_MODE: production
+      FUSIONAUTH_APP_URL: http://auth:9011
+      FUSIONAUTH_APP_KICKSTART_FILE: /usr/local/fusionauth/kickstart.json
+    healthcheck:
+      test: curl --silent --fail http://localhost:9011/api/status -o /dev/null -w "%{http_code}"
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    env_file:
+      - "fusionauth.env"
+    volumes:
+      - ./fusionauth-kickstart.json:/usr/local/fusionauth/kickstart.json:ro
+      - rezervo-auth-config:/usr/local/fusionauth/config
 volumes:
   rezervo-data:
   rezervo-avatars:
+  rezervo-auth-data:
+  rezervo-auth-config:

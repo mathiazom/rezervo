@@ -8,7 +8,7 @@ from tabulate import tabulate
 
 from rezervo.cli.async_cli import AsyncTyper
 from rezervo.cron import refresh_recurring_booking_cron_jobs
-from rezervo.settings import get_settings
+from rezervo.schemas.config.config import read_app_config
 from rezervo.utils.cron_utils import (
     generate_cron_cli_command,
 )
@@ -23,7 +23,7 @@ def upsert_cli_cron_job(
     schedule: str,
     comment: str,
 ):
-    full_comment = f"{get_settings().CRON_JOB_COMMENT_PREFIX} [{comment}]"
+    full_comment = f"{read_app_config().cron.job_comment_prefix} [{comment}]"
     j = CronItem(
         command=generate_cron_cli_command(command),
         comment=full_comment,

@@ -9,7 +9,7 @@ tail -f /var/log/rezervo.log &
 figlet rezervo
 
 echo "Migrating database to most recent alembic version"
-(cd rezervo && alembic upgrade head)
+alembic -c 'rezervo/alembic.ini' upgrade head
 
 # Start pulling sessions data in the background
 rezervo sessions pull &

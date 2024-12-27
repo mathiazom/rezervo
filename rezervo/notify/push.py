@@ -11,10 +11,10 @@ from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.apprise import aprs
-from rezervo.schemas.config.config import PushNotificationSubscription
+from rezervo.schemas.config.app import CONFIG_FILE
+from rezervo.schemas.config.config import PushNotificationSubscription, read_app_config
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass
-from rezervo.settings import get_settings
 from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
@@ -35,13 +35,20 @@ BOOKING_FAILURE_REASONS = {
 
 
 def notify_web_push(subscription: PushNotificationSubscription, message: str) -> bool:
-    settings = get_settings()
+    notifications = read_app_config().notifications
+    if notifications is None:
+        log.warning(f"Notifications configuration not found in '{CONFIG_FILE}'")
+        return False
+    push_config = notifications.web_push
+    if push_config is None:
+        log.warning(f"Web push configuration not found in '{CONFIG_FILE}'")
+        return False
     try:
         res = webpush(
             subscription_info=subscription.dict(),
             data=json.dumps({"title": "rezervo", "message": message}),
-            vapid_private_key=settings.WEB_PUSH_PRIVATE_KEY,
-            vapid_claims={"sub": f"mailto:{settings.WEB_PUSH_EMAIL}"},
+            vapid_private_key=push_config.private_key,
+            vapid_claims={"sub": f"mailto:{push_config.email}"},
         )
     except WebPushException as e:
         log.error(

@@ -6,7 +6,8 @@ from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.database import crud
 from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.admin import AdminConfig
-from rezervo.settings import Settings, get_settings
+from rezervo.schemas.config.app import AppConfig
+from rezervo.schemas.config.config import read_app_config
 
 router = APIRouter()
 
@@ -19,9 +20,9 @@ class Features(CamelModel):
 def get_features(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     admin_config = AdminConfig(**db_user.admin_config)

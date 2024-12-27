@@ -20,6 +20,7 @@ from rezervo.schemas.community import (
 )
 from rezervo.schemas.config import admin
 from rezervo.schemas.config.admin import AdminConfig
+from rezervo.schemas.config.app import AppConfig
 from rezervo.schemas.config.config import (
     Config,
     PushNotificationSubscription,
@@ -41,13 +42,14 @@ from rezervo.schemas.schedule import UserSession, session_model_from_user_sessio
 from rezervo.utils.ical_utils import generate_calendar_token
 
 
-def user_from_token(db: Session, settings, token) -> Optional[models.User]:
+def user_from_token(db: Session, app_config: AppConfig, token) -> Optional[models.User]:
+    fusionauth_config = app_config.fusionauth
     jwt_sub = decode_jwt_sub(
         token.credentials,
         get_jwt_public_key(),
-        settings.JWT_ALGORITHMS,
-        str(settings.JWT_AUDIENCE),
-        settings.JWT_ISSUER,
+        fusionauth_config.jwt_algorithms,
+        str(fusionauth_config.application_id),
+        fusionauth_config.issuer,
     )
     if jwt_sub is None:
         return None
