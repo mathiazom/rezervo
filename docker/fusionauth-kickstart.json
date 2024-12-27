@@ -1,0 +1,11 @@
+{
+  "variables": {
+    "apiKey": "#{ENV.FUSIONAUTH_API_KEY}",
+    "defaultTenantId": "#{ENV.FUSIONAUTH_DEFAULT_TENANT_ID}"
+  },
+  "apiKeys": [
+    {
+      "key": "#{apiKey}"
+    }
+  ]
+}

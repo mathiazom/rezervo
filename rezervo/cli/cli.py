@@ -13,6 +13,7 @@ from rezervo.chains.active import ACTIVE_CHAINS
 from rezervo.chains.common import authenticate, book_class, find_class
 from rezervo.cli.async_cli import AsyncTyper
 from rezervo.cli.cron import cron_cli
+from rezervo.cli.fusionauth.cli import fusionauth_cli
 from rezervo.cli.sessions import sessions_cli
 from rezervo.cli.users import users_cli
 from rezervo.database import crud
@@ -33,6 +34,7 @@ cli = AsyncTyper()
 cli.add_typer(users_cli, name="users", help="Manage rezervo users")
 cli.add_typer(cron_cli, name="cron", help="Manage cron jobs for automatic booking")
 cli.add_typer(sessions_cli, name="sessions", help="Manage user sessions")
+cli.add_typer(fusionauth_cli, name="fusionauth", help="Manage FusionAuth")
 
 
 @cli.command()

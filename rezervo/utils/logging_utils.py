@@ -2,10 +2,10 @@ import logging
 
 from rich.logging import RichHandler
 
-from rezervo.settings import get_settings
+from rezervo.schemas.config.config import read_app_config
 
 logging.basicConfig(
-    level=logging.NOTSET if get_settings().IS_DEVELOPMENT else logging.INFO,
+    level=logging.NOTSET if read_app_config().is_development else logging.INFO,
     format="%(message)s",
     datefmt="[%X]",
     handlers=[RichHandler(markup=True, rich_tracebacks=True)],

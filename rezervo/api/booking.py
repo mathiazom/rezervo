@@ -15,10 +15,10 @@ from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.apprise import aprs
 from rezervo.schemas.camel import CamelModel
-from rezervo.schemas.config.config import ConfigValue
+from rezervo.schemas.config.app import AppConfig
+from rezervo.schemas.config.config import ConfigValue, read_app_config
 from rezervo.schemas.config.user import ChainIdentifier, ChainUser
 from rezervo.sessions import pull_sessions, remove_session, upsert_booked_session
-from rezervo.settings import Settings, get_settings
 from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
@@ -28,10 +28,10 @@ router = APIRouter()
 def authenticate_chain_user_with_config(
     chain_identifier: ChainIdentifier,
     db: Session,
-    settings: Settings,
+    app_config: AppConfig,
     token: str,
 ) -> tuple[ChainUser, ConfigValue]:
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     chain_user = crud.get_chain_user(db, chain_identifier, db_user.id)
@@ -52,11 +52,11 @@ async def book_class_api(
     background_tasks: BackgroundTasks,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
     log.debug("Authenticating rezervo user ...")
     chain_user, config = authenticate_chain_user_with_config(
-        chain_identifier, db, settings, token
+        chain_identifier, db, app_config, token
     )
     log.debug("Searching for class...")
     _class = await find_class_by_id(chain_user, payload.class_id)
@@ -133,11 +133,11 @@ async def cancel_booking_api(
     background_tasks: BackgroundTasks,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
     log.debug("Authenticating rezervo user...")
     chain_user, config = authenticate_chain_user_with_config(
-        chain_identifier, db, settings, token
+        chain_identifier, db, app_config, token
     )
     log.debug("Searching for class...")
     _class = await find_class_by_id(chain_user, payload.class_id)

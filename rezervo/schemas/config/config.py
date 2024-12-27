@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any, Optional
 from uuid import UUID
 
@@ -85,12 +86,15 @@ def config_from_stored(
     config_value = ConfigValue(**merged_config)
     if config_value.notifications is None:
         config_value.notifications = Notifications()  # type: ignore
+    if config_value.web_host is not None:
+        config_value.notifications.host = config_value.web_host
     config_value.notifications.push_notification_subscriptions = (
         push_notification_subscriptions
     )
     return Config(user_id=user_id, config=config_value)
 
 
+@lru_cache()
 def read_app_config() -> AppConfig:
     with open(app.CONFIG_FILE) as f:
         return pydantic.TypeAdapter(app.AppConfig).validate_json(f.read())

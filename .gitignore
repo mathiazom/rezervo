@@ -25,6 +25,8 @@ apprise.yaml
 *.log
 
 **/.env
+/rezervo/fusionauth.env
+/rezervo/db.env
 
 # Web Push VAPID keys
 vapid_keypair.pem

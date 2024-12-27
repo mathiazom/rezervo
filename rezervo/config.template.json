@@ -1,4 +1,7 @@
 {
+  "is_development": true,
+  "database_connection_string": "postgresql://postgres:password@db/postgres",
+  "allowed_origins": ["http://localhost:3000"],
   "auth": {
     "max_attempts": 3
   },
@@ -17,14 +20,70 @@
   "content": {
     "avatars_dir": "/app/content/avatars"
   },
+  "host": "https://api.example.org",
+  "web_host": "https://example.org",
+  "fusionauth": {
+    "admin": {
+      "username": "admin",
+      "password": "<ADMIN-PASSWORD>"
+    },
+    "issuer": "<ISSUER-DOMAIN>",
+    "internal_url": "<INTERNAL-URL>",
+    "external_url": "<EXTERNAL-URL>",
+    "application_id": "<APPLICATION-ID-UUID>",
+    "password_changed_redirect_url": "https://example.org/api/auth/signin",
+    "email": {
+      "defaultFromName": "rezervo",
+      "defaultFromEmail": "<FROM-EMAIL>",
+      "host": "<HOST>",
+      "port": 587,
+      "username": "<USERNAME>",
+      "password": "<PASSWORD>",
+      "security": "TLS"
+    },
+    "oauth": {
+      "clientSecret": "<CLIENT-SECRET>",
+      "authorizedOriginURLs": [
+        "https://example.org"
+      ],
+      "authorizedRedirectURLs": [
+        "https://example.org",
+        "https://example.org/api/auth/callback/fusionauth"
+      ],
+      "enabledGrants": [
+        "authorization_code",
+        "refresh_token"
+      ],
+      "generateRefreshTokens": true,
+      "requireRegistration": false,
+      "logoutURL": "https://example.org/"
+    },
+    "jwt": {
+      "timeToLiveInSeconds": 3600,
+      "refreshTokenTimeToLiveInMinutes": 43200,
+      "refreshTokenExpirationPolicy": "SlidingWindowWithMaximumLifetime",
+      "refreshTokenSlidingWindowConfiguration": {
+        "maximumTimeToLiveInMinutes": 525600
+      }
+    },
+    "auth0_migration": {
+      "jwt_domain": "<DOMAIN>.auth0.com",
+      "management_api_client_id": "<CLIENT-ID>",
+      "management_api_client_secret": "<CLIENT-SECRET>"
+    }
+  },
   "notifications": {
     "transfersh": {
       "url": "https://tsh.example.org/"
     },
     "slack": {
-      "bot_token": "xoxb-SOMETHING",
-      "signing_secret": "SOMETHING-SECRET",
-      "channel_id": "SOME-CHANNEL-ID"
+      "bot_token": "<xoxb-SOMETHING>",
+      "signing_secret": "<SOMETHING-SECRET>",
+      "channel_id": "<SOME-CHANNEL-ID>"
+    },
+    "web_push": {
+      "email": "push@example.org",
+      "private_key": "<PRIVATE-KEY>"
     },
     "apprise": {
       "config_file": "/app/config/apprise.yml"

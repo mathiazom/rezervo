@@ -6,9 +6,10 @@ from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.database import crud
 from rezervo.schemas.community import UserRelationship
+from rezervo.schemas.config.app import AppConfig
+from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.config.user import ChainIdentifier
 from rezervo.schemas.schedule import UserNameSessionStatus, UserSession
-from rezervo.settings import Settings, get_settings
 
 router = APIRouter()
 
@@ -21,9 +22,9 @@ def get_sessions_index(
     chain_identifier: ChainIdentifier,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     db_sessions = (

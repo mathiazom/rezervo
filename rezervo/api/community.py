@@ -11,7 +11,8 @@ from rezervo.schemas.community import (
     UserRelationship,
     UserRelationshipActionPayload,
 )
-from rezervo.settings import Settings, get_settings
+from rezervo.schemas.config.app import AppConfig
+from rezervo.schemas.config.config import read_app_config
 
 router = APIRouter()
 
@@ -20,9 +21,9 @@ router = APIRouter()
 def get_community(
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     return crud.get_community(db, db_user.id)
@@ -33,9 +34,9 @@ def update_relationship(
     payload: UserRelationshipActionPayload,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    app_config: AppConfig = Depends(read_app_config),
 ):
-    db_user = crud.user_from_token(db, settings, token)
+    db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     updated_relationship = crud.modify_user_relationship(
