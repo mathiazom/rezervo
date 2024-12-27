@@ -10,6 +10,10 @@ from starlette import status
 
 from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
+from rezervo.auth.fusionauth import (
+    get_jwt_public_key,
+    retrieve_username_by_user_id,
+)
 from rezervo.auth.jwt import decode_jwt_sub
 from rezervo.consts import AVATAR_FILENAME_STEM, MAX_AVATAR_FILE_SIZE_BYTES
 from rezervo.database import crud
@@ -36,7 +40,7 @@ def upsert_user(
 ):
     jwt_sub = decode_jwt_sub(
         token.credentials,
-        settings.decoded_jwt_public_key(),
+        get_jwt_public_key(),
         settings.JWT_ALGORITHMS,
         str(settings.JWT_AUDIENCE),
         settings.JWT_ISSUER,
@@ -46,11 +50,10 @@ def upsert_user(
     db_user = db.query(models.User).filter_by(jwt_sub=jwt_sub).one_or_none()
     if db_user is not None:
         return db_user.id
-    # TODO: create user
-    # db_created_user = crud.create_user(db, name, jwt_sub)
-    # response.status_code = status.HTTP_201_CREATED
-    # return db_created_user.id
-    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    name = retrieve_username_by_user_id(jwt_sub)
+    db_created_user = crud.create_user(db, name, jwt_sub)
+    response.status_code = status.HTTP_201_CREATED
+    return db_created_user.id
 
 
 @router.get(
