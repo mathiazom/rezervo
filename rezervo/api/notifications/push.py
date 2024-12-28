@@ -10,6 +10,18 @@ from rezervo.schemas.config.config import PushNotificationSubscription, read_app
 router = APIRouter()
 
 
+@router.get("/notifications/push/public-key", response_model=str)
+def get_push_notifications_public_key(
+    token=Depends(token_auth_scheme),
+    db: Session = Depends(get_db),
+    app_config: AppConfig = Depends(read_app_config),
+):
+    db_user = crud.user_from_token(db, app_config, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    return app_config.notifications.web_push.public_key
+
+
 @router.put("/notifications/push", response_model=PushNotificationSubscription)
 def subscribe_to_push_notifications(
     subscription: PushNotificationSubscription,

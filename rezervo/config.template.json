@@ -83,6 +83,7 @@
     },
     "web_push": {
       "email": "push@example.org",
+      "public_key": "<PUBLIC-KEY>",
       "private_key": "<PRIVATE-KEY>"
     },
     "apprise": {

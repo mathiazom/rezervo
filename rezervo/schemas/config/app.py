@@ -40,6 +40,7 @@ class Slack(CamelOrmBase):
 
 class WebPush(CamelOrmBase):
     email: str
+    public_key: str
     private_key: str
 
 
