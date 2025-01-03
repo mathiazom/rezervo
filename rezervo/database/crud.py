@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from starlette import status
 
 from rezervo import models
-from rezervo.auth.fusionauth import get_jwt_public_key
 from rezervo.auth.jwt import decode_jwt_sub
 from rezervo.models import SessionState, UserRelation
 from rezervo.schemas.community import (
@@ -46,7 +45,6 @@ def user_from_token(db: Session, app_config: AppConfig, token) -> Optional[model
     fusionauth_config = app_config.fusionauth
     jwt_sub = decode_jwt_sub(
         token.credentials,
-        get_jwt_public_key(),
         fusionauth_config.jwt_algorithms,
         str(fusionauth_config.application_id),
         fusionauth_config.issuer,

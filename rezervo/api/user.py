@@ -11,7 +11,6 @@ from starlette import status
 from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.auth.fusionauth import (
-    get_jwt_public_key,
     retrieve_username_by_user_id,
 )
 from rezervo.auth.jwt import decode_jwt_sub
@@ -48,7 +47,6 @@ def upsert_user(
     fusionauth_config = app_config.fusionauth
     jwt_sub = decode_jwt_sub(
         token.credentials,
-        get_jwt_public_key(),
         fusionauth_config.jwt_algorithms,
         str(fusionauth_config.application_id),
         fusionauth_config.issuer,
