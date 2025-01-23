@@ -62,7 +62,7 @@ def migrate_from_auth0(
         )
         fusionauth_client = get_fusionauth_client()
         auth0_user_emails = retrieve_all_auth0_user_emails(
-            [user.jwt_sub for user in auth0_users]
+            [user.jwt_sub for user in auth0_users if user.jwt_sub is not None]
         )
         for user in auth0_users:
             user_email = auth0_user_emails.get(user.jwt_sub)

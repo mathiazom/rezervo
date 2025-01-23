@@ -19,6 +19,8 @@ def get_push_notifications_public_key(
     db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+    if app_config.notifications is None or app_config.notifications.web_push is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
     return app_config.notifications.web_push.public_key
 
 
