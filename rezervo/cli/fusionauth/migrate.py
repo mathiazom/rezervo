@@ -1,6 +1,8 @@
 import uuid
 from functools import lru_cache
+from typing import Optional
 
+import typer
 from auth0.authentication import GetToken  # type: ignore
 from auth0.management import Auth0  # type: ignore
 from auth0.rest import RestClientOptions  # type: ignore
@@ -42,11 +44,16 @@ def retrieve_all_auth0_user_emails(user_ids: list[str]):
     return auth0_user_emails
 
 
-def migrate_from_auth0():
+def migrate_from_auth0(
+    name: Optional[str] = typer.Option(None, help="Name of user to migrate"),
+):
     with SessionLocal() as db:
-        auth0_users = (
-            db.query(models.User).filter(models.User.jwt_sub.startswith("auth0|")).all()
+        auth0_users_query = db.query(models.User).filter(
+            models.User.jwt_sub.startswith("auth0|")
         )
+        if name is not None:
+            auth0_users_query = auth0_users_query.filter_by(name=name)
+        auth0_users = auth0_users_query.all()
         if len(auth0_users) == 0:
             log.info("No Auth0 users found in the users table, skipping migration")
             return
