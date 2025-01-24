@@ -33,4 +33,4 @@ def from_compact_iso_week(compact_iso_week: str) -> datetime.datetime:
 
 
 def compact_iso_week_str(date: datetime.datetime):
-    return date.strftime("%YW%W")
+    return date.strftime("%GW%V")
