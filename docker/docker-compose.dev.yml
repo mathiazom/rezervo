@@ -1,8 +1,8 @@
 name: "rezervo"
 services:
   db:
-    container_name: rezervo-db
     image: postgres:14.5
+    container_name: rezervo-db
     restart: unless-stopped
     volumes:
       - rezervo-data:/var/lib/postgresql/data
@@ -18,8 +18,8 @@ services:
       timeout: 5s
       retries: 5
   db-admin:
-    container_name: rezervo-db-admin
     image: dpage/pgadmin4
+    container_name: rezervo-db-admin
     restart: always
     ports:
       - 18000:80
@@ -54,6 +54,7 @@ services:
       - "host.docker.internal:host-gateway"
   auth-db:
     image: postgres:16.0-bookworm
+    container_name: rezervo-auth-db
     environment:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_USER: postgres
@@ -68,6 +69,7 @@ services:
       - rezervo-auth-data:/var/lib/postgresql/data
   auth:
     image: fusionauth/fusionauth-app:latest
+    container_name: rezervo-auth
     depends_on:
       auth-db:
         condition: service_healthy
