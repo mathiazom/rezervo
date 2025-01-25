@@ -60,7 +60,7 @@ async def book_class_api(
         chain_identifier, db, app_config, token
     )
     log.debug("Searching for class...")
-    _class = await find_class_by_id(chain_user, payload.class_id)
+    _class = await find_class_by_id(chain_user.chain, payload.class_id)
     match _class:
         case AuthenticationError():
             with aprs_ctx() as error_ctx:
@@ -147,7 +147,7 @@ async def cancel_booking_api(
         chain_identifier, db, app_config, token
     )
     log.debug("Searching for class...")
-    _class = await find_class_by_id(chain_user, payload.class_id)
+    _class = await find_class_by_id(chain_user.chain, payload.class_id)
     match _class:
         case AuthenticationError():
             with aprs_ctx() as error_ctx:

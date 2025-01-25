@@ -24,6 +24,7 @@ from rezervo.providers.brpsystems.booking import (
 from rezervo.providers.brpsystems.schedule import (
     fetch_brp_class,
     fetch_brp_schedule,
+    fetch_detailed_brp_class,
     fetch_detailed_brp_schedule,
 )
 from rezervo.providers.brpsystems.schema import (
@@ -97,7 +98,13 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         )
         if brp_class is None:
             return BookingError.CLASS_MISSING
-        return self.rezervo_class_from_brp_class(self.brp_subdomain, brp_class)
+        detailed_brp_class = await fetch_detailed_brp_class(
+            self.brp_subdomain, brp_class
+        )
+        return self.rezervo_class_from_brp_class(
+            self.brp_subdomain,
+            detailed_brp_class if detailed_brp_class is not None else brp_class,
+        )
 
     async def find_class(
         self, _class_config: Class

@@ -18,10 +18,10 @@ from rezervo.utils.logging_utils import log
 
 
 async def find_class_by_id(
-    chain_user: ChainUser,
+    chain_identifier: ChainIdentifier,
     class_id: str,
 ) -> Union[RezervoClass, BookingError, AuthenticationError]:
-    return await get_chain(chain_user.chain).find_class_by_id(class_id)
+    return await get_chain(chain_identifier).find_class_by_id(class_id)
 
 
 async def find_class(

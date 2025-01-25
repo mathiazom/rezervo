@@ -74,7 +74,7 @@ async def handle_cancel_booking_slack_action(
                 AuthenticationError.ERROR,
             )
         return
-    _class_res = await find_class_by_id(chain_user, action_value.class_id)
+    _class_res = await find_class_by_id(chain_user.chain, action_value.class_id)
     match _class_res:
         case AuthenticationError():
             log.error("Authentication failed, abort")

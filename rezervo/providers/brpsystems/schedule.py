@@ -71,6 +71,15 @@ async def fetch_brp_class(
         return None
 
 
+async def fetch_detailed_brp_class(
+    subdomain: BrpSubdomain, brp_class: BrpClass
+) -> DetailedBrpClass | None:
+    detailed_schedule = await fetch_detailed_brp_schedule(subdomain, [brp_class])
+    if len(detailed_schedule) == 0:
+        return None
+    return detailed_schedule[0]
+
+
 async def fetch_detailed_brp_schedule(
     subdomain: BrpSubdomain,
     schedule: list[BrpClass],

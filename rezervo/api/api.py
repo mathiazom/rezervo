@@ -10,6 +10,7 @@ from rezervo.api import (
     cal,
     chain_config,
     chains,
+    classes,
     community,
     features,
     preferences,
@@ -39,6 +40,7 @@ api.mount("/images", StaticFiles(directory="rezervo/static"), name="images")
 
 api.include_router(chains.router, tags=["chains"])
 api.include_router(schedules.router, tags=["schedules"])
+api.include_router(classes.router, tags=["classes"])
 api.include_router(activity_categories.router, tags=["activity categories"])
 api.include_router(chain_config.router, tags=["chain config"])
 api.include_router(preferences.router, tags=["preferences"])
