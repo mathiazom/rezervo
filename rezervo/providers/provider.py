@@ -16,7 +16,11 @@ from rezervo.consts import (
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.models import SessionState
 from rezervo.notify.apprise import aprs
-from rezervo.notify.notify import notify_booking
+from rezervo.notify.notify import (
+    notify_booking,
+    notify_booking_friends,
+    notify_unbooking_friends,
+)
 from rezervo.providers.schema import (
     AuthData,
     Branch,
@@ -160,6 +164,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         auth_data: AuthData,
         _class: RezervoClass,
         config: ConfigValue,
+        user_id: UUID,
     ) -> Union[BookingResult, BookingError, AuthenticationError]:
         max_attempts = config.booking.max_attempts
         if max_attempts < 1:
@@ -209,6 +214,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             await notify_booking(
                 config.notifications, chain_identifier, time_zone_adjusted_class
             )
+            await notify_booking_friends(user_id, time_zone_adjusted_class)
         return booking_result
 
     @abstractmethod
@@ -220,7 +226,11 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         raise NotImplementedError()
 
     async def try_cancel_booking(
-        self, auth_data: AuthData, _class: RezervoClass, config: ConfigValue
+        self,
+        auth_data: AuthData,
+        _class: RezervoClass,
+        config: ConfigValue,
+        user_id: UUID,
     ) -> Union[None, BookingError, AuthenticationError]:
         if config.booking.max_attempts < 1:
             log.error("Max booking cancellation attempts must be a positive number")
@@ -253,6 +263,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             f"Successfully cancelled '{_class.activity.name}'"
             + (f" after {attempts} attempts" if attempts != 1 else "")
         )
+        await notify_unbooking_friends(user_id, _class)
         return None
 
     async def fetch_sessions(

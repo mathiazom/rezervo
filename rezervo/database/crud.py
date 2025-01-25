@@ -474,6 +474,30 @@ def get_user_relationship_index(db: Session, user_id: UUID):
     return user_relationship_index
 
 
+def get_user_friends(db: Session, user_id: UUID) -> list[UUID]:
+    friends = (
+        db.query(UserRelation)
+        .filter((UserRelation.user_one == user_id) | (UserRelation.user_two == user_id))
+        .filter((UserRelation.relationship == UserRelationship.FRIEND))
+        .all()
+    )
+    return [
+        friend.user_one if friend.user_two == user_id else friend.user_two
+        for friend in friends
+    ]
+
+
+def get_friends_in_session(db: Session, user_id: UUID, class_id: str) -> list[UUID]:
+    friends = get_user_friends(db, user_id)
+    friends_in_class = (
+        db.query(models.Session)
+        .filter_by(class_id=class_id)
+        .filter(models.Session.user_id.in_(friends))
+        .all()
+    )
+    return [friend.user_id for friend in friends_in_class]
+
+
 def get_community(db: Session, user_id: UUID) -> Community:
     users = (
         db.query(models.User)

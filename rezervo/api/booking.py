@@ -95,7 +95,13 @@ async def book_class_api(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     log.debug("Booking class...")
-    booking_result = await book_class(chain_user.chain, auth_data, _class, config)
+    booking_result = await book_class(
+        chain_user.chain,
+        auth_data,
+        _class,
+        config,
+        crud.user_from_token(db, app_config, token).id,
+    )
     match booking_result:
         case AuthenticationError():
             with aprs_ctx() as error_ctx:
@@ -176,7 +182,13 @@ async def cancel_booking_api(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     log.debug("Cancelling booking...")
-    cancellation_res = await cancel_booking(chain_user.chain, auth_data, _class, config)
+    cancellation_res = await cancel_booking(
+        chain_user.chain,
+        auth_data,
+        _class,
+        config,
+        crud.user_from_token(db, app_config, token).id,
+    )
     match cancellation_res:
         case AuthenticationError():
             with aprs_ctx() as error_ctx:

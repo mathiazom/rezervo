@@ -1,10 +1,19 @@
 from typing import Optional
+from uuid import UUID
 
+from rezervo.database.crud import (
+    get_friends_in_session,
+    get_user,
+    get_user_push_notification_subscriptions,
+)
+from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.push import (
     notify_auth_failure_web_push,
     notify_booking_failure_web_push,
+    notify_booking_friend_web_push,
     notify_booking_web_push,
+    notify_unbooking_friend_web_push,
 )
 from rezervo.notify.slack import (
     notify_auth_failure_slack,
@@ -134,3 +143,45 @@ def schedule_class_reminder(
         )
     log.warning("No notification targets, class reminder will not be sent")
     return None
+
+
+async def notify_booking_friends(
+    user_id: UUID,
+    booked_class: RezervoClass,
+) -> None:
+    with SessionLocal() as db:
+        friends = get_friends_in_session(db, user_id, booked_class.id)
+        my_name = get_user(db, user_id).name
+    for friend in friends:
+        notified = False
+        with SessionLocal() as db:
+            push_subscriptions = get_user_push_notification_subscriptions(db, friend)
+        if push_subscriptions is not None:
+            for subscription in push_subscriptions:
+                notify_booking_friend_web_push(subscription, booked_class, my_name)
+                notified = True
+            if not notified:
+                log.warning(
+                    "No notification targets, booking failure notification will not be sent"
+                )
+
+
+async def notify_unbooking_friends(
+    user_id: UUID,
+    booked_class: RezervoClass,
+) -> None:
+    with SessionLocal() as db:
+        friends = get_friends_in_session(db, user_id, booked_class.id)
+        my_name = get_user(db, user_id).name
+    for friend in friends:
+        notified = False
+        with SessionLocal() as db:
+            push_subscriptions = get_user_push_notification_subscriptions(db, friend)
+        if push_subscriptions is not None:
+            for subscription in push_subscriptions:
+                notify_unbooking_friend_web_push(subscription, booked_class, my_name)
+                notified = True
+            if not notified:
+                log.warning(
+                    "No notification targets, booking failure notification will not be sent"
+                )
