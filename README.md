@@ -77,7 +77,7 @@ Automatic booking of group classes
    
 #### 🦹 FusionAuth Admin Site
 
-The administration tool for FusionAuth is available at [`http://localhost:9011`](http://localhost:9011)
+The administration tool for FusionAuth is available at [`http://localhost:9011/admin`](http://localhost:9011/admin)
 
 Login credentials for the admin user should be defined in `config.json` under `fusionauth.admin`
 
