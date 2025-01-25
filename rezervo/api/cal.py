@@ -28,7 +28,12 @@ def get_calendar_token(
 
 
 @router.get("/cal")
-def get_calendar(token: str, include_past: bool = True, db: Session = Depends(get_db)):
+def get_calendar(
+    token: str,
+    include_past: bool = True,
+    db: Session = Depends(get_db),
+    app_config: AppConfig = Depends(read_app_config),
+):
     db_user = db.query(models.User).filter_by(cal_token=token).one_or_none()
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
@@ -60,7 +65,9 @@ def get_calendar(token: str, include_past: bool = True, db: Session = Depends(ge
     for s in sessions_query.all():
         if s.class_data is None:
             continue
-        event = ical_event_from_session(UserSession.from_orm(s), timezone)
+        event = ical_event_from_session(
+            UserSession.from_orm(s), timezone, app_config.web_host
+        )
         if event is not None:
             ical.add_component(event)
     return Response(content=ical.to_ical(), media_type="text/calendar")

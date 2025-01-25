@@ -5,16 +5,21 @@ from typing import Optional
 import pytz
 from icalendar import cal  # type: ignore[import]
 
+from rezervo.consts import URL_QUERY_PARAM_CLASS_ID, URL_QUERY_PARAM_ISO_WEEK
 from rezervo.models import SessionState
-from rezervo.schemas.schedule import UserSession
+from rezervo.schemas.config.user import ChainIdentifier
+from rezervo.schemas.schedule import SessionRezervoClass, UserSession
 from rezervo.utils.str_utils import format_name_list_to_natural
+from rezervo.utils.time_utils import compact_iso_week_str
 
 
 def generate_calendar_token():
     return secrets.token_urlsafe()
 
 
-def ical_event_from_session(session: UserSession, timezone: str) -> Optional[cal.Event]:
+def ical_event_from_session(
+    session: UserSession, timezone: str, host: str
+) -> Optional[cal.Event]:
     _class = session.class_data
     if _class is None:
         return None
@@ -30,6 +35,7 @@ def ical_event_from_session(session: UserSession, timezone: str) -> Optional[cal
         "description",
         f"{_class.activity.name} {instructors_str}",
     )
+    event.add("url", activity_url(host, session.chain, _class))
     event.add(
         "location",
         (
@@ -65,3 +71,13 @@ def ical_event_from_session(session: UserSession, timezone: str) -> Optional[cal
         }[session.status],
     )
     return event
+
+
+def activity_url(
+    host: str, chain_identifier: ChainIdentifier, _class: SessionRezervoClass
+):
+    return (
+        f"{host}/{chain_identifier}"
+        f"?{URL_QUERY_PARAM_ISO_WEEK}={compact_iso_week_str(_class.start_time)}"
+        f"&{URL_QUERY_PARAM_CLASS_ID}={_class.id}"
+    )
