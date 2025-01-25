@@ -18,8 +18,8 @@ from rezervo.models import SessionState
 from rezervo.notify.apprise import aprs
 from rezervo.notify.notify import (
     notify_booking,
-    notify_booking_friends,
-    notify_unbooking_friends,
+    notify_class_friends_of_booking,
+    notify_class_friends_of_cancellation,
 )
 from rezervo.providers.schema import (
     AuthData,
@@ -214,7 +214,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             await notify_booking(
                 config.notifications, chain_identifier, time_zone_adjusted_class
             )
-            await notify_booking_friends(user_id, time_zone_adjusted_class)
+            await notify_class_friends_of_booking(user_id, time_zone_adjusted_class)
         return booking_result
 
     @abstractmethod
@@ -263,7 +263,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
             f"Successfully cancelled '{_class.activity.name}'"
             + (f" after {attempts} attempts" if attempts != 1 else "")
         )
-        await notify_unbooking_friends(user_id, _class)
+        await notify_class_friends_of_cancellation(user_id, _class)
         return None
 
     async def fetch_sessions(

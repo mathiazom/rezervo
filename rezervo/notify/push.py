@@ -87,7 +87,7 @@ def notify_booking_web_push(
     return
 
 
-def notify_booking_friend_web_push(
+def notify_friend_of_booking_web_push(
     subscription: PushNotificationSubscription, booked_class: RezervoClass, friend: str
 ) -> None:
     if not notify_web_push(
@@ -95,13 +95,13 @@ def notify_booking_friend_web_push(
         f"{friend} har også booket {booked_class.activity.name}"
         f" ({booked_class.start_time.strftime('%Y-%m-%d %H:%M')}, {booked_class.location.studio})",
     ):
-        log.error("Failed to send friend booking notification via web push")
+        log.error("Failed to send class friend booking notification via web push")
         return
-    log.info("Friend booking notification posted successfully via web push")
+    log.info("Class friend booking notification posted successfully via web push")
     return
 
 
-def notify_unbooking_friend_web_push(
+def notify_friend_of_cancellation_web_push(
     subscription: PushNotificationSubscription, booked_class: RezervoClass, friend: str
 ) -> None:
     if not notify_web_push(
@@ -109,9 +109,9 @@ def notify_unbooking_friend_web_push(
         f"{friend} har avbestilt {booked_class.activity.name}"
         f" ({booked_class.start_time.strftime('%Y-%m-%d %H:%M')}, {booked_class.location.studio})",
     ):
-        log.error("Failed to send friend booking notification via web push")
+        log.error("Failed to send class friend cancellation notification via web push")
         return
-    log.info("Friend booking notification posted successfully via web push")
+    log.info("Class friend cancellation notification posted successfully via web push")
     return
 
 

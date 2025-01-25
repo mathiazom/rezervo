@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import delete
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -474,28 +474,29 @@ def get_user_relationship_index(db: Session, user_id: UUID):
     return user_relationship_index
 
 
-def get_user_friends(db: Session, user_id: UUID) -> list[UUID]:
-    friends = (
-        db.query(UserRelation)
-        .filter((UserRelation.user_one == user_id) | (UserRelation.user_two == user_id))
-        .filter((UserRelation.relationship == UserRelationship.FRIEND))
-        .all()
+def get_friend_ids_in_class(db: Session, user_id: UUID, class_id: str) -> list[UUID]:
+    return list(
+        db.scalars(
+            select(models.Session.user_id)
+            .join(
+                UserRelation,
+                or_(
+                    and_(
+                        UserRelation.user_one == models.Session.user_id,
+                        UserRelation.user_two == user_id,
+                    ),
+                    and_(
+                        UserRelation.user_two == models.Session.user_id,
+                        UserRelation.user_one == user_id,
+                    ),
+                ),
+            )
+            .filter(
+                UserRelation.relationship == UserRelationship.FRIEND,
+                models.Session.class_id == class_id,
+            )
+        ).all()
     )
-    return [
-        friend.user_one if friend.user_two == user_id else friend.user_two
-        for friend in friends
-    ]
-
-
-def get_friends_in_session(db: Session, user_id: UUID, class_id: str) -> list[UUID]:
-    friends = get_user_friends(db, user_id)
-    friends_in_class = (
-        db.query(models.Session)
-        .filter_by(class_id=class_id)
-        .filter(models.Session.user_id.in_(friends))
-        .all()
-    )
-    return [friend.user_id for friend in friends_in_class]
 
 
 def get_community(db: Session, user_id: UUID) -> Community:
