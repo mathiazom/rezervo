@@ -18,7 +18,7 @@ def generate_calendar_token():
 
 
 def ical_event_from_session(
-    session: UserSession, timezone: str, host: str
+    session: UserSession, timezone: str, host: str | None
 ) -> Optional[cal.Event]:
     _class = session.class_data
     if _class is None:
@@ -35,7 +35,8 @@ def ical_event_from_session(
         "description",
         f"{_class.activity.name} {instructors_str}",
     )
-    event.add("url", activity_url(host, session.chain, _class))
+    if host is not None:
+        event.add("url", activity_url(host, session.chain, _class))
     event.add(
         "location",
         (
