@@ -150,15 +150,17 @@ async def notify_booking_friends(
     booked_class: RezervoClass,
 ) -> None:
     with SessionLocal() as db:
+        user = get_user(db, user_id)
+        if user is None:
+            return
         friends = get_friends_in_session(db, user_id, booked_class.id)
-        my_name = get_user(db, user_id).name
     for friend in friends:
         notified = False
         with SessionLocal() as db:
             push_subscriptions = get_user_push_notification_subscriptions(db, friend)
         if push_subscriptions is not None:
             for subscription in push_subscriptions:
-                notify_booking_friend_web_push(subscription, booked_class, my_name)
+                notify_booking_friend_web_push(subscription, booked_class, user.name)
                 notified = True
             if not notified:
                 log.warning(
@@ -171,15 +173,17 @@ async def notify_unbooking_friends(
     booked_class: RezervoClass,
 ) -> None:
     with SessionLocal() as db:
+        user = get_user(db, user_id)
+        if user is None:
+            return
         friends = get_friends_in_session(db, user_id, booked_class.id)
-        my_name = get_user(db, user_id).name
     for friend in friends:
         notified = False
         with SessionLocal() as db:
             push_subscriptions = get_user_push_notification_subscriptions(db, friend)
         if push_subscriptions is not None:
             for subscription in push_subscriptions:
-                notify_unbooking_friend_web_push(subscription, booked_class, my_name)
+                notify_unbooking_friend_web_push(subscription, booked_class, user.name)
                 notified = True
             if not notified:
                 log.warning(
