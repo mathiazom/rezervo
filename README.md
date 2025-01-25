@@ -66,10 +66,20 @@ Automatic booking of group classes
     ```shell
     docker compose -f docker/docker-compose.dev.yml up -d --build
     ```
-3. Within the container, explore available cli commands
+3. Within the `rezervo` container, initialize FusionAuth
+    ```shell
+    rezervo fusionauth init
+    ```
+4. Explore other available cli commands with
     ```shell
     rezervo --help
     ```
+   
+#### 🦹 FusionAuth Admin Site
+
+The administration tool for FusionAuth is available at [`http://localhost:9011`](http://localhost:9011)
+
+Login credentials for the admin user should be defined in `config.json` under `fusionauth.admin`
 
 #### 🧹 Format and lint
 ```shell
