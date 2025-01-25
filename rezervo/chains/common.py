@@ -1,4 +1,5 @@
 from typing import Union
+from uuid import UUID
 
 from rezervo import models
 from rezervo.chains.active import get_chain
@@ -41,9 +42,10 @@ async def book_class(
     auth_data: AuthData,
     _class: RezervoClass,
     config: ConfigValue,
+    user_id: UUID,
 ) -> Union[BookingResult, BookingError, AuthenticationError]:
     return await get_chain(chain_identifier).try_book_class(
-        chain_identifier, auth_data, _class, config
+        chain_identifier, auth_data, _class, config, user_id
     )
 
 
@@ -52,9 +54,10 @@ async def cancel_booking(
     auth_data: AuthData,
     _class: RezervoClass,
     config: ConfigValue,
+    user_id: UUID,
 ) -> Union[None, BookingError, AuthenticationError]:
     res = await get_chain(chain_identifier).try_cancel_booking(
-        auth_data, _class, config
+        auth_data, _class, config, user_id
     )
     if res is None:
         if config.notifications is not None and config.notifications.slack is not None:

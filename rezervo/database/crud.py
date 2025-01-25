@@ -4,7 +4,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import delete
+from sqlalchemy import and_, delete, or_, select
 from sqlalchemy.orm import Session
 from starlette import status
 
@@ -472,6 +472,31 @@ def get_user_relationship_index(db: Session, user_id: UUID):
         )
         user_relationship_index[other_user_id] = relationship_status
     return user_relationship_index
+
+
+def get_friend_ids_in_class(db: Session, user_id: UUID, class_id: str) -> list[UUID]:
+    return list(
+        db.scalars(
+            select(models.Session.user_id)
+            .join(
+                UserRelation,
+                or_(
+                    and_(
+                        UserRelation.user_one == models.Session.user_id,
+                        UserRelation.user_two == user_id,
+                    ),
+                    and_(
+                        UserRelation.user_two == models.Session.user_id,
+                        UserRelation.user_one == user_id,
+                    ),
+                ),
+            )
+            .filter(
+                UserRelation.relationship == UserRelationship.FRIEND,
+                models.Session.class_id == class_id,
+            )
+        ).all()
+    )
 
 
 def get_community(db: Session, user_id: UUID) -> Community:

@@ -1,10 +1,20 @@
+from enum import Enum
 from typing import Optional
+from uuid import UUID
 
+from rezervo.database.crud import (
+    get_friend_ids_in_class,
+    get_user,
+    get_user_push_notification_subscriptions,
+)
+from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.push import (
     notify_auth_failure_web_push,
     notify_booking_failure_web_push,
     notify_booking_web_push,
+    notify_friend_of_booking_web_push,
+    notify_friend_of_cancellation_web_push,
 )
 from rezervo.notify.slack import (
     notify_auth_failure_slack,
@@ -134,3 +144,52 @@ def schedule_class_reminder(
         )
     log.warning("No notification targets, class reminder will not be sent")
     return None
+
+
+class ClassFriendNotificationType(Enum):
+    BOOKING = "booking"
+    CANCELLATION = "cancellation"
+
+
+async def notify_class_friends(
+    user_id: UUID,
+    booked_class: RezervoClass,
+    notification_type: ClassFriendNotificationType,
+) -> None:
+    with SessionLocal() as db:
+        user = get_user(db, user_id)
+        if user is None:
+            return
+        friend_ids = get_friend_ids_in_class(db, user_id, booked_class.id)
+    for friend_id in friend_ids:
+        with SessionLocal() as db:
+            push_subscriptions = get_user_push_notification_subscriptions(db, friend_id)
+        if push_subscriptions is not None:
+            for subscription in push_subscriptions:
+                match notification_type:
+                    case ClassFriendNotificationType.BOOKING:
+                        notify_friend_of_booking_web_push(
+                            subscription, booked_class, user.name
+                        )
+                    case ClassFriendNotificationType.CANCELLATION:
+                        notify_friend_of_cancellation_web_push(
+                            subscription, booked_class, user.name
+                        )
+
+
+async def notify_class_friends_of_booking(
+    user_id: UUID,
+    booked_class: RezervoClass,
+) -> None:
+    await notify_class_friends(
+        user_id, booked_class, ClassFriendNotificationType.BOOKING
+    )
+
+
+async def notify_class_friends_of_cancellation(
+    user_id: UUID,
+    booked_class: RezervoClass,
+) -> None:
+    await notify_class_friends(
+        user_id, booked_class, ClassFriendNotificationType.CANCELLATION
+    )

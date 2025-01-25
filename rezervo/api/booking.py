@@ -13,6 +13,7 @@ from rezervo.chains.common import (
 )
 from rezervo.database import crud
 from rezervo.errors import AuthenticationError, BookingError
+from rezervo.models import User
 from rezervo.notify.apprise import aprs
 from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.app import AppConfig
@@ -30,7 +31,7 @@ def authenticate_chain_user_with_config(
     db: Session,
     app_config: AppConfig,
     token: str,
-) -> tuple[ChainUser, ConfigValue]:
+) -> tuple[User, ChainUser, ConfigValue]:
     db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
@@ -38,7 +39,7 @@ def authenticate_chain_user_with_config(
     if chain_user is None:
         log.warning(f"No '{chain_identifier}' user for given user id")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return chain_user, crud.get_user_config(db, db_user).config
+    return db_user, chain_user, crud.get_user_config(db, db_user).config
 
 
 class BookingPayload(CamelModel):
@@ -55,7 +56,7 @@ async def book_class_api(
     app_config: AppConfig = Depends(read_app_config),
 ):
     log.debug("Authenticating rezervo user ...")
-    chain_user, config = authenticate_chain_user_with_config(
+    user, chain_user, config = authenticate_chain_user_with_config(
         chain_identifier, db, app_config, token
     )
     log.debug("Searching for class...")
@@ -95,7 +96,13 @@ async def book_class_api(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     log.debug("Booking class...")
-    booking_result = await book_class(chain_user.chain, auth_data, _class, config)
+    booking_result = await book_class(
+        chain_user.chain,
+        auth_data,
+        _class,
+        config,
+        user.id,
+    )
     match booking_result:
         case AuthenticationError():
             with aprs_ctx() as error_ctx:
@@ -136,7 +143,7 @@ async def cancel_booking_api(
     app_config: AppConfig = Depends(read_app_config),
 ):
     log.debug("Authenticating rezervo user...")
-    chain_user, config = authenticate_chain_user_with_config(
+    user, chain_user, config = authenticate_chain_user_with_config(
         chain_identifier, db, app_config, token
     )
     log.debug("Searching for class...")
@@ -176,7 +183,13 @@ async def cancel_booking_api(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     log.debug("Cancelling booking...")
-    cancellation_res = await cancel_booking(chain_user.chain, auth_data, _class, config)
+    cancellation_res = await cancel_booking(
+        chain_user.chain,
+        auth_data,
+        _class,
+        config,
+        user.id,
+    )
     match cancellation_res:
         case AuthenticationError():
             with aprs_ctx() as error_ctx:
