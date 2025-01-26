@@ -5,7 +5,7 @@ from rezervo.chains.schema import (
     ThemeSpecificImages,
 )
 from rezervo.providers.brpsystems.provider import BrpProvider
-from rezervo.providers.schema import Branch, Location
+from rezervo.providers.schema import Branch, CheckInTerminal, Location
 from rezervo.utils.santa_utils import check_santa_time
 
 is_santa_time = check_santa_time()
@@ -31,7 +31,16 @@ class FscChain(Chain, BrpProvider):
             identifier="ski",
             name="Ski",
             locations=[
-                Location(identifier="ski", name="Ski", provider_identifier=8),
+                Location(
+                    identifier="ski",
+                    name="Ski",
+                    provider_identifier=8,
+                    check_in_terminals=[
+                        CheckInTerminal(id="226", label="Ytterdør", has_printer=False),
+                        CheckInTerminal(id="225", label="Sluse", has_printer=True),
+                        CheckInTerminal(id="20", label="Booking1", has_printer=True),
+                    ],
+                ),
             ],
         ),
         Branch(

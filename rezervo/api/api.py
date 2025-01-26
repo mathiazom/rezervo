@@ -10,6 +10,7 @@ from rezervo.api import (
     cal,
     chain_config,
     chains,
+    check_in,
     classes,
     community,
     features,
@@ -53,3 +54,4 @@ api.include_router(slack.router, tags=["slack"])
 api.include_router(user.router, tags=["user"])
 api.include_router(community.router, tags=["community"])
 api.include_router(webhooks.router, tags=["webhooks"])
+api.include_router(check_in.router, tags=["check in"])
