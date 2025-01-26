@@ -52,24 +52,24 @@ class SatsChain(Chain, SatsProvider):
                 ),
             ],
         ),
-        Branch(
-            identifier="bergen",
-            name="Bergen",
-            locations=[
-                Location(identifier="bergen", name="Bergen", provider_identifier=114),
-                Location(
-                    identifier="damsgård", name="Damsgård", provider_identifier=231
-                ),
-                Location(identifier="lagunen", name="Lagunen", provider_identifier=187),
-            ],
-        ),
-        Branch(
-            identifier="rogaland",
-            name="Rogaland",
-            locations=[
-                Location(identifier="bryne", name="Bryne", provider_identifier=232),
-                Location(identifier="sandnes", name="Sandnes", provider_identifier=171),
-                Location(identifier="hinna", name="Hinna", provider_identifier=267),
-            ],
-        ),
+        # Branch(
+        #     identifier="bergen",
+        #     name="Bergen",
+        #     locations=[
+        #         Location(identifier="bergen", name="Bergen", provider_identifier=114),
+        #         Location(
+        #             identifier="damsgård", name="Damsgård", provider_identifier=231
+        #         ),
+        #         Location(identifier="lagunen", name="Lagunen", provider_identifier=187),
+        #     ],
+        # ),
+        # Branch(
+        #     identifier="rogaland",
+        #     name="Rogaland",
+        #     locations=[
+        #         Location(identifier="bryne", name="Bryne", provider_identifier=232),
+        #         Location(identifier="sandnes", name="Sandnes", provider_identifier=171),
+        #         Location(identifier="hinna", name="Hinna", provider_identifier=267),
+        #     ],
+        # ),
     ]
