@@ -1,15 +1,24 @@
-from typing import Generic, TypeAlias, TypeVar
+from typing import Generic, Optional, TypeAlias, TypeVar
 
 from pydantic import BaseModel
+
+from rezervo.schemas.camel import CamelModel
 
 LocationIdentifier: TypeAlias = str
 
 LocationProviderIdentifier = TypeVar("LocationProviderIdentifier")
 
 
-class BaseLocation(BaseModel):
+class CheckInTerminal(CamelModel):
+    id: str
+    label: str
+    has_printer: bool
+
+
+class BaseLocation(CamelModel):
     identifier: LocationIdentifier
     name: str
+    check_in_terminals: Optional[list[CheckInTerminal]] = []
 
 
 class Location(BaseLocation, Generic[LocationProviderIdentifier]):

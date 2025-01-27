@@ -42,6 +42,7 @@ from rezervo.providers.provider import Provider
 from rezervo.providers.schedule import find_class_in_schedule_by_config
 from rezervo.providers.schema import LocationIdentifier
 from rezervo.schemas.config.user import (
+    ChainIdentifier,
     ChainUser,
     ChainUserCredentials,
     Class,
@@ -431,3 +432,32 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             ),
             AuthenticationError,
         )
+
+    async def check_in_user(
+        self,
+        chain_identifier: ChainIdentifier,
+        chain_user: ChainUser,
+        terminal_id: str,
+        print_ticket: bool,
+    ) -> bool:
+        auth_data = await self._authenticate(chain_user)
+        if isinstance(auth_data, AuthenticationError):
+            log.error(
+                f"Authentication failed for '{chain_user.chain}' user '{chain_user.username}'"
+            )
+            return False
+        async with HttpClient.singleton().post(
+            f"https://{chain_identifier}.brpsystems.com/brponline/api/ver3/customers/{auth_data.username}/passagetries",
+            json={
+                "cardReader": int(terminal_id),
+                "printTicket": print_ticket,
+            },
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {auth_data.access_token}",
+            },
+        ) as res:
+            if res.status != requests.codes.CREATED:
+                log.error("Check in failed: " + (await res.text()))
+                return False
+        return True

@@ -328,6 +328,15 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     ) -> RezervoSchedule:
         raise NotImplementedError()
 
+    async def check_in_user(
+        self,
+        chain_identifier: ChainIdentifier,
+        chain_user: ChainUser,
+        terminal_id: str,
+        print_ticket: bool,
+    ) -> bool:
+        raise NotImplementedError()
+
     async def fetch_week_schedule(
         self,
         compact_iso_week: str,

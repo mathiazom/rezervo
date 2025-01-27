@@ -112,3 +112,14 @@ async def fetch_week_schedule(
     return await get_chain(chain_identifier).fetch_week_schedule(
         compact_iso_week, locations
     )
+
+
+async def check_in_user(
+    chain_identifier: ChainIdentifier,
+    chain_user: ChainUser,
+    terminal_id: str,
+    print_ticket: bool,
+) -> bool:
+    return await get_chain(chain_identifier).check_in_user(
+        chain_identifier, chain_user, terminal_id, print_ticket
+    )
