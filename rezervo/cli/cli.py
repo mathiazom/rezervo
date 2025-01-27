@@ -211,7 +211,9 @@ async def book(
         time.sleep(wait_time)
         log.info(f"Awoke at {datetime.now().astimezone()}")
     log.debug("Booking class ...")
-    booking_result = await book_class(chain_user.chain, auth_data, _class, config)
+    booking_result = await book_class(
+        chain_user.chain, auth_data, _class, config, user_id
+    )
     if isinstance(booking_result, AuthenticationError):
         with aprs_ctx() as error_ctx:
             aprs.notify(
