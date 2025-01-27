@@ -117,9 +117,9 @@ async def fetch_week_schedule(
 async def check_in_user(
     chain_identifier: ChainIdentifier,
     chain_user: ChainUser,
-    terminal: str,
+    terminal_id: str,
     print_ticket: bool,
 ) -> bool:
     return await get_chain(chain_identifier).check_in_user(
-        chain_identifier, chain_user, terminal, print_ticket
+        chain_identifier, chain_user, terminal_id, print_ticket
     )

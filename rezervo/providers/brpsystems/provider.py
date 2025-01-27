@@ -437,7 +437,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         self,
         chain_identifier: ChainIdentifier,
         chain_user: ChainUser,
-        terminal: str,
+        terminal_id: str,
         print_ticket: bool,
     ) -> bool:
         auth_data = await self._authenticate(chain_user)
@@ -449,7 +449,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         async with HttpClient.singleton().post(
             f"https://{chain_identifier}.brpsystems.com/brponline/api/ver3/customers/{auth_data.username}/passagetries",
             json={
-                "cardReader": int(terminal),
+                "cardReader": int(terminal_id),
                 "printTicket": print_ticket,
             },
             headers={

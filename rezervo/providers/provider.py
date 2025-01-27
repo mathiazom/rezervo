@@ -332,7 +332,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         self,
         chain_identifier: ChainIdentifier,
         chain_user: ChainUser,
-        terminal: str,
+        terminal_id: str,
         print_ticket: bool,
     ) -> bool:
         raise NotImplementedError()

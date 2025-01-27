@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 class CheckInPayload(CamelModel):
-    terminal: str
+    terminal_id: str
     print_ticket: bool
 
 
@@ -37,7 +37,7 @@ async def check_in(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
 
     success = await check_in_user(
-        chain_identifier, chain_user, payload.terminal, payload.print_ticket
+        chain_identifier, chain_user, payload.terminal_id, payload.print_ticket
     )
 
     if not success:
