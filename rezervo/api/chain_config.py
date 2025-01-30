@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from starlette import status
 from starlette.background import BackgroundTasks
 
+from rezervo import models
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.chains.active import get_chain
 from rezervo.cron import refresh_recurring_booking_cron_jobs
@@ -88,6 +89,26 @@ async def put_chain_user_creds(
             username=updated_config.username, is_auth_verified=True
         )
     )
+
+
+@router.delete("/{chain_identifier}/user", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_chain_user(
+    chain_identifier: ChainIdentifier,
+    token=Depends(token_auth_scheme),
+    db: Session = Depends(get_db),
+    app_config: AppConfig = Depends(read_app_config),
+):
+    db_user = crud.user_from_token(db, app_config, token)
+    if db_user is None:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
+
+    chain_user = (
+        db.query(models.ChainUser)
+        .filter_by(user_id=db_user.id, chain=chain_identifier)
+        .one_or_none()
+    )
+    db.delete(chain_user)
+    db.commit()
 
 
 @router.put("/{chain_identifier}/user/totp")
