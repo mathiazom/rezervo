@@ -91,7 +91,7 @@ async def put_chain_user_creds(
     )
 
 
-@router.delete("/{chain_identifier}/user")
+@router.delete("/{chain_identifier}/user", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_chain_user(
     chain_identifier: ChainIdentifier,
     token=Depends(token_auth_scheme),
