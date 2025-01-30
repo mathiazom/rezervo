@@ -92,7 +92,7 @@ async def put_chain_user_creds(
 
 
 @router.delete("/{chain_identifier}/user")
-async def delete_chain_user_creds(
+async def delete_chain_user(
     chain_identifier: ChainIdentifier,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
