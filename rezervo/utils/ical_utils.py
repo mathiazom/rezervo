@@ -33,10 +33,13 @@ def ical_event_from_session(
     )
     event.add(
         "description",
-        f"{_class.activity.name} {instructors_str}",
+        f"{_class.activity.name} {instructors_str}"
+        + (
+            f"\n\n{activity_url(host, session.chain, _class)}"
+            if host is not None
+            else ""
+        ),
     )
-    if host is not None:
-        event.add("url", activity_url(host, session.chain, _class))
     event.add(
         "location",
         (
