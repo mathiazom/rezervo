@@ -11,19 +11,19 @@ from rezervo.utils.santa_utils import check_santa_time
 is_santa_time = check_santa_time()
 
 
-class FscChain(Chain, BrpProvider):
+class SportyChain(Chain, BrpProvider):
     identifier = "fsc"
-    name = "Family Sports Club"
+    name = "Sporty"
     brp_subdomain = "fsc"
     images = ChainProfileImages(
         light=ThemeSpecificImages(
-            large_logo=f"images/chains/fsc/light/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+            large_logo=f"images/chains/sporty/light/logo_large{'_santa' if is_santa_time else ''}.svg"
         ),
         dark=ThemeSpecificImages(
-            large_logo=f"images/chains/fsc/dark/logo_large{'_santa.png' if is_santa_time else '.svg'}"
+            large_logo=f"images/chains/sporty/dark/logo_large{'_santa' if is_santa_time else ''}.svg"
         ),
         common=ThemeAgnosticImages(
-            small_logo=f"images/chains/fsc/common/logo_small{'_santa' if is_santa_time else ''}.png"
+            small_logo=f"images/chains/sporty/common/logo_small{'_santa' if is_santa_time else ''}.svg"
         ),
     )
     branches = [
