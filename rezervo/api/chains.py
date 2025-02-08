@@ -12,7 +12,7 @@ def chain_response_from_chain(chain):
         profile=ChainProfile(
             identifier=chain.identifier,
             name=chain.name,
-            images=chain.images,
+            images=chain.images(),
         ),
         branches=[
             BranchProfile(

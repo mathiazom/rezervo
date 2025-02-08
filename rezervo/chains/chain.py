@@ -16,7 +16,6 @@ class Chain(Provider):
     def name(self) -> str:
         raise NotImplementedError()
 
-    @property
     @abstractmethod
     def images(self) -> ChainProfileImages:
         raise NotImplementedError()

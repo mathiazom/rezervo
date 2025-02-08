@@ -8,24 +8,26 @@ from rezervo.providers.brpsystems.provider import BrpProvider
 from rezervo.providers.schema import Branch, CheckInTerminal, Location
 from rezervo.utils.santa_utils import check_santa_time
 
-is_santa_time = check_santa_time()
-
 
 class SportyChain(Chain, BrpProvider):
     identifier = "fsc"
     name = "Sporty"
     brp_subdomain = "fsc"
-    images = ChainProfileImages(
-        light=ThemeSpecificImages(
-            large_logo=f"images/chains/sporty/light/logo_large{'_santa' if is_santa_time else ''}.svg"
-        ),
-        dark=ThemeSpecificImages(
-            large_logo=f"images/chains/sporty/dark/logo_large{'_santa' if is_santa_time else ''}.svg"
-        ),
-        common=ThemeAgnosticImages(
-            small_logo=f"images/chains/sporty/common/logo_small{'_santa' if is_santa_time else ''}.svg"
-        ),
-    )
+
+    def images(self) -> ChainProfileImages:
+        is_santa_time = check_santa_time()
+        return ChainProfileImages(
+            light=ThemeSpecificImages(
+                large_logo=f"images/chains/sporty/light/logo_large{'_santa' if is_santa_time else ''}.svg"
+            ),
+            dark=ThemeSpecificImages(
+                large_logo=f"images/chains/sporty/dark/logo_large{'_santa' if is_santa_time else ''}.svg"
+            ),
+            common=ThemeAgnosticImages(
+                small_logo=f"images/chains/sporty/common/logo_small{'_santa' if is_santa_time else ''}.svg"
+            ),
+        )
+
     branches = [
         Branch(
             identifier="ski",

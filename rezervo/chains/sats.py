@@ -8,23 +8,25 @@ from rezervo.providers.sats.provider import SatsProvider
 from rezervo.providers.schema import Branch, Location
 from rezervo.utils.santa_utils import check_santa_time
 
-is_santa_time = check_santa_time()
-
 
 class SatsChain(Chain, SatsProvider):
     identifier = "sats"
     name = "Sats"
-    images = ChainProfileImages(
-        light=ThemeSpecificImages(
-            large_logo=f"images/chains/sats/light/logo_large{'_santa' if is_santa_time else ''}.png"
-        ),
-        dark=ThemeSpecificImages(
-            large_logo=f"images/chains/sats/dark/logo_large{'_santa' if is_santa_time else ''}.png"
-        ),
-        common=ThemeAgnosticImages(
-            small_logo=f"images/chains/sats/common/logo_small{'_santa' if is_santa_time else ''}.png"
-        ),
-    )
+
+    def images(self) -> ChainProfileImages:
+        is_santa_time = check_santa_time()
+        return ChainProfileImages(
+            light=ThemeSpecificImages(
+                large_logo=f"images/chains/sats/light/logo_large{'_santa' if is_santa_time else ''}.png"
+            ),
+            dark=ThemeSpecificImages(
+                large_logo=f"images/chains/sats/dark/logo_large{'_santa' if is_santa_time else ''}.png"
+            ),
+            common=ThemeAgnosticImages(
+                small_logo=f"images/chains/sats/common/logo_small{'_santa' if is_santa_time else ''}.png"
+            ),
+        )
+
     branches = [
         Branch(
             identifier="oslo/akershus",
