@@ -49,15 +49,8 @@ class TttChain(Chain, BrpProvider):
                     identifier="ranheim", name="Ranheim", provider_identifier=5819
                 ),
                 Location(identifier="rosten", name="Rosten", provider_identifier=1),
-                Location(identifier="saupstad", name="Saupstad", provider_identifier=4),
-                Location(identifier="sluppen", name="Sluppen", provider_identifier=6),
                 Location(
                     identifier="solsiden", name="Solsiden", provider_identifier=4542
-                ),
-                Location(
-                    identifier="cageball-rosten",
-                    name="Cageball Rosten",
-                    provider_identifier=4812,
                 ),
                 Location(
                     identifier="crossfit-moholt",
