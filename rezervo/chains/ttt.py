@@ -42,6 +42,7 @@ class TttChain(Chain, BrpProvider):
                 Location(
                     identifier="ilsvika", name="Ilsvika", provider_identifier=5587
                 ),
+                Location(identifier="lade", name="Lade", provider_identifier=7195),
                 Location(identifier="leangen", name="Leangen", provider_identifier=2),
                 Location(identifier="midtbyen", name="Midtbyen", provider_identifier=3),
                 Location(identifier="moholt", name="Moholt", provider_identifier=5588),
