@@ -117,7 +117,7 @@ async def handle_cancel_booking_slack_action(
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
     cancellation_error = await cancel_booking(
-        chain_user.chain, auth_data, _class_res, config
+        chain_user.chain, auth_data, _class_res, config, user_id
     )
     if cancellation_error is not None:
         if slack_config is not None:
