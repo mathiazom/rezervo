@@ -66,6 +66,7 @@ from rezervo.schemas.schedule import (
 )
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import log
+from rezervo.utils.str_utils import standardize_activity_name
 
 
 class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
@@ -358,7 +359,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 id=create_activity_id(
                     sats_class.metadata.name, sats_class.metadata.clubName
                 ),  # Sats does not provide activity ids
-                name=sats_class.metadata.name,
+                name=standardize_activity_name(sats_class.metadata.name),
                 category=category.name,
                 description=sats_class.text,
                 color=category.color,
