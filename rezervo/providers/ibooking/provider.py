@@ -60,6 +60,7 @@ from rezervo.schemas.schedule import (
 )
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import log
+from rezervo.utils.str_utils import standardize_activity_name
 
 
 class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
@@ -231,7 +232,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
             waiting_list_count=ibooking_class.waitlist.count,
             activity=RezervoActivity(
                 id=str(ibooking_class.activity_id),
-                name=ibooking_class.name,
+                name=standardize_activity_name(ibooking_class.name),
                 category=determine_activity_category(ibooking_class.category.name).name,
                 description=ibooking_class.description,
                 color=ibooking_class.color,

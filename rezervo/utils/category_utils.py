@@ -71,6 +71,7 @@ ACTIVITY_CATEGORIES = [
             "shape",
             "flexibility",
             "balance",
+            "relax",
         ],
     ),
     RezervoCategory(
@@ -84,6 +85,7 @@ ACTIVITY_CATEGORIES = [
         keywords=[
             "kondis",
             "step",
+            "mølle",
             "løp",
             "puls",
             "bodyattack",
@@ -126,6 +128,11 @@ ACTIVITY_CATEGORIES = [
             "kettlebell",
             "skill athletic",
             "sirkel",
+            "powerpit",
+            "hybrid track",
+            "ukas økt",
+            "reformer",
+            "hyrox",
         ],
     ),
 ]

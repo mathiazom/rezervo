@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-import re
 from abc import abstractmethod
 from typing import Optional, Union
 
@@ -61,6 +60,7 @@ from rezervo.schemas.schedule import (
 from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.category_utils import determine_activity_category
 from rezervo.utils.logging_utils import log
+from rezervo.utils.str_utils import standardize_activity_name
 
 
 class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
@@ -342,7 +342,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             waiting_list_count=brp_class.slots.inWaitingList,
             activity=RezervoActivity(
                 id=str(brp_class.groupActivityProduct.id),
-                name=re.sub(r"\s\(\d+\)$", "", brp_class.groupActivityProduct.name),
+                name=standardize_activity_name(brp_class.groupActivityProduct.name),
                 category=category.name,
                 description=(
                     brp_class.activity_details.description
