@@ -11,8 +11,19 @@ from rezervo.schemas.base import OrmBase
 from rezervo.schemas.camel import CamelModel, CamelOrmBase
 
 
+class HourAndMinute(CamelOrmBase):
+    hour: int
+    minute: int
+
+
+class AllowedTimeWindowConfig(CamelOrmBase):
+    not_before: HourAndMinute
+    not_after: HourAndMinute
+
+
 class Notifications(CamelOrmBase):
     reminder_hours_before: Optional[float] = None
+    reminder_allowed_time_window: Optional[AllowedTimeWindowConfig]
 
 
 class UserPreferences(OrmBase):
