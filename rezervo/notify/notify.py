@@ -1,3 +1,4 @@
+import datetime
 from enum import Enum
 from typing import Optional
 from uuid import UUID
@@ -22,8 +23,9 @@ from rezervo.notify.slack import (
     notify_booking_slack,
     schedule_class_reminder_slack,
 )
+from rezervo.notify.types import AllowedTimeWindow
 from rezervo.schemas.config import config
-from rezervo.schemas.config.user import ChainIdentifier, Class
+from rezervo.schemas.config.user import AllowedTimeWindowConfig, ChainIdentifier, Class
 from rezervo.schemas.schedule import RezervoClass
 from rezervo.utils.logging_utils import log
 
@@ -134,6 +136,13 @@ def schedule_class_reminder(
     if slack_config is not None and slack_config.user_id is not None:
         if notifications_config.reminder_hours_before is None:
             return None
+        time_window = (
+            parse_allowed_time_window_config(
+                notifications_config.reminder_allowed_time_window
+            )
+            if notifications_config.reminder_allowed_time_window is not None
+            else None
+        )
         return schedule_class_reminder_slack(
             slack_config.bot_token,
             slack_config.user_id,
@@ -141,9 +150,27 @@ def schedule_class_reminder(
             chain_identifier,
             booked_class,
             notifications_config.reminder_hours_before,
+            time_window,
         )
     log.warning("No notification targets, class reminder will not be sent")
     return None
+
+
+def parse_allowed_time_window_config(
+    window_config: AllowedTimeWindowConfig,
+) -> Optional[AllowedTimeWindow]:
+    not_before = datetime.time(
+        hour=window_config.not_before.hour, minute=window_config.not_after.minute
+    )
+    not_after = datetime.time(
+        hour=window_config.not_after.hour, minute=window_config.not_after.minute
+    )
+    if not_before >= not_after:
+        return None
+    window = AllowedTimeWindow()
+    window.not_after = not_after
+    window.not_before = not_before
+    return window
 
 
 class ClassFriendNotificationType(Enum):
