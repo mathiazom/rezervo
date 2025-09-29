@@ -23,7 +23,7 @@ class AllowedTimeWindowConfig(CamelOrmBase):
 
 class Notifications(CamelOrmBase):
     reminder_hours_before: Optional[float] = None
-    reminder_allowed_time_window: Optional[AllowedTimeWindowConfig]
+    reminder_allowed_time_window: Optional[AllowedTimeWindowConfig] = None
 
 
 class UserPreferences(OrmBase):
