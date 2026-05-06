@@ -3,9 +3,7 @@ from functools import lru_cache
 from typing import Optional
 
 import typer
-from auth0.authentication import GetToken  # type: ignore
-from auth0.management import Auth0  # type: ignore
-from auth0.rest import RestClientOptions  # type: ignore
+from auth0.management import ManagementClient  # type: ignore
 from fusionauth.fusionauth_client import FusionAuthClient  # type: ignore
 
 from rezervo import models
@@ -25,22 +23,10 @@ def get_fusionauth_client():
 
 def retrieve_all_auth0_user_emails(user_ids: list[str]):
     auth0_client = get_auth0_management_client()
-    auth0_user_emails = {}
-    per_page = 50  # Auth0 max per_page is 50
-    page = 0
     query = f"user_id:({' OR '.join(user_ids)})"
-    while True:
-        page_res = auth0_client.users.list(
-            page=page, per_page=per_page, q=query, fields=["user_id", "email"]
-        )
-        for user in page_res["users"]:
-            auth0_user_emails[user["user_id"]] = user["email"]
-        if (
-            len(auth0_user_emails) >= page_res["total"]
-            or page_res["length"] < page_res["limit"]
-        ):
-            break
-        page += 1
+    auth0_user_emails = {}
+    for user in auth0_client.users.list(q=query, fields="user_id,email"):
+        auth0_user_emails[user.user_id] = user.email
     return auth0_user_emails
 
 
@@ -111,7 +97,7 @@ def migrate_from_auth0(
 
 
 @lru_cache()
-def get_auth0_management_client() -> Auth0:
+def get_auth0_management_client() -> ManagementClient:
     migration_config = read_app_config().fusionauth.auth0_migration
     if migration_config is None:
         raise ValueError(f"Auth0 migration configuration not found in {CONFIG_FILE}")
@@ -122,9 +108,9 @@ def get_auth0_management_client() -> Auth0:
         raise ValueError(
             "Auth0 management API client credentials not configured correctly"
         )
-    mgmt_api_token = GetToken(
+    return ManagementClient(
         domain=domain,
         client_id=client_id,
         client_secret=client_secret,
-    ).client_credentials(audience=f"https://{domain}/api/v2/")["access_token"]
-    return Auth0(domain, mgmt_api_token, RestClientOptions(timeout=20.0))
+        timeout=20.0,
+    )
