@@ -87,6 +87,10 @@ ignore_fail = "return_non_zero"
 cmd = "black rezervo"
 help = "Format code using black"
 
+[tool.poe.tasks.fmtcheck]
+cmd = "black --check rezervo"
+help = "Check formatting using black"
+
 [tool.poe.tasks.lintfix]
 cmd = "ruff check rezervo --fix"
 help = "Lint and fix code using ruff"
