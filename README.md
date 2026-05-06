@@ -15,18 +15,12 @@ Automatic booking of group classes
    <a href="https://www.sats.no">
       <img src="assets/badges/chains/sats.svg" alt="sats" height="45">
    </a>
-   <a href="https://www.sit.no">
-      <img src="assets/badges/chains/sit.svg" alt="sit" height="45">
-   </a>
 </div>
 
 #### ⚙️ Providers
 <div class="image-link-container">
    <a href="https://www.brpsystems.com">
       <img src="assets/badges/providers/brpsystems.svg" alt="brpsystems" height="35">
-   </a>
-   <a href="https://www.ibooking.no">
-      <img src="assets/badges/providers/ibooking.svg" alt="ibooking" height="35">
    </a>
 </div>
 
