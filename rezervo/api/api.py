@@ -1,3 +1,5 @@
+from importlib.metadata import version
+
 from fastapi import (
     FastAPI,
 )
@@ -26,7 +28,11 @@ from rezervo.http_client import HttpClient
 from rezervo.schemas.config.config import read_app_config
 
 api = FastAPI(
-    on_startup=[HttpClient.singleton], on_shutdown=[HttpClient.close_singleton]
+    title="rezervo",
+    description="Automatic booking of group classes",
+    version=version("rezervo"),
+    on_startup=[HttpClient.singleton],
+    on_shutdown=[HttpClient.close_singleton],
 )
 
 api.add_middleware(
