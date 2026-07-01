@@ -5,7 +5,7 @@ from rezervo.utils.category_utils import ACTIVITY_CATEGORIES, RezervoBaseCategor
 router = APIRouter()
 
 
-@router.get("/categories")
+@router.get("/categories", response_model=list[RezervoBaseCategory])
 async def get_activity_categories():
     return [
         RezervoBaseCategory(
