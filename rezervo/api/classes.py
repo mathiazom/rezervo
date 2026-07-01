@@ -8,7 +8,7 @@ from rezervo.schemas.schedule import RezervoClass
 router = APIRouter()
 
 
-@router.get("/classes/{chain_identifier}/{class_id}")
+@router.get("/classes/{chain_identifier}/{class_id}", response_model=RezervoClass)
 async def get_chain_class_by_id(chain_identifier: ChainIdentifier, class_id: str):
     if chain_identifier not in ACTIVE_CHAIN_IDENTIFIERS:
         raise HTTPException(
