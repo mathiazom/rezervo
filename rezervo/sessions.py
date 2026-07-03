@@ -45,6 +45,7 @@ async def pull_chain_sessions(
                 for chain_user in chain_users
             ]
         ),
+        strict=False,
     ):
         with SessionLocal() as db:
             crud.upsert_user_chain_sessions(

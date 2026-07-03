@@ -28,10 +28,10 @@ Automatic booking of group classes
 ### 🧑‍💻 Development
 
 #### 🐍 Setup Python environment
-1. Ensure Python 3.10+ is installed
-2. Install dependencies using Poetry (install from https://python-poetry.org/docs/#installation)
+1. Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+2. Install dependencies (uv will also provision a compatible Python version)
     ```shell
-    poetry install
+    uv sync
     ```
 3. In the [`rezervo`](rezervo) directory, define `db.env`, `fusionauth.env` and `config.json` based on [`db.env.template`](rezervo/db.env.template), [`fusionauth.env.template`](rezervo/fusionauth.env.template) and [`config.template.json`](rezervo/config.template.json). This includes defining FusionAuth configuration, credentials for Slack notifications and app-wide booking preferences.
    

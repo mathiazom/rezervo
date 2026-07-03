@@ -1,15 +1,14 @@
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["uv_build>=0.11.26,<0.12.0"]
+build-backend = "uv_build"
 
-[tool.poetry]
+[project]
 name = "rezervo"
 version = "0.1.0"
 description = "Automatic booking of group classes"
-authors = ["Mathias Oterhals Myklebust <mathias@oterbust.no>"]
+authors = [{ name = "Mathias Oterhals Myklebust", email = "mathias@oterbust.no" }]
+requires-python = ">=3.10,<4"
 readme = "README.md"
-packages = [{include = "rezervo"}]
-repository = "https://github.com/mathiazom/rezervo"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -17,64 +16,73 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+    "pydantic>=2.13.4,<3",
+    "pydantic-settings>=2.14.0,<3",
+    "fastapi>=0.136.1,<0.137",
+    "requests>=2.33.1,<3",
+    "pytz>=2026.2,<2027",
+    "typer>=0.25.1,<0.26",
+    "slack-sdk>=3.41.0,<4",
+    "uvicorn>=0.46.0,<0.47",
+    "python-multipart>=0.0.27,<0.0.28",
+    "dataclass-wizard[yaml]>=0.39.1,<0.40",
+    "pyjwt>=2.12.1,<3",
+    "sqlalchemy>=2.0.49,<3",
+    "alembic>=1.18.4,<2",
+    "psycopg2-binary>=2.9.12,<3",
+    "rich>=15.0.0,<16",
+    "python-crontab>=3.3.0,<4",
+    "deepmerge>=2.0,<3",
+    "auth0-python>=5.4.0,<6",
+    "icalendar>=7.1.0,<8",
+    "pywebpush>=2.3.0,<3",
+    "croniter>=6.2.2,<7", # required by python-crontab schedule feature
+    "humanize>=4.15.0,<5",
+    "pyhumps>=3.8.0,<4",
+    "asyncer>=0.0.17,<0.0.18",
+    "tabulate>=0.10.0,<0.11",
+    "cron-descriptor>=2.0.8,<3",
+    "aiohttp>=3.13.5,<4",
+    "pillow>=12.2.0,<13",
+    "playwright>=1.59.0,<2",
+    "xxhash>=3.7.0,<4",
+    "apprise>=1.10.0,<2",
+    "isoweek>=1.3.3,<2",
+    "psutil>=7.2.2,<8",
+    "fusionauth-client>=1.65.0,<2",
+    "tldextract>=5.3.1,<6",
+]
 
-[tool.poetry.urls]
+[project.urls]
+Repository = "https://github.com/mathiazom/rezervo"
 "Bug Tracker" = "https://github.com/mathiazom/rezervo/issues"
 
-[tool.poetry.scripts]
+[project.scripts]
 rezervo = "rezervo.cli.cli:cli"
 
-[tool.poetry.dependencies]
-python = "^3.10"
-pydantic = "^2.13.4"
-pydantic-settings = "^2.14.0"
-fastapi = "^0.136.1"
-requests = "^2.33.1"
-pytz = "^2026.2"
-typer = "^0.25.1"
-slack-sdk = "^3.41.0"
-uvicorn = "^0.46.0"
-python-multipart = "^0.0.27"
-dataclass-wizard = {extras = ["yaml"], version = "^0.39.1"}
-pyjwt = "^2.12.1"
-sqlalchemy = "^2.0.49"
-alembic = "^1.18.4"
-psycopg2-binary = "^2.9.12"
-rich = "^15.0.0"
-python-crontab = "^3.3.0"
-deepmerge = "^2.0"
-auth0-python = "^5.4.0"
-icalendar = "^7.1.0"
-pywebpush = "^2.3.0"
-croniter = "^6.2.2" # required by python-crontab schedule feature
-humanize = "^4.15.0"
-pyhumps = "^3.8.0"
-asyncer = "^0.0.17"
-tabulate = "^0.10.0"
-cron-descriptor = "^2.0.8"
-aiohttp = "^3.13.5"
-pillow = "^12.2.0"
-playwright = "^1.59.0"
-xxhash = "^3.7.0"
-apprise = "^1.10.0"
-isoweek = "^1.3.3"
-psutil = "^7.2.2"
-fusionauth-client = "^1.65.0"
-tldextract = "^5.3.1"
+[dependency-groups]
+dev = [
+    "mypy>=1.8.0,<2",
+    "poethepoet>=0.22.0,<0.23",
+    "black>=24.4.0,<25",
+    "ruff>=0.4.1,<0.5",
+    "types-python-crontab>=3.0.0.1,<4",
+    "types-pyyaml>=6.0.12.12,<7",
+    "types-python-dateutil>=2.8.19.14,<3",
+    "types-pytz>=2023.3.1.1,<2024",
+    "types-requests>=2.31.0.10,<3",
+    "types-tabulate>=0.9.0.20240106,<0.10",
+    "types-pillow>=10.2.0.20240311,<11",
+    "types-psutil>=6.1.0.20241221,<7",
+]
 
-[tool.poetry.group.dev.dependencies]
-mypy = "^1.8.0"
-poethepoet = "^0.22.0"
-black = "^24.4.0"
-ruff = "^0.4.1"
-types-python-crontab = "^3.0.0.1"
-types-pyyaml = "^6.0.12.12"
-types-python-dateutil = "^2.8.19.14"
-types-pytz = "^2023.3.1.1"
-types-requests = "^2.31.0.10"
-types-tabulate = "^0.9.0.20240106"
-types-pillow = "^10.2.0.20240311"
-types-psutil = "^6.1.0.20241221"
+[tool.uv]
+default-groups = "all"
+
+[tool.uv.build-backend]
+module-name = ["rezervo"]
+module-root = ""
 
 [tool.poe.tasks]
 fix = ["fmt", "lintfix"]
