@@ -2,10 +2,10 @@ name: "rezervo"
 services:
   db:
     container_name: rezervo-db
-    image: postgres:14.5
+    image: postgres:18
     restart: unless-stopped
     volumes:
-      - rezervo-data:/var/lib/postgresql/data
+      - rezervo-data:/var/lib/postgresql
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 5s
