@@ -11,23 +11,30 @@ RUN ln -sf /usr/share/zoneinfo/Europe/Amsterdam /etc/localtime
 COPY docker/limits_mods.conf .
 RUN cat ./limits_mods.conf >> /etc/security/limits.conf
 
+# install uv (https://docs.astral.sh/uv/guides/integration/docker/)
+COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /uvx /bin/
+
 WORKDIR /app
 
-ENV POETRY_HOME=/opt/poetry
+# install into the system environment so console scripts (rezervo, alembic,
+# playwright) are available on PATH for the entrypoint and cron jobs
+# https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
+ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
-RUN python3 -m venv $POETRY_HOME
+# optimizations
+ENV UV_COMPILE_BYTECODE=1
+ENV UV_LINK_MODE=copy
 
-ENV PATH="$POETRY_HOME/bin:$PATH"
-
-RUN pip install poetry==1.8.3
-
-RUN poetry config virtualenvs.create false
-
-COPY pyproject.toml poetry.lock README.md ./
+# install dependencies in a separate, cache-friendly layer from the project,
+# so they are only reinstalled when pyproject.toml/uv.lock change
+# https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
+COPY pyproject.toml uv.lock README.md ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev --no-install-project
 
 COPY rezervo rezervo
-
-RUN poetry install --only main
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-dev
 
 # install Playwright browser and required deps
 RUN playwright install --with-deps firefox
