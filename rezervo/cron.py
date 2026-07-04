@@ -1,5 +1,4 @@
 import asyncio
-from typing import Optional
 from uuid import UUID
 
 from crontab import CronTab
@@ -18,7 +17,7 @@ from rezervo.utils.logging_utils import log
 
 
 async def refresh_recurring_booking_cron_jobs(
-    user_id: Optional[UUID] = None,
+    user_id: UUID | None = None,
     chain_identifiers: list[ChainIdentifier] = ACTIVE_CHAIN_IDENTIFIERS,
 ):
     chains = [get_chain(c) for c in chain_identifiers]

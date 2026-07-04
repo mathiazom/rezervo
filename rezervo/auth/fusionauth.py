@@ -8,14 +8,14 @@ from rezervo.schemas.config.config import read_app_config
 from rezervo.settings import get_settings
 
 
-@lru_cache()
+@lru_cache
 def get_fusionauth_client():
     return FusionAuthClient(
         get_settings().FUSIONAUTH_API_KEY, read_app_config().fusionauth.internal_url
     )
 
 
-@lru_cache()
+@lru_cache
 def get_jwt_public_key():
     res = get_fusionauth_client().retrieve_jwt_public_key_by_application_id(
         read_app_config().fusionauth.application_id

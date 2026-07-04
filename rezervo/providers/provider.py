@@ -3,7 +3,7 @@ import re
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Generic, Optional, Union
+from typing import Generic
 from uuid import UUID
 
 import pytz
@@ -56,7 +56,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         return False
 
     @property
-    def totp_regex(self) -> Optional[str]:
+    def totp_regex(self) -> str | None:
         return None
 
     @property
@@ -73,7 +73,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
 
     def provider_location_identifier_from_location_identifier(
         self, location_identifier: LocationIdentifier
-    ) -> Optional[LocationProviderIdentifier]:
+    ) -> LocationProviderIdentifier | None:
         for branch in self.branches:
             for location in branch.locations:
                 if location.identifier == location_identifier:
@@ -82,7 +82,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
 
     def location_from_provider_location_identifier(
         self, provider_identifier: LocationProviderIdentifier
-    ) -> Optional[LocationIdentifier]:
+    ) -> LocationIdentifier | None:
         for branch in self.branches:
             for location in branch.locations:
                 if location.provider_identifier == provider_identifier:
@@ -92,7 +92,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     @abstractmethod
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[AuthData, AuthenticationError]:
+    ) -> AuthData | AuthenticationError:
         raise NotImplementedError()
 
     async def extend_auth_session(self, chain_user: ChainUser) -> None:
@@ -102,7 +102,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         self,
         chain_user: ChainUser,
         max_attempts: int,
-    ) -> Union[AuthData, AuthenticationError]:
+    ) -> AuthData | AuthenticationError:
         if max_attempts < 1:
             return AuthenticationError.ERROR
         success = False
@@ -140,13 +140,13 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     async def find_class_by_id(
         self,
         class_id: str,
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         raise NotImplementedError()
 
     @abstractmethod
     async def find_class(
         self, _class_config: Class
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         # TODO: unified implementation using `find_class_in_schedule_by_config`
         raise NotImplementedError()
 
@@ -165,7 +165,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         _class: RezervoClass,
         config: ConfigValue,
         user_id: UUID,
-    ) -> Union[BookingResult, BookingError, AuthenticationError]:
+    ) -> BookingResult | BookingError | AuthenticationError:
         max_attempts = config.booking.max_attempts
         if max_attempts < 1:
             log.error("Max booking attempts must be a positive number")
@@ -231,7 +231,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
         _class: RezervoClass,
         config: ConfigValue,
         user_id: UUID,
-    ) -> Union[None, BookingError, AuthenticationError]:
+    ) -> None | BookingError | AuthenticationError:
         if config.booking.max_attempts < 1:
             log.error("Max booking cancellation attempts must be a positive number")
             return BookingError.INVALID_CONFIG
@@ -269,7 +269,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     async def fetch_sessions(
         self,
         chain_user: ChainUser,
-        locations: Optional[list[LocationIdentifier]] = None,
+        locations: list[LocationIdentifier] | None = None,
     ) -> list[UserSession]:
         log.info(
             f":right_arrow_curving_down:  Pulling user sessions from '{chain_user.chain}' for '{chain_user.username}' ..."
@@ -306,7 +306,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
                 class_id=str(p.id),
                 user_id=chain_user.user_id,
                 status=SessionState.PLANNED,
-                class_data=SessionRezervoClass(**p.dict()),
+                class_data=SessionRezervoClass(**p.model_dump()),
             )
             for p in planned_classes
         ]
@@ -315,8 +315,8 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
-        locations: Optional[list[LocationIdentifier]] = None,
-    ) -> Optional[list[UserSession]]:
+        locations: list[LocationIdentifier] | None = None,
+    ) -> list[UserSession] | None:
         raise NotImplementedError()
 
     @abstractmethod

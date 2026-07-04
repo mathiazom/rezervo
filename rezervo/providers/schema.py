@@ -1,4 +1,4 @@
-from typing import Generic, Optional, TypeAlias, TypeVar
+from typing import Generic, TypeAlias, TypeVar
 
 from pydantic import BaseModel
 
@@ -18,7 +18,7 @@ class CheckInTerminal(CamelModel):
 class BaseLocation(CamelModel):
     identifier: LocationIdentifier
     name: str
-    check_in_terminals: Optional[list[CheckInTerminal]] = []
+    check_in_terminals: list[CheckInTerminal] | None = []
 
 
 class Location(BaseLocation, Generic[LocationProviderIdentifier]):

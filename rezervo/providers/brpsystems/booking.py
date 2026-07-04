@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Optional
 
 import pytz
 import requests
@@ -23,7 +22,7 @@ MAX_SCHEDULE_SEARCH_ATTEMPTS = 6
 def booking_url(
     subdomain: BrpSubdomain,
     auth_data: BrpAuthData,
-    start_time_point: Optional[datetime] = None,
+    start_time_point: datetime | None = None,
 ) -> str:
     return (
         f"https://{subdomain}.brpsystems.com"

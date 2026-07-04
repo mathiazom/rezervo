@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import pydantic
@@ -40,15 +40,15 @@ class PushNotificationSubscription(OrmBase):
 
 
 class Notifications(user.Notifications, admin.Notifications, app.Notifications):
-    slack: Optional[Slack] = None
-    push_notification_subscriptions: Optional[list[PushNotificationSubscription]] = None
+    slack: Slack | None = None
+    push_notification_subscriptions: list[PushNotificationSubscription] | None = None
 
 
 class ConfigValue(user.UserPreferences, admin.AdminConfig, app.AppConfig):
     auth: Auth
     booking: Booking
     cron: Cron
-    notifications: Optional[Notifications] = None
+    notifications: Notifications | None = None
 
 
 class Config(BaseModel):
@@ -81,7 +81,11 @@ def config_from_stored(
     admin_config: AdminConfig,
 ) -> Config:
     merged_config: dict[str, Any] = {}
-    for c in [preferences.dict(), admin_config.dict(), read_app_config().dict()]:
+    for c in [
+        preferences.model_dump(),
+        admin_config.model_dump(),
+        read_app_config().model_dump(),
+    ]:
         CONFIG_MERGER.merge(merged_config, c)
     config_value = ConfigValue(**merged_config)
     if config_value.notifications is None:
@@ -94,7 +98,7 @@ def config_from_stored(
     return Config(user_id=user_id, config=config_value)
 
 
-@lru_cache()
+@lru_cache
 def read_app_config() -> AppConfig:
     with open(app.CONFIG_FILE) as f:
         return pydantic.TypeAdapter(app.AppConfig).validate_json(f.read())

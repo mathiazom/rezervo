@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional, TypeAlias, Union
+from typing import TypeAlias
 
 import pytz
 from pydantic import BaseModel, ConfigDict
@@ -57,7 +57,7 @@ class Slots(BaseModel):
     leftToBook: int
     leftToBookIncDropin: int  # also known as leftToBookIncludingDropIn
     hasWaitingList: bool
-    inWaitingList: Optional[int] = None
+    inWaitingList: int | None = None
 
 
 class BaseBrpClass(BaseModel):
@@ -68,8 +68,8 @@ class BaseBrpClass(BaseModel):
     businessUnit: BusinessUnit
     locations: list[Location]
     instructors: list[Instructor]
-    externalMessage: Optional[str] = None
-    internalMessage: Optional[str] = None
+    externalMessage: str | None = None
+    internalMessage: str | None = None
     cancelled: bool
     slots: Slots
 
@@ -81,8 +81,8 @@ class RawBrpClass(BaseBrpClass):
     always dropped and never "promoted" to proper BrpClass instances
     """
 
-    bookableEarliest: Optional[str] = None
-    bookableLatest: Optional[str] = None
+    bookableEarliest: str | None = None
+    bookableLatest: str | None = None
 
 
 class BrpClass(BaseBrpClass):
@@ -103,13 +103,13 @@ class BrpActivityAsset(BaseModel):
 
 class BrpReceivedActivityDetails(BaseModel):
     id: int
-    description: Optional[str] = None
-    assets: Optional[list[BrpActivityAsset]] = None
+    description: str | None = None
+    assets: list[BrpActivityAsset] | None = None
 
 
 class BrpActivityDetails(BaseModel):
     description: str
-    image_url: Optional[str] = None
+    image_url: str | None = None
 
 
 class DetailedBrpClass(BrpClass):
@@ -136,8 +136,8 @@ class Order(BaseModel):
     model_config = ConfigDict(coerce_numbers_to_str=True)
     id: int
     number: str
-    externalId: Optional[str] = None
-    lastModified: Optional[str] = None
+    externalId: str | None = None
+    lastModified: str | None = None
 
 
 class GroupActivityBooking(BaseModel):
@@ -156,10 +156,10 @@ class BookingData(BaseModel):
     businessUnit: BusinessUnit
     customer: Customer
     duration: Duration
-    waitingListBooking: Optional[WaitingListBooking] = None
-    groupActivityBooking: Optional[GroupActivityBooking] = None
-    additionToEventBooking: Optional[object] = None
-    checkedIn: Optional[str] = None
+    waitingListBooking: WaitingListBooking | None = None
+    groupActivityBooking: GroupActivityBooking | None = None
+    additionToEventBooking: object | None = None
+    checkedIn: str | None = None
 
 
 class Country(BaseModel):
@@ -200,35 +200,35 @@ class UserDetails(BaseModel):
     firstName: str
     lastName: str
     sex: str
-    ssn: Optional[str] = None
+    ssn: str | None = None
     birthDate: str
     shippingAddress: ShippingAddress
-    billingAddress: Optional[dict] = (
+    billingAddress: dict | None = (
         None  # You can create a separate BillingAddress class if needed
     )
     email: str
     mobilePhone: MobilePhone
     businessUnit: BusinessUnit  # Reusing existing BusinessUnit schema
     customerType: CustomerType
-    customerTypeEndDate: Optional[str] = None
+    customerTypeEndDate: str | None = None
     customerNumber: str
     cardNumber: str
     acceptedBookingTerms: bool
     acceptedSubscriptionTerms: bool
     acceptedRegistrationTerms: str
     profileImage: ProfileImage
-    benefitStatus: Optional[Union[int, str]] = None  # Type based on actual usage
+    benefitStatus: int | str | None = None  # Type based on actual usage
     memberJoinDate: str
     allowMassSendEmail: bool
     allowMassSendMail: bool
     allowMassSendSms: bool
     consents: list[Consent]
-    temporary: Optional[Union[int, str]] = None  # Type based on actual usage
+    temporary: int | str | None = None  # Type based on actual usage
     lastPasswordChangedTime: str
 
 
 def session_state_from_brp(
-    booking_type: BookingType, start_time: datetime, checked_in: Optional[str]
+    booking_type: BookingType, start_time: datetime, checked_in: str | None
 ) -> SessionState:
     if checked_in is not None:
         return SessionState.CONFIRMED

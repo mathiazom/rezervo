@@ -1,5 +1,3 @@
-from typing import Optional
-
 import typer
 
 from rezervo import models
@@ -15,8 +13,8 @@ sessions_cli = AsyncTyper()
 
 @sessions_cli.command(name="pull")
 async def pull_sessions_cli(
-    name: Optional[str] = typer.Option(None, help="Name of user to pull sessions for"),
-    chain_identifier: Optional[ChainIdentifier] = typer.Option(
+    name: str | None = typer.Option(None, help="Name of user to pull sessions for"),
+    chain_identifier: ChainIdentifier | None = typer.Option(
         None, "--chain", help="Identifier of chain to pull sessions from"
     ),
 ):

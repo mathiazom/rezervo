@@ -32,12 +32,10 @@ def downgrade() -> None:
     op.execute("ALTER TYPE sessionstate RENAME TO sessionstate_old")
     original_session_status_enum.create(op.get_bind())
     op.execute(
-        (
-            "ALTER TABLE sessions ALTER COLUMN status \
+        "ALTER TABLE sessions ALTER COLUMN status \
             TYPE sessionstate USING \
             case WHEN status = 'NOSHOW' THEN 'UNKNOWN'::sessionstate \
             ELSE status::text::sessionstate END"
-        )
     )
     op.execute("DROP TYPE sessionstate_old")
     # ### end Alembic commands ###

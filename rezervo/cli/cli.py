@@ -292,7 +292,7 @@ def purge_playwright_cli(
     minutes: int = typer.Option(
         10,
         help="Purge Playwright browser instances older than this many minutes",
-    )
+    ),
 ):
     """
     Purge Playwright browser instances

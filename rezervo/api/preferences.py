@@ -33,7 +33,7 @@ def upsert_user_preferences(
     db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    db_user.preferences = preferences.dict()
+    db_user.preferences = preferences.model_dump()
     db.commit()
     db.refresh(db_user)
     return db_user.preferences

@@ -2,8 +2,8 @@ import asyncio
 import json
 import re
 import time
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Mapping, Optional, Sequence, Union
 from uuid import UUID
 
 import humanize
@@ -76,7 +76,7 @@ class SitAuthRefreshResult(CamelModel):
     refresh_token_expires_in: int
 
 
-async def fetch_public_ibooking_token() -> Union[str, AuthenticationError]:
+async def fetch_public_ibooking_token() -> str | AuthenticationError:
     async with HttpClient.singleton().get(BOOKING_URL) as booking_res:
         booking_soup = await booking_res.text()
     token_matches = re.search(r'\s+clientToken\s*=\s*"([^"]+)"', booking_soup)
@@ -90,7 +90,7 @@ async def fetch_public_ibooking_token() -> Union[str, AuthenticationError]:
 
 async def get_ibooking_token_from_access_token(
     access_token: str,
-) -> Optional[ExpiringToken]:
+) -> ExpiringToken | None:
     async with HttpClient.singleton().post(
         AUTH_URL,
         headers={"Content-Type": "application/json", "x-b2c-token": access_token},
@@ -130,7 +130,7 @@ class SitAuthRefreshTokens(BaseModel):
 
 async def get_tokens_from_refresh_token(
     refresh_token: str,
-) -> Optional[SitAuthRefreshTokens]:
+) -> SitAuthRefreshTokens | None:
     async with HttpClient.singleton().post(
         f"{SIT_AUTH_COOKIE_URL}/sitnettprodb2c.onmicrosoft.com/oauth2/v2.0/token?p=b2c_1_si_email"
         f"&client_id=1fd8cf25-b13b-4bbe-a673-809725291c9c"
@@ -156,7 +156,7 @@ async def get_tokens_from_refresh_token(
 
 async def refresh_chain_user_auth_data(
     chain_user: ChainUser,
-) -> Union[IBookingAuthData, AuthenticationError]:
+) -> IBookingAuthData | AuthenticationError:
     if chain_user.auth_data is None:
         log.warning(
             f"Auth data not found for '{chain_user.chain}' user '{chain_user.username}'"
@@ -224,7 +224,7 @@ async def refresh_chain_user_auth_data(
             ibooking_token=ibooking_token,
             cookies=auth_data.cookies,
         )
-        db_chain_user.auth_data = refreshed_auth_res.json()
+        db_chain_user.auth_data = refreshed_auth_res.model_dump_json()
         db.commit()
     return refreshed_auth_res
 
@@ -235,7 +235,7 @@ class SitAuthOIDCData(BaseModel):
     refresh_token: str
 
 
-async def extract_auth_tokens(page: Page) -> Optional[SitAuthOIDCData]:
+async def extract_auth_tokens(page: Page) -> SitAuthOIDCData | None:
     """
     Extracts the access and refresh tokens from the local storage
     """
@@ -262,7 +262,7 @@ async def inject_cookies_from_url(page: Page, url, cookies: Sequence[Mapping]):
 
 async def authenticate_with_session_cookies(
     page: Page, cookies: Sequence[Mapping]
-) -> Optional[SitAuthRefreshTokens]:
+) -> SitAuthRefreshTokens | None:
     """
     initiate a non-interactive login
     """
@@ -316,7 +316,7 @@ async def init_login_with_credentials(page: Page, username: str, password: str):
     await page.locator("button[id='next']").click(timeout=10000)
 
 
-async def login_with_totp(chain_user: ChainUser) -> Optional[IBookingAuthData]:
+async def login_with_totp(chain_user: ChainUser) -> IBookingAuthData | None:
     if chain_user.password is None:
         log.error(
             f"Invalid '{chain_user.chain}' user credentials for '{chain_user.username}', password not found"
@@ -447,7 +447,7 @@ async def initiate_auth_session_interactively(
         ).update(
             {
                 models.ChainUser.auth_verified_at: datetime.now(),
-                models.ChainUser.auth_data: auth_data.json(),
+                models.ChainUser.auth_data: auth_data.model_dump_json(),
                 # we can forget password since a new session requires user interaction for TOTP code anyway
                 models.ChainUser.password: None,
             }
@@ -457,7 +457,7 @@ async def initiate_auth_session_interactively(
 
 async def extend_auth_session_silently(
     chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[IBookingAuthData]:
+) -> IBookingAuthData | None:
     """
     Performs a cookie-based authentication to extend the auth cookie and retrieve fresh access and refresh tokens.
     No user interaction required, unless the session cookies are missing or expired.
@@ -572,7 +572,7 @@ async def extend_auth_session_silently(
             refresh_token=refresh_res.refresh_token,
             cookies=cookies,
         )
-        db_chain_user.auth_data = auth_data.json()
+        db_chain_user.auth_data = auth_data.model_dump_json()
         db.commit()
     log.info(
         f":heavy_check_mark: Auth session extended for '{chain_user.chain}' user '{chain_user.username}' \n"

@@ -1,10 +1,10 @@
 import datetime
 import json
 import re
-from typing import Optional
 
 from apprise import NotifyType
 from pywebpush import WebPushException, webpush  # type: ignore[import-untyped]
+from requests import Response
 
 from rezervo.consts import WEEKDAYS
 from rezervo.database import crud
@@ -45,7 +45,7 @@ def notify_web_push(subscription: PushNotificationSubscription, message: str) ->
         return False
     try:
         res = webpush(
-            subscription_info=subscription.dict(),
+            subscription_info=subscription.model_dump(),
             data=json.dumps({"title": "rezervo", "message": message}),
             vapid_private_key=push_config.private_key,
             vapid_claims={"sub": f"mailto:{push_config.email}"},
@@ -70,7 +70,7 @@ def notify_web_push(subscription: PushNotificationSubscription, message: str) ->
         return False
     with SessionLocal() as db:
         crud.update_last_used_push_notification_subscription(db, subscription)
-    return res.ok
+    return isinstance(res, Response) and res.ok
 
 
 def notify_booking_web_push(
@@ -117,8 +117,8 @@ def notify_friend_of_cancellation_web_push(
 
 def notify_booking_failure_web_push(
     subscription: PushNotificationSubscription,
-    _class_config: Optional[Class] = None,
-    error: Optional[BookingError] = None,
+    _class_config: Class | None = None,
+    error: BookingError | None = None,
     check_run: bool = False,
 ) -> None:
     if _class_config is None:
@@ -155,7 +155,7 @@ def notify_booking_failure_web_push(
 
 def notify_auth_failure_web_push(
     subscription: PushNotificationSubscription,
-    error: Optional[AuthenticationError] = None,
+    error: AuthenticationError | None = None,
     check_run: bool = False,
 ) -> None:
     msg = (

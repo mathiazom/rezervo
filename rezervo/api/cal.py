@@ -60,13 +60,13 @@ def get_calendar(
     ical.add("x-wr-calname", "rezervo")
     ical.add(
         "x-wr-caldesc",
-        f'Planlagte{" og gjennomførte" if include_past else ""} timer for {db_user.name} (rezervo.no)',
+        f"Planlagte{' og gjennomførte' if include_past else ''} timer for {db_user.name} (rezervo.no)",
     )
     for s in sessions_query.all():
         if s.class_data is None:
             continue
         event = ical_event_from_session(
-            UserSession.from_orm(s), timezone, app_config.web_host
+            UserSession.model_validate(s), timezone, app_config.web_host
         )
         if event is not None:
             ical.add_component(event)

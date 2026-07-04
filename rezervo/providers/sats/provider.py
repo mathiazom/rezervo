@@ -1,8 +1,8 @@
 import asyncio
 import re
 from abc import ABC
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable, Optional, Union
 
 import pytz
 from aiohttp import FormData
@@ -72,7 +72,7 @@ from rezervo.utils.str_utils import standardize_activity_name
 class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[SatsAuthData, AuthenticationError]:
+    ) -> SatsAuthData | AuthenticationError:
         if chain_user.auth_data is not None:
             if await validate_token(chain_user.auth_data) is None:
                 return chain_user.auth_data
@@ -132,7 +132,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
 
     async def find_class_by_id(
         self, class_id: str
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         def comparator_fn(sats_class: SatsClass):
             return class_id == sats_class.id
 
@@ -145,7 +145,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
 
     async def find_class(
         self, _class_config: Class
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         def comparator_fn(sats_class: SatsClass):
             _class = self.rezervo_class_from_sats_class(sats_class)
             return (
@@ -170,24 +170,26 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         auth_data: SatsAuthData,
         class_id: str,
     ) -> BookingResult | BookingError:
-        async with create_authed_sats_session(auth_data) as session:
-            async with session.post(BOOKING_URL, data={"id": class_id}) as res:
-                if not res.ok:
-                    log.error("Booking attempt failed: " + (await res.text()))
-                    return BookingError.ERROR
-                booking_data = SatsBookingResponse(**await res.json())
-                return BookingResult(
-                    status=(
-                        SessionState.BOOKED
-                        if booking_data.payload.status is SatsBookingStatus.BOOKED
-                        else SessionState.WAITLIST
-                    ),
-                    position_in_wait_list=(
-                        booking_data.payload.waitingListPosition
-                        if booking_data.payload.waitingListPosition > 0
-                        else None
-                    ),
-                )
+        async with (
+            create_authed_sats_session(auth_data) as session,
+            session.post(BOOKING_URL, data={"id": class_id}) as res,
+        ):
+            if not res.ok:
+                log.error("Booking attempt failed: " + (await res.text()))
+                return BookingError.ERROR
+            booking_data = SatsBookingResponse(**await res.json())
+            return BookingResult(
+                status=(
+                    SessionState.BOOKED
+                    if booking_data.payload.status is SatsBookingStatus.BOOKED
+                    else SessionState.WAITLIST
+                ),
+                position_in_wait_list=(
+                    booking_data.payload.waitingListPosition
+                    if booking_data.payload.waitingListPosition > 0
+                    else None
+                ),
+            )
 
     async def _cancel_booking(
         self,
@@ -225,25 +227,27 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
 
     async def _find_class_from_booking_task(
         self, booking: SatsBooking, class_config: Class
-    ) -> tuple[SatsBooking, Union[RezervoClass, BookingError, AuthenticationError]]:
+    ) -> tuple[SatsBooking, RezervoClass | BookingError | AuthenticationError]:
         return booking, await self.find_class(class_config)
 
     async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
-        locations: Optional[list[LocationIdentifier]] = None,
-    ) -> Optional[list[UserSession]]:
+        locations: list[LocationIdentifier] | None = None,
+    ) -> list[UserSession] | None:
         auth_data = await self._authenticate(chain_user)
         if isinstance(auth_data, AuthenticationError):
             log.error(
                 f"Authentication failed for '{chain_user.chain}' user '{chain_user.username}'"
             )
             return None
-        async with create_authed_sats_session(auth_data) as session:
-            async with session.get(BOOKINGS_URL) as bookings_res:
-                sats_day_bookings = SatsBookingsResponse(
-                    **retrieve_sats_page_props(str(await bookings_res.read()))
-                ).myUpcomingTraining
+        async with (
+            create_authed_sats_session(auth_data) as session,
+            session.get(BOOKINGS_URL) as bookings_res,
+        ):
+            sats_day_bookings = SatsBookingsResponse(
+                **retrieve_sats_page_props(str(await bookings_res.read()))
+            ).myUpcomingTraining
         find_class_tasks = []
         for day_booking in sats_day_bookings:
             for booking in day_booking.upcomingTrainings.trainings:
@@ -286,7 +290,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                             if booking.waitingListIndex > 0
                             else None
                         ),
-                        class_data=SessionRezervoClass(**_class.dict()),
+                        class_data=SessionRezervoClass(**_class.model_dump()),
                     )
                 )
         return user_sessions

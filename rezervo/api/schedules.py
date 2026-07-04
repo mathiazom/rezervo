@@ -1,5 +1,6 @@
+from typing import Annotated
+
 from fastapi import APIRouter, HTTPException, Query
-from typing_extensions import Annotated
 
 from rezervo.chains.active import ACTIVE_CHAIN_IDENTIFIERS, get_chain
 from rezervo.chains.common import fetch_week_schedule

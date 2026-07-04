@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from fusionauth.fusionauth_client import FusionAuthClient  # type: ignore
+from fusionauth.fusionauth_client import FusionAuthClient
 
 from rezervo.cli.async_cli import AsyncTyper
 from rezervo.cli.fusionauth.consts import (
@@ -35,7 +35,7 @@ FUSIONAUTH_EXTERNAL_URL = fusionauth_config.external_url
 init_fusionauth_cli = AsyncTyper()
 
 
-@lru_cache()
+@lru_cache
 def get_fusionauth_client():
     return FusionAuthClient(
         get_settings().FUSIONAUTH_API_KEY, fusionauth_config.internal_url
@@ -181,7 +181,7 @@ def init_email_templates():
                 html="Klikk på lenken under for å aktivere din rezervo-bruker.",
                 plain_text="Naviger til lenken under for å aktivere din rezervo-bruker.",
             ),
-            app_id,
+            str(app_id),
             fusionauth_config.password_changed_redirect_url,
         ),
     )
@@ -195,7 +195,7 @@ def init_email_templates():
                 html="Klikk på lenken under for å sette et nytt passord for din rezervo-bruker.",
                 plain_text="Naviger til lenken under for å sette et nytt passord for din rezervo-bruker.",
             ),
-            app_id,
+            str(app_id),
             fusionauth_config.password_changed_redirect_url,
         ),
     )
@@ -223,7 +223,7 @@ def init_tenant():
             "emailConfiguration": {
                 "setPasswordEmailTemplateId": FUSIONAUTH_SETUP_PASSWORD_EMAIL_TEMPLATE_ID,
                 "forgotPasswordEmailTemplateId": FUSIONAUTH_RESET_PASSWORD_EMAIL_TEMPLATE_ID,
-                **fusionauth_config.email.dict(by_alias=True),
+                **fusionauth_config.email.model_dump(by_alias=True),
             },
         }
     }
@@ -288,11 +288,11 @@ def init_application():
         "application": {
             "name": FUSIONAUTH_APPLICATION_NAME,
             "oauthConfiguration": {
-                **fusionauth_config.oauth.dict(by_alias=True),
+                **fusionauth_config.oauth.model_dump(by_alias=True),
             },
             "jwtConfiguration": {
                 "enabled": True,
-                **fusionauth_config.jwt.dict(by_alias=True),
+                **fusionauth_config.jwt.model_dump(by_alias=True),
             },
             "loginConfiguration": {
                 "allowTokenRefresh": True,

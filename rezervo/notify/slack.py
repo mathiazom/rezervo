@@ -1,6 +1,6 @@
 import datetime
 import time
-from typing import Any, Dict, Optional
+from typing import Any
 
 from apprise import NotifyType
 from requests import RequestException
@@ -32,9 +32,9 @@ def notify_slack(
     slack_token: str,
     channel: str,
     message: str,
-    message_blocks: Optional[list[Dict[str, Any]]] = None,
-    thread_ts: Optional[str] = None,
-) -> Optional[str]:
+    message_blocks: list[dict[str, Any]] | None = None,
+    thread_ts: str | None = None,
+) -> str | None:
     try:
         response = SlackClient(token=slack_token).chat_postMessage(
             channel=channel,
@@ -93,7 +93,7 @@ def delete_scheduled_message_slack(
     return True
 
 
-def find_user_dm_channel_id(slack_token: str, user_id: str) -> Optional[str]:
+def find_user_dm_channel_id(slack_token: str, user_id: str) -> str | None:
     try:
         res = SlackClient(token=slack_token).conversations_open(users=user_id)
         if res is None or not res.get("ok", False):
@@ -102,7 +102,7 @@ def find_user_dm_channel_id(slack_token: str, user_id: str) -> Optional[str]:
                 f"{(': ' + str(res.get('error'))) if res is not None else ''}"
             )
             return None
-        channel_id = res.get("channel").get("id")  # type: ignore
+        channel_id = res.get("channel").get("id")
         log.debug(f"Located channel id of user direct message: {channel_id}")
         return channel_id
     except SlackApiError as e:
@@ -117,8 +117,8 @@ def schedule_dm_slack(
     user_id: str,
     post_at: int,
     message: str,
-    message_blocks: Optional[list[Dict[str, Any]]] = None,
-) -> Optional[str]:
+    message_blocks: list[dict[str, Any]] | None = None,
+) -> str | None:
     try:
         res = SlackClient(token=slack_token).chat_scheduleMessage(
             channel=user_id,
@@ -155,12 +155,12 @@ def delete_scheduled_dm_slack(slack_token: str, user_id: str, reminder_id: str):
 def schedule_class_reminder_slack(
     slack_token: str,
     user_id: str,
-    host: Optional[str],
+    host: str | None,
     chain_identifier: ChainIdentifier,
     _class: RezervoClass,
     hours_before: float,
-    time_window: Optional[AllowedTimeWindow],
-) -> Optional[str]:
+    time_window: AllowedTimeWindow | None,
+) -> str | None:
     reminder_datetime = _class.start_time - datetime.timedelta(hours=hours_before)
     if time_window is not None:
         reminder_datetime = window_backward_adjusted_datetime(
@@ -209,8 +209,8 @@ def notify_auth_failure_slack(
     slack_token: str,
     channel: str,
     user_id: str,
-    error: Optional[AuthenticationError] = None,
-    thread_ts: Optional[str] = None,
+    error: AuthenticationError | None = None,
+    thread_ts: str | None = None,
     check_run: bool = False,
 ) -> None:
     message = (
@@ -244,8 +244,8 @@ def notify_booking_failure_slack(
     slack_token: str,
     channel: str,
     user_id: str,
-    _class_config: Optional[Class] = None,
-    error: Optional[BookingError] = None,
+    _class_config: Class | None = None,
+    error: BookingError | None = None,
     check_run: bool = False,
 ) -> None:
     if _class_config is None:
@@ -330,7 +330,7 @@ def notify_cancellation_slack(slack_token: str, channel: str, source_ts: str) ->
         if message["text"].startswith(cancelled_text_prefix):
             return True
         # Remove booking emoji and strike out original text
-        new_message = f'~{message["blocks"][0]["text"]["text"]}~'.replace(
+        new_message = f"~{message['blocks'][0]['text']['text']}~".replace(
             BOOKING_EMOJI, CANCELLATION_EMOJI, 1
         )
         message["blocks"][0]["text"]["text"] = new_message
@@ -340,7 +340,7 @@ def notify_cancellation_slack(slack_token: str, channel: str, source_ts: str) ->
         SlackClient(token=slack_token).chat_update(
             channel=channel,
             ts=source_ts,
-            text=f'{cancelled_text_prefix} {message["text"]}',  # fallback text if 'blocks' don't work
+            text=f"{cancelled_text_prefix} {message['text']}",  # fallback text if 'blocks' don't work
             blocks=message["blocks"],
         )
         notify_not_working_slack(slack_token, channel, source_ts)
@@ -443,12 +443,12 @@ async def notify_booking_slack(
     slack_token: str,
     channel: str,
     user_id: str,
-    host: Optional[str],
+    host: str | None,
     chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
-    ical_url: Optional[str] = None,
-    transfersh_url: Optional[str] = None,
-    scheduled_reminder_id: Optional[str] = None,
+    ical_url: str | None = None,
+    transfersh_url: str | None = None,
+    scheduled_reminder_id: str | None = None,
 ) -> None:
     message_blocks = build_booking_message_blocks(
         chain_identifier, booked_class, user_id, host, None, scheduled_reminder_id
@@ -506,9 +506,9 @@ def build_booking_message_blocks(
     chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
     user_id: str,
-    host: Optional[str],
-    ical_tsh_url: Optional[str] = None,
-    scheduled_reminder_id: Optional[str] = None,
+    host: str | None,
+    ical_tsh_url: str | None = None,
+    scheduled_reminder_id: str | None = None,
 ):
     buttons = [
         {
@@ -520,7 +520,7 @@ def build_booking_message_blocks(
                     user_id=user_id,
                     class_id=booked_class.id,
                     scheduled_reminder_id=scheduled_reminder_id,
-                ).json()
+                ).model_dump_json()
             ),
             "text": {"type": "plain_text", "text": ":no_entry: Avbestill"},
             "confirm": {

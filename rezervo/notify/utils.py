@@ -1,4 +1,3 @@
-from typing import Optional
 from urllib.parse import urlparse
 
 from rezervo.consts import URL_QUERY_PARAM_CLASS_ID, URL_QUERY_PARAM_ISO_WEEK
@@ -25,7 +24,7 @@ def transfersh_direct_url(url: str):
 
 
 def activity_url(
-    host: Optional[str], chain_identifier: ChainIdentifier, _class: RezervoClass
+    host: str | None, chain_identifier: ChainIdentifier, _class: RezervoClass
 ):
     if host:
         return (

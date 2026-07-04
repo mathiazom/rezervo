@@ -1,7 +1,6 @@
 import enum
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import (
     CheckConstraint,
@@ -43,7 +42,7 @@ class User(Base):
         primary_key=True, index=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(unique=True)
-    jwt_sub: Mapped[Optional[str]] = mapped_column()
+    jwt_sub: Mapped[str | None] = mapped_column()
     cal_token: Mapped[str] = mapped_column()
     preferences: Mapped[dict] = mapped_column()
     admin_config: Mapped[dict] = mapped_column()
@@ -63,7 +62,7 @@ class PushNotificationSubscription(Base):
     )
     endpoint: Mapped[str] = mapped_column(primary_key=True)
     keys: Mapped[dict] = mapped_column()
-    last_used: Mapped[Optional[datetime]] = mapped_column()
+    last_used: Mapped[datetime | None] = mapped_column()
 
     def __repr__(self):
         return (
@@ -80,10 +79,10 @@ class ChainUser(Base):
     )
     chain: Mapped[str] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column()
-    password: Mapped[Optional[str]] = mapped_column()
-    totp: Mapped[Optional[str]] = mapped_column()
-    auth_data: Mapped[Optional[str]] = mapped_column()
-    auth_verified_at: Mapped[Optional[datetime]] = mapped_column()
+    password: Mapped[str | None] = mapped_column()
+    totp: Mapped[str | None] = mapped_column()
+    auth_data: Mapped[str | None] = mapped_column()
+    auth_verified_at: Mapped[datetime | None] = mapped_column()
     active: Mapped[bool] = mapped_column(default=True)
 
     def __repr__(self):
@@ -120,7 +119,7 @@ class RecurringBooking(Base):
             name="check_start_time_minute_range",
         ),
     )
-    display_name: Mapped[Optional[str]] = mapped_column()
+    display_name: Mapped[str | None] = mapped_column()
 
     __table_args__ = (
         UniqueConstraint(
@@ -147,7 +146,7 @@ class Session(Base):
         ForeignKey("users.id", ondelete="cascade"), primary_key=True
     )
     status: Mapped[SessionState] = mapped_column()
-    position_in_wait_list: Mapped[Optional[int]] = mapped_column()
+    position_in_wait_list: Mapped[int | None] = mapped_column()
     class_data: Mapped[dict] = mapped_column()
 
     def __repr__(self):
@@ -168,7 +167,7 @@ class SlackClassNotificationReceipt(Base):
     class_id: Mapped[str] = mapped_column()
     channel_id: Mapped[str] = mapped_column()
     message_id: Mapped[str] = mapped_column()
-    scheduled_reminder_id: Mapped[Optional[str]] = mapped_column()
+    scheduled_reminder_id: Mapped[str | None] = mapped_column()
     expires_at: Mapped[datetime] = mapped_column()
 
     def __repr__(self):

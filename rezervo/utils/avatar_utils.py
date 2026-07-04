@@ -1,6 +1,5 @@
 import math
 from pathlib import Path
-from typing import Optional
 from uuid import UUID
 
 import PIL
@@ -39,7 +38,7 @@ def save_upload_file(
         upload_file.file.close()
 
 
-def build_user_avatars_dir(user_id: UUID) -> Optional[Path]:
+def build_user_avatars_dir(user_id: UUID) -> Path | None:
     content = read_app_config().content
     avatars_dir_str = content.avatars_dir if content is not None else None
     if avatars_dir_str is None:
@@ -67,7 +66,7 @@ def get_user_avatar_file_by_id(user_id: UUID, size_name: str):
     return file
 
 
-def resize_image_to_square(image: PIL.Image.Image, length: int) -> PIL.Image.Image:
+def resize_image_to_square(image: Image.Image, length: int) -> Image.Image:
     """
     Resize image (preserving ratio) so that the smallest side matches the given length,
     then crop the other side to match the same length.

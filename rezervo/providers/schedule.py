@@ -1,5 +1,3 @@
-from typing import Union
-
 import pytz
 
 from rezervo.consts import WEEKDAYS
@@ -11,7 +9,7 @@ from rezervo.utils.logging_utils import log
 
 def find_class_in_schedule_by_config(
     _class_config: Class, schedule: RezervoSchedule
-) -> Union[RezervoClass, BookingError]:
+) -> RezervoClass | BookingError:
     if not 0 <= _class_config.weekday < len(WEEKDAYS):
         log.error(f"Invalid weekday number ({_class_config.weekday=})")
         return BookingError.MALFORMED_SEARCH

@@ -1,5 +1,4 @@
 import json
-from typing import Optional
 from uuid import UUID
 
 import pydantic
@@ -214,7 +213,7 @@ async def slack_action(
     )
 
 
-def find_config_by_slack_id(configs: list[Config], user_id: str) -> Optional[Config]:
+def find_config_by_slack_id(configs: list[Config], user_id: str) -> Config | None:
     if user_id is None:
         return None
     for config in configs:

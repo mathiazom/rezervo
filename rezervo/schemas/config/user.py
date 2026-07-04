@@ -1,6 +1,6 @@
 import datetime
 import enum
-from typing import Annotated, Literal, Optional, TypeAlias, Union
+from typing import Annotated, Literal, TypeAlias
 from uuid import UUID
 
 import pytz
@@ -22,12 +22,12 @@ class AllowedTimeWindowConfig(CamelOrmBase):
 
 
 class Notifications(CamelOrmBase):
-    reminder_hours_before: Optional[float] = None
-    reminder_allowed_time_window: Optional[AllowedTimeWindowConfig] = None
+    reminder_hours_before: float | None = None
+    reminder_allowed_time_window: AllowedTimeWindowConfig | None = None
 
 
 class UserPreferences(OrmBase):
-    notifications: Optional[Notifications] = None
+    notifications: Notifications | None = None
 
 
 class UserIdAndNameWithIsSelf(CamelModel):
@@ -54,7 +54,7 @@ class Class(CamelModel):
     weekday: int
     location_id: str
     start_time: ClassTime  # TODO: make sure time zones are handled...
-    display_name: Optional[str] = None
+    display_name: str | None = None
 
     def calculate_next_occurrence(
         self, include_today: bool = True
@@ -99,11 +99,11 @@ class ChainUserProfile(ChainUserUsername, CamelModel):
 
 
 class ChainUserCredentials(ChainUserUsername, CamelModel):
-    password: Optional[str] = None
+    password: str | None = None
 
 
 class ChainUserTOTP(CamelModel):
-    totp: Optional[str] = None
+    totp: str | None = None
 
 
 class ChainUserTOTPPayload(CamelModel):
@@ -112,12 +112,12 @@ class ChainUserTOTPPayload(CamelModel):
 
 class ChainUser(ChainConfig, ChainUserCredentials, ChainUserTOTP, CamelModel):
     user_id: UUID
-    auth_data: Optional[str] = None
-    auth_verified_at: Optional[datetime.datetime] = None
+    auth_data: str | None = None
+    auth_verified_at: datetime.datetime | None = None
 
 
 def config_from_chain_user(user: ChainUser):
-    return ChainConfig(**user.dict())
+    return ChainConfig(**user.model_dump())
 
 
 class UpdatedChainUserCredsResponse(CamelModel):
@@ -127,12 +127,12 @@ class UpdatedChainUserCredsResponse(CamelModel):
 
 class InitiatedTOTPFlowResponse(CamelModel):
     status: Literal["initiated_totp_flow"] = "initiated_totp_flow"
-    totp_regex: Optional[str] = None
+    totp_regex: str | None = None
 
 
 PutChainUserCredsResponse = RootModel[
     Annotated[
-        Union[UpdatedChainUserCredsResponse, InitiatedTOTPFlowResponse],
+        UpdatedChainUserCredsResponse | InitiatedTOTPFlowResponse,
         Field(discriminator="status"),
     ]
 ]

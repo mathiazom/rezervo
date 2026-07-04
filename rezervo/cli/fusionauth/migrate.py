@@ -1,10 +1,9 @@
 import uuid
 from functools import lru_cache
-from typing import Optional
 
 import typer
-from auth0.management import ManagementClient  # type: ignore
-from fusionauth.fusionauth_client import FusionAuthClient  # type: ignore
+from auth0.management import ManagementClient
+from fusionauth.fusionauth_client import FusionAuthClient
 
 from rezervo import models
 from rezervo.database.database import SessionLocal
@@ -14,7 +13,7 @@ from rezervo.settings import get_settings
 from rezervo.utils.logging_utils import log
 
 
-@lru_cache()
+@lru_cache
 def get_fusionauth_client():
     return FusionAuthClient(
         get_settings().FUSIONAUTH_API_KEY, read_app_config().fusionauth.internal_url
@@ -31,7 +30,7 @@ def retrieve_all_auth0_user_emails(user_ids: list[str]):
 
 
 def migrate_from_auth0(
-    name: Optional[str] = typer.Option(None, help="Name of user to migrate"),
+    name: str | None = typer.Option(None, help="Name of user to migrate"),
 ):
     with SessionLocal() as db:
         auth0_users_query = db.query(models.User).filter(
@@ -91,12 +90,12 @@ def migrate_from_auth0(
                 )
             else:
                 # update the user table sub column with the fusionauth id
-                user.jwt_sub = fusionauth_user_id
+                user.jwt_sub = str(fusionauth_user_id)
                 log.info(f"Migrated user '{user.name}' to FusionAuth")
         db.commit()
 
 
-@lru_cache()
+@lru_cache
 def get_auth0_management_client() -> ManagementClient:
     migration_config = read_app_config().fusionauth.auth0_migration
     if migration_config is None:

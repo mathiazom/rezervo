@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 import typer
@@ -19,7 +18,7 @@ users_cli = AsyncTyper()
 def create_user(
     name: str,
     jwt_sub: str,
-    slack_id: Optional[str] = typer.Option(None),
+    slack_id: str | None = typer.Option(None),
 ):
     with SessionLocal() as db:
         db_user = crud.create_user(db, name, jwt_sub, slack_id)

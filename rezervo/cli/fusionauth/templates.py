@@ -1,9 +1,7 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 
-def build_setup_password_complete_template(redirect_url: str):
+def build_setup_password_complete_template(redirect_url: str | None):
     redirect_tag = (
         f'<meta http-equiv="refresh" content="0; url={redirect_url}" />'
         if redirect_url
@@ -42,7 +40,7 @@ def build_setup_password_complete_template(redirect_url: str):
     """
 
 
-def build_forgot_password_submit_template(redirect_uri: str):
+def build_forgot_password_submit_template(redirect_uri: str | None):
     return f"""
 [#ftl/]
 [#-- @ftlvariable name="application" type="io.fusionauth.domain.Application" --]
@@ -110,8 +108,8 @@ class HtmlAndPlainText(BaseModel):
 def build_change_password_email_template(
     fusionauth_url: str,
     info_text: HtmlAndPlainText,
-    client_id: Optional[str] = None,
-    redirect_uri: Optional[str] = None,
+    client_id: str | None = None,
+    redirect_uri: str | None = None,
 ) -> HtmlAndPlainText:
     client_id_str = (
         client_id
