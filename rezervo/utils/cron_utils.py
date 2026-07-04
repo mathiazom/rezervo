@@ -48,11 +48,7 @@ async def build_cron_jobs_from_config(
             for rb in chain_config.recurring_bookings
         ]
     ):
-        if (
-            _class is None
-            or isinstance(_class, BookingError)
-            or isinstance(_class, AuthenticationError)
-        ):
+        if _class is None or isinstance(_class, (BookingError, AuthenticationError)):
             # find existing cron jobs matching the booking command (with and without precheck)
             job_commands = [
                 generate_booking_command(

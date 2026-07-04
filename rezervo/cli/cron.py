@@ -107,7 +107,7 @@ def list_cron_jobs(
         print_table = []
         for next_run, comment, description in print_table_data:
             row = [humanize.naturaltime(next_run) if next_run else None, comment]
-            print_table.append(row + [next_run, description] if verbose else row)
+            print_table.append([*row, next_run, description] if verbose else row)
         headers = ["until next run", "comment"]
         if verbose:
             headers.extend(["next run timestamp", "description"])

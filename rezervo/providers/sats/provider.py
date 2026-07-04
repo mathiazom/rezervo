@@ -170,24 +170,26 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         auth_data: SatsAuthData,
         class_id: str,
     ) -> BookingResult | BookingError:
-        async with create_authed_sats_session(auth_data) as session:
-            async with session.post(BOOKING_URL, data={"id": class_id}) as res:
-                if not res.ok:
-                    log.error("Booking attempt failed: " + (await res.text()))
-                    return BookingError.ERROR
-                booking_data = SatsBookingResponse(**await res.json())
-                return BookingResult(
-                    status=(
-                        SessionState.BOOKED
-                        if booking_data.payload.status is SatsBookingStatus.BOOKED
-                        else SessionState.WAITLIST
-                    ),
-                    position_in_wait_list=(
-                        booking_data.payload.waitingListPosition
-                        if booking_data.payload.waitingListPosition > 0
-                        else None
-                    ),
-                )
+        async with (
+            create_authed_sats_session(auth_data) as session,
+            session.post(BOOKING_URL, data={"id": class_id}) as res,
+        ):
+            if not res.ok:
+                log.error("Booking attempt failed: " + (await res.text()))
+                return BookingError.ERROR
+            booking_data = SatsBookingResponse(**await res.json())
+            return BookingResult(
+                status=(
+                    SessionState.BOOKED
+                    if booking_data.payload.status is SatsBookingStatus.BOOKED
+                    else SessionState.WAITLIST
+                ),
+                position_in_wait_list=(
+                    booking_data.payload.waitingListPosition
+                    if booking_data.payload.waitingListPosition > 0
+                    else None
+                ),
+            )
 
     async def _cancel_booking(
         self,
@@ -239,11 +241,13 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 f"Authentication failed for '{chain_user.chain}' user '{chain_user.username}'"
             )
             return None
-        async with create_authed_sats_session(auth_data) as session:
-            async with session.get(BOOKINGS_URL) as bookings_res:
-                sats_day_bookings = SatsBookingsResponse(
-                    **retrieve_sats_page_props(str(await bookings_res.read()))
-                ).myUpcomingTraining
+        async with (
+            create_authed_sats_session(auth_data) as session,
+            session.get(BOOKINGS_URL) as bookings_res,
+        ):
+            sats_day_bookings = SatsBookingsResponse(
+                **retrieve_sats_page_props(str(await bookings_res.read()))
+            ).myUpcomingTraining
         find_class_tasks = []
         for day_booking in sats_day_bookings:
             for booking in day_booking.upcomingTrainings.trainings:

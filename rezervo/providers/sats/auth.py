@@ -66,18 +66,20 @@ async def fetch_authed_sats_cookie(
 async def validate_token(
     auth_data: SatsAuthData,
 ) -> None | AuthenticationError:
-    async with create_authed_sats_session(auth_data) as session:
-        async with session.get(MY_PAGE_URL) as my_page_res:
-            if not my_page_res.ok:
-                log.error("Validation of Sats authentication token failed")
-                return AuthenticationError.TOKEN_VALIDATION_FAILED
-            try:
-                # verify that the response contains some user data
-                my_page_data = SatsMyPageResponse(
-                    **retrieve_sats_page_props(str(await my_page_res.read()))
-                )
-                if len(my_page_data.settings.profile.data) == 0:
-                    return AuthenticationError.TOKEN_INVALID
-            except ValidationError:
+    async with (
+        create_authed_sats_session(auth_data) as session,
+        session.get(MY_PAGE_URL) as my_page_res,
+    ):
+        if not my_page_res.ok:
+            log.error("Validation of Sats authentication token failed")
+            return AuthenticationError.TOKEN_VALIDATION_FAILED
+        try:
+            # verify that the response contains some user data
+            my_page_data = SatsMyPageResponse(
+                **retrieve_sats_page_props(str(await my_page_res.read()))
+            )
+            if len(my_page_data.settings.profile.data) == 0:
                 return AuthenticationError.TOKEN_INVALID
+        except ValidationError:
+            return AuthenticationError.TOKEN_INVALID
     return None
