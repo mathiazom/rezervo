@@ -77,7 +77,7 @@ def upsert_session(
             user_id=user_id,
             status=status,
             position_in_wait_list=position_in_wait_list,
-            class_data=SessionRezervoClass(**_class.dict()),
+            class_data=SessionRezervoClass(**_class.model_dump()),
         )
     )
     with SessionLocal() as db:
@@ -146,7 +146,9 @@ async def remove_sessions(
         )
         for session in user_planned_sessions:
             if (
-                rezervo_class_recurrent_id(UserSession.from_orm(session).class_data)
+                rezervo_class_recurrent_id(
+                    UserSession.model_validate(session).class_data
+                )
                 in recurrent_ids_to_remove
             ):
                 db.delete(session)

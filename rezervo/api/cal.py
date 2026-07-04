@@ -66,7 +66,7 @@ def get_calendar(
         if s.class_data is None:
             continue
         event = ical_event_from_session(
-            UserSession.from_orm(s), timezone, app_config.web_host
+            UserSession.model_validate(s), timezone, app_config.web_host
         )
         if event is not None:
             ical.add_component(event)

@@ -189,7 +189,7 @@ async def put_chain_config(
     updated_config = crud.update_chain_config(
         db,
         db_user.id,
-        ChainConfig(**chain_config.dict(), chain=chain_identifier),
+        ChainConfig(**chain_config.model_dump(), chain=chain_identifier),
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)

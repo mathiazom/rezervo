@@ -6,7 +6,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 @lru_cache
 def get_settings():
-    return Settings()
+    # pydantic-settings populates fields from the environment / env file, so no
+    # constructor arguments are required (not yet understood by ty).
+    return Settings()  # ty: ignore[missing-argument]
 
 
 class Settings(BaseSettings):

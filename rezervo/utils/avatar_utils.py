@@ -66,7 +66,7 @@ def get_user_avatar_file_by_id(user_id: UUID, size_name: str):
     return file
 
 
-def resize_image_to_square(image: PIL.Image.Image, length: int) -> PIL.Image.Image:
+def resize_image_to_square(image: Image.Image, length: int) -> Image.Image:
     """
     Resize image (preserving ratio) so that the smallest side matches the given length,
     then crop the other side to match the same length.

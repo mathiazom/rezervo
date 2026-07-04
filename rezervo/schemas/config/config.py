@@ -81,7 +81,11 @@ def config_from_stored(
     admin_config: AdminConfig,
 ) -> Config:
     merged_config: dict[str, Any] = {}
-    for c in [preferences.dict(), admin_config.dict(), read_app_config().dict()]:
+    for c in [
+        preferences.model_dump(),
+        admin_config.model_dump(),
+        read_app_config().model_dump(),
+    ]:
         CONFIG_MERGER.merge(merged_config, c)
     config_value = ConfigValue(**merged_config)
     if config_value.notifications is None:

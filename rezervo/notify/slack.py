@@ -102,7 +102,7 @@ def find_user_dm_channel_id(slack_token: str, user_id: str) -> str | None:
                 f"{(': ' + str(res.get('error'))) if res is not None else ''}"
             )
             return None
-        channel_id = res.get("channel").get("id")  # type: ignore
+        channel_id = res.get("channel").get("id")
         log.debug(f"Located channel id of user direct message: {channel_id}")
         return channel_id
     except SlackApiError as e:
@@ -520,7 +520,7 @@ def build_booking_message_blocks(
                     user_id=user_id,
                     class_id=booked_class.id,
                     scheduled_reminder_id=scheduled_reminder_id,
-                ).json()
+                ).model_dump_json()
             ),
             "text": {"type": "plain_text", "text": ":no_entry: Avbestill"},
             "confirm": {

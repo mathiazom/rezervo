@@ -4,8 +4,6 @@ from abc import abstractmethod
 from datetime import datetime, timedelta
 from uuid import UUID
 
-import pydantic
-
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.http_client import HttpClient, create_client_session
 from rezervo.models import SessionState
@@ -163,7 +161,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
         for session_json in sessions_json["bookings"]:
             if session_json["type"] != "groupclass":
                 continue
-            ibooking_session = pydantic.parse_obj_as(SitSession, session_json)
+            ibooking_session = SitSession.model_validate(session_json)
             session = UserSession(
                 chain=chain_user.chain,
                 class_id=str(ibooking_session.class_field.id),
@@ -175,7 +173,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
                         ibooking_class_from_sit_session_class(
                             ibooking_session.class_field
                         )
-                    ).dict()
+                    ).model_dump()
                 ),
             )
             if datetime_now < session.class_data.start_time or session.status in [

@@ -2,8 +2,8 @@ import uuid
 from functools import lru_cache
 
 import typer
-from auth0.management import ManagementClient  # type: ignore
-from fusionauth.fusionauth_client import FusionAuthClient  # type: ignore
+from auth0.management import ManagementClient
+from fusionauth.fusionauth_client import FusionAuthClient
 
 from rezervo import models
 from rezervo.database.database import SessionLocal
@@ -90,7 +90,7 @@ def migrate_from_auth0(
                 )
             else:
                 # update the user table sub column with the fusionauth id
-                user.jwt_sub = fusionauth_user_id
+                user.jwt_sub = str(fusionauth_user_id)
                 log.info(f"Migrated user '{user.name}' to FusionAuth")
         db.commit()
 

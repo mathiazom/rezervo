@@ -98,6 +98,6 @@ def session_model_from_user_session(user_session: UserSession):
         user_id=user_session.user_id,
         status=user_session.status,
         position_in_wait_list=user_session.position_in_wait_list,
-        class_data=json.loads(user_session.class_data.json()),
+        class_data=json.loads(user_session.class_data.model_dump_json()),
         chain=user_session.chain,
     )

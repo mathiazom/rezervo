@@ -290,7 +290,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                             if booking.waitingListIndex > 0
                             else None
                         ),
-                        class_data=SessionRezervoClass(**_class.dict()),
+                        class_data=SessionRezervoClass(**_class.model_dump()),
                     )
                 )
         return user_sessions

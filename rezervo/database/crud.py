@@ -64,8 +64,8 @@ def create_user(db: Session, name: str, jwt_sub: str, slack_id: str | None = Non
                 if slack_id is not None
                 else None
             ),
-        ).dict(),
-        preferences=UserPreferences().dict(),
+        ).model_dump(),
+        preferences=UserPreferences().model_dump(),
     )
     db.add(db_user)
     db.commit()
@@ -397,7 +397,7 @@ def upsert_push_notification_subscription(
         db_subscription = models.PushNotificationSubscription(
             user_id=user_id,
             endpoint=subscription.endpoint,
-            keys=subscription.keys.dict(),
+            keys=subscription.keys.model_dump(),
         )
         db.add(db_subscription)
     else:
@@ -412,7 +412,7 @@ def delete_push_notification_subscription(
 ) -> bool:
     db_subscription_query = db.query(models.PushNotificationSubscription).filter_by(
         endpoint=subscription.endpoint,
-        keys=subscription.keys.dict(),
+        keys=subscription.keys.model_dump(),
     )
     if user_id is not None:
         db_subscription_query = db_subscription_query.filter_by(user_id=user_id)
@@ -432,7 +432,7 @@ def verify_push_notification_subscription(
         .filter_by(
             user_id=user_id,
             endpoint=subscription.endpoint,
-            keys=subscription.keys.dict(),
+            keys=subscription.keys.model_dump(),
         )
         .one_or_none()
     ) is not None

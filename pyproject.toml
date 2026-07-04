@@ -63,16 +63,13 @@ rezervo = "rezervo.cli.cli:cli"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.8.0,<2",
+    "ty>=0.0.56,<0.1",
     "poethepoet>=0.22.0,<0.23",
     "ruff>=0.15.20,<0.16",
     "types-python-crontab>=3.0.0.1,<4",
-    "types-pyyaml>=6.0.12.12,<7",
-    "types-python-dateutil>=2.8.19.14,<3",
     "types-pytz>=2023.3.1.1,<2024",
     "types-requests>=2.31.0.10,<3",
     "types-tabulate>=0.9.0.20240106,<0.10",
-    "types-pillow>=10.2.0.20240311,<11",
     "types-psutil>=6.1.0.20241221,<7",
 ]
 
@@ -107,8 +104,8 @@ cmd = "ruff check rezervo"
 help = "Lint code using ruff"
 
 [tool.poe.tasks.typecheck]
-cmd = "mypy rezervo"
-help = "Check typing using mypy"
+cmd = "ty check rezervo"
+help = "Check typing using ty"
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -137,5 +134,11 @@ ignore = [
 "rezervo/alembic/env.py" = ["E402"]
 "rezervo/alembic/versions/*.py" = ["SIM"]  # generated migration scripts
 
-[tool.mypy]
-ignore_missing_imports = true
+[tool.ty.environment]
+python-version = "3.10"
+
+[tool.ty.src]
+exclude = ["rezervo/alembic/"]
+
+[tool.ty.terminal]
+error-on-warning = true

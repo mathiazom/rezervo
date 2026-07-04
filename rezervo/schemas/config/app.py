@@ -1,7 +1,5 @@
 from uuid import UUID
 
-from pydantic import Extra
-
 from rezervo.schemas.base import OrmBase
 from rezervo.schemas.camel import CamelOrmBase
 
@@ -65,7 +63,7 @@ class FusionAuthMigrationFromAuth0Configuration(CamelOrmBase):
     management_api_client_secret: str
 
 
-class FusionAuthEmailConfiguration(CamelOrmBase, extra=Extra.allow):
+class FusionAuthEmailConfiguration(CamelOrmBase, extra="allow"):
     defaultFromName: str = "rezervo"
     defaultFromEmail: str
     host: str
@@ -75,7 +73,7 @@ class FusionAuthEmailConfiguration(CamelOrmBase, extra=Extra.allow):
     security: str
 
 
-class FusionAuthOAuthConfiguration(CamelOrmBase, extra=Extra.allow):
+class FusionAuthOAuthConfiguration(CamelOrmBase, extra="allow"):
     clientSecret: str
     authorizedOriginURLs: list[str]
     authorizedRedirectURLs: list[str]
@@ -85,11 +83,11 @@ class FusionAuthOAuthConfiguration(CamelOrmBase, extra=Extra.allow):
     logoutURL: str | None = None
 
 
-class FusionAuthSlidingWindowConfiguration(CamelOrmBase, extra=Extra.allow):
+class FusionAuthSlidingWindowConfiguration(CamelOrmBase, extra="allow"):
     maximumTimeToLiveInMinutes: int
 
 
-class FusionAuthJwtConfiguration(CamelOrmBase, extra=Extra.allow):
+class FusionAuthJwtConfiguration(CamelOrmBase, extra="allow"):
     timeToLiveInSeconds: int
     refreshTokenTimeToLiveInMinutes: int
     refreshTokenExpirationPolicy: str

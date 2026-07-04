@@ -306,7 +306,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
                 class_id=str(p.id),
                 user_id=chain_user.user_id,
                 status=SessionState.PLANNED,
-                class_data=SessionRezervoClass(**p.dict()),
+                class_data=SessionRezervoClass(**p.model_dump()),
             )
             for p in planned_classes
         ]

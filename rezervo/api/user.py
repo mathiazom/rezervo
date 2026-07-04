@@ -20,7 +20,7 @@ from rezervo.schemas.camel import CamelModel
 from rezervo.schemas.config.app import AppConfig
 from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.config.user import ChainConfig, ChainIdentifier
-from rezervo.schemas.schedule import BaseUserSession
+from rezervo.schemas.schedule import BaseUserSession, SessionRezervoClass
 from rezervo.utils.avatar_utils import (
     build_user_avatars_dir,
     generate_avatar_thumbnails,
@@ -95,7 +95,7 @@ def get_user_sessions(
             chain=session.chain,
             status=session.status,
             position_in_wait_list=session.position_in_wait_list,
-            class_data=session.class_data,  # type: ignore[arg-type]
+            class_data=SessionRezervoClass.model_validate(session.class_data),
         )
         for session in db_sessions
     ]

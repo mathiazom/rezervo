@@ -224,7 +224,7 @@ async def refresh_chain_user_auth_data(
             ibooking_token=ibooking_token,
             cookies=auth_data.cookies,
         )
-        db_chain_user.auth_data = refreshed_auth_res.json()
+        db_chain_user.auth_data = refreshed_auth_res.model_dump_json()
         db.commit()
     return refreshed_auth_res
 
@@ -447,7 +447,7 @@ async def initiate_auth_session_interactively(
         ).update(
             {
                 models.ChainUser.auth_verified_at: datetime.now(),
-                models.ChainUser.auth_data: auth_data.json(),
+                models.ChainUser.auth_data: auth_data.model_dump_json(),
                 # we can forget password since a new session requires user interaction for TOTP code anyway
                 models.ChainUser.password: None,
             }
@@ -572,7 +572,7 @@ async def extend_auth_session_silently(
             refresh_token=refresh_res.refresh_token,
             cookies=cookies,
         )
-        db_chain_user.auth_data = auth_data.json()
+        db_chain_user.auth_data = auth_data.model_dump_json()
         db.commit()
     log.info(
         f":heavy_check_mark: Auth session extended for '{chain_user.chain}' user '{chain_user.username}' \n"

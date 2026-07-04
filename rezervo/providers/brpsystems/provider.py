@@ -2,10 +2,9 @@ import asyncio
 import datetime
 from abc import abstractmethod
 
-import pydantic
 import requests
 from apprise import NotifyType
-from pydantic.tools import parse_obj_as
+from pydantic import TypeAdapter
 
 from rezervo.consts import WEEKDAYS
 from rezervo.errors import AuthenticationError, BookingError
@@ -150,7 +149,9 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                     "Authorization": f"Bearer {auth_data.access_token}",
                 },
             ) as res:
-                bookings_response = parse_obj_as(list[BookingData], await res.json())
+                bookings_response = TypeAdapter(list[BookingData]).validate_python(
+                    await res.json()
+                )
         except requests.exceptions.RequestException as e:
             log.error(
                 f"Failed to retrieve booked classes for cancellation of class '{_class.activity.name}' (id={brp_class_id})",
@@ -164,7 +165,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         for booking in bookings_response:
             if booking.groupActivity.id == brp_class_id:
                 booking_type = booking.type
-                booking_id = booking.dict()[str(booking.type.value)]["id"]
+                booking_id = booking.model_dump()[str(booking.type.value)]["id"]
                 break
         if booking_id is None or booking_type is None:
             log.error(
@@ -216,7 +217,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
             return None
         brp_sessions = []
         for s in bookings_response:
-            brp_sessions.append(pydantic.parse_obj_as(BookingData, s))
+            brp_sessions.append(BookingData.model_validate(s))
         past_and_imminent_sessions = []
         for s in brp_sessions:
             # TODO: fetch concurrently
@@ -236,7 +237,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                         if s.waitingListBooking is not None
                         else None
                     ),
-                    class_data=SessionRezervoClass(**_class.dict()),
+                    class_data=SessionRezervoClass(**_class.model_dump()),
                 )
             )
         return past_and_imminent_sessions

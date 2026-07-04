@@ -117,7 +117,7 @@ class ChainUser(ChainConfig, ChainUserCredentials, ChainUserTOTP, CamelModel):
 
 
 def config_from_chain_user(user: ChainUser):
-    return ChainConfig(**user.dict())
+    return ChainConfig(**user.model_dump())
 
 
 class UpdatedChainUserCredsResponse(CamelModel):

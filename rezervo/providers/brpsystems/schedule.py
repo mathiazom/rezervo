@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 import requests
@@ -56,7 +56,7 @@ async def fetch_brp_class(
             or raw_brp_class.bookableLatest is None
         ):
             return None
-        return BrpClass(**raw_brp_class.dict())
+        return BrpClass(**raw_brp_class.model_dump())
     except ValidationError as e:
         errors = e.errors()
         log.warning(f"Failed to parse brp class\n{errors}")
@@ -111,7 +111,7 @@ async def fetch_detailed_brp_schedule(
         )
     return [
         DetailedBrpClass(
-            **brp_class.dict(),
+            **brp_class.model_dump(),
             activity_details=class_details_map[brp_class.groupActivityProduct.id],
         )
         for brp_class in schedule
@@ -137,7 +137,7 @@ async def fetch_brp_schedule(
 ) -> list[BrpClass]:
     classes: list[BrpClass] = []
     if from_date is None:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         from_date = datetime(now.year, now.month, now.day)
     days_left = days
     fetch_schedule_tasks = []
@@ -170,7 +170,7 @@ async def fetch_brp_schedule(
                 and raw_brp_class.bookableLatest is not None
             ):
                 try:
-                    brp_class = BrpClass(**raw_brp_class.dict())
+                    brp_class = BrpClass(**raw_brp_class.model_dump())
                 except ValidationError as e:
                     parse_errors.update(hashable_validation_errors(e))
                     continue

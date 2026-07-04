@@ -45,7 +45,7 @@ def get_sessions_index(
     user_name_lookup = {u.id: u.name for u in db.query(models.User).all()}
     session_dict: dict[str, list[UserNameSessionStatus]] = {}
     for db_session in friendly_db_sessions:
-        session = UserSession.from_orm(db_session)
+        session = UserSession.model_validate(db_session)
         class_id = session.class_id
         if class_id not in session_dict:
             session_dict[class_id] = []
