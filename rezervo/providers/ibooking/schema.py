@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field
 from pytz import timezone
@@ -7,9 +6,9 @@ from pytz import timezone
 from rezervo.models import SessionState
 from rezervo.schemas.camel import CamelModel
 
-IBookingLocationIdentifier: TypeAlias = int
+type IBookingLocationIdentifier = int
 
-IBookingDomain: TypeAlias = str
+type IBookingDomain = str
 
 
 class IBookingInstructor(CamelModel):

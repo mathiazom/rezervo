@@ -1,6 +1,6 @@
 import datetime
 import enum
-from typing import Annotated, Literal, TypeAlias
+from typing import Annotated, Literal
 from uuid import UUID
 
 import pytz
@@ -36,7 +36,7 @@ class UserIdAndNameWithIsSelf(CamelModel):
     user_name: str
 
 
-ChainIdentifier: TypeAlias = str
+ChainIdentifier = str
 
 
 class ProviderIdentifier(enum.Enum):

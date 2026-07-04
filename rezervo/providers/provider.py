@@ -3,7 +3,6 @@ import re
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Generic
 from uuid import UUID
 
 import pytz
@@ -22,10 +21,8 @@ from rezervo.notify.notify import (
     notify_class_friends_of_cancellation,
 )
 from rezervo.providers.schema import (
-    AuthData,
     Branch,
     LocationIdentifier,
-    LocationProviderIdentifier,
 )
 from rezervo.providers.sessions import get_user_planned_sessions_from_schedule
 from rezervo.schemas.config.config import ConfigValue
@@ -50,7 +47,7 @@ from rezervo.utils.time_utils import (
 )
 
 
-class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
+class Provider[AuthData, LocationProviderIdentifier](ABC):
     @property
     def totp_enabled(self) -> bool:
         return False
@@ -95,7 +92,7 @@ class Provider(ABC, Generic[AuthData, LocationProviderIdentifier]):
     ) -> AuthData | AuthenticationError:
         raise NotImplementedError()
 
-    async def extend_auth_session(self, chain_user: ChainUser) -> None:
+    async def extend_auth_session(self, chain_user: ChainUser) -> None:  # noqa: B027
         pass
 
     async def try_authenticate(

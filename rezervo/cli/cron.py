@@ -86,21 +86,19 @@ def list_cron_jobs(
     if ctx.invoked_subcommand is not None:
         return
     with CronTab(user=True) as crontab:
-        print_table_data: list[tuple[datetime, str, str]] = []
+        print_table_data: list[tuple[datetime | None, str, str | None]] = []
         for j in crontab:
             description = j.description(
-                use_24hour_time_format=True, casing_type=CasingTypeEnum.LowerCase
+                use_24hour_time_format=True,
+                casing_type=CasingTypeEnum.LowerCase,  # ty: ignore[invalid-argument-type]
             )
             if not j.is_valid():
-                print_table_data.append((None, f"{j.comment} (invalid)", description))  # type: ignore
+                print_table_data.append((None, f"{j.comment} (invalid)", description))
                 continue
             if not j.is_enabled():
-                print_table_data.append((None, f"{j.comment} (disabled)", description))  # type: ignore
+                print_table_data.append((None, f"{j.comment} (disabled)", description))
                 continue
-            next_run: datetime = j.schedule(date_from=datetime.now()).get_next()
-            if next_run is None:
-                print_table_data.append((None, j.comment, description))
-                continue
+            next_run = j.schedule(date_from=datetime.now()).get_next(datetime)
             print_table_data.append((next_run, j.comment, description))
         # Sort by next run time, with jobs missing 'next_run' sorted last
         print_table_data.sort(key=lambda x: (x[0] is None, x[0]))

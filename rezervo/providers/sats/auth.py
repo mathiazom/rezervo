@@ -1,5 +1,3 @@
-from typing import TypeAlias
-
 from aiohttp import ClientSession, FormData
 from pydantic import ValidationError
 
@@ -16,7 +14,7 @@ from rezervo.providers.sats.urls import (
 )
 from rezervo.utils.logging_utils import log
 
-SatsAuthData: TypeAlias = str
+type SatsAuthData = str
 
 
 def create_public_sats_client_session() -> ClientSession:

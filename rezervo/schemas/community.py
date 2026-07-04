@@ -13,7 +13,7 @@ class UserRelationship(enum.Enum):
     FRIEND = "FRIEND"
 
 
-class UserRelationshipAction(str, enum.Enum):
+class UserRelationshipAction(enum.StrEnum):
     ADD_FRIEND = "ADD_FRIEND"
     ACCEPT_FRIEND = "ACCEPT_FRIEND"
     DENY_FRIEND = "DENY_FRIEND"

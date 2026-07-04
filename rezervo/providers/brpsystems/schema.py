@@ -1,16 +1,15 @@
 from datetime import datetime
 from enum import Enum
-from typing import TypeAlias
 
 import pytz
 from pydantic import BaseModel, ConfigDict
 
 from rezervo.models import SessionState
 
-BrpSubdomain: TypeAlias = str
+type BrpSubdomain = str
 
 
-BrpLocationIdentifier: TypeAlias = int
+type BrpLocationIdentifier = int
 
 
 class BrpAuthData(BaseModel):
