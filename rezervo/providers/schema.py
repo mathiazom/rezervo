@@ -1,12 +1,10 @@
-from typing import Generic, TypeAlias, TypeVar
+from typing import TypeVar
 
 from pydantic import BaseModel
 
 from rezervo.schemas.camel import CamelModel
 
-LocationIdentifier: TypeAlias = str
-
-LocationProviderIdentifier = TypeVar("LocationProviderIdentifier")
+type LocationIdentifier = str
 
 
 class CheckInTerminal(CamelModel):
@@ -21,11 +19,11 @@ class BaseLocation(CamelModel):
     check_in_terminals: list[CheckInTerminal] | None = []
 
 
-class Location(BaseLocation, Generic[LocationProviderIdentifier]):
+class Location[LocationProviderIdentifier](BaseLocation):
     provider_identifier: LocationProviderIdentifier
 
 
-BranchIdentifier: TypeAlias = str
+type BranchIdentifier = str
 
 
 class BaseBranch(BaseModel):
@@ -33,7 +31,7 @@ class BaseBranch(BaseModel):
     name: str
 
 
-class Branch(BaseBranch, Generic[LocationProviderIdentifier]):
+class Branch[LocationProviderIdentifier](BaseBranch):
     locations: list[Location[LocationProviderIdentifier]]
 
 

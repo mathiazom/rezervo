@@ -164,7 +164,7 @@ async def refresh_chain_user_auth_data(
         return AuthenticationError.MISSING_TOTP_SESSION
     try:
         auth_data = IBookingAuthData(**json.loads(chain_user.auth_data))
-    except (json.JSONDecodeError, ValidationError):
+    except json.JSONDecodeError, ValidationError:
         log.error(
             f"Invalid auth data for '{chain_user.chain}' user '{chain_user.username}'"
         )
@@ -478,7 +478,7 @@ async def extend_auth_session_silently(
     )
     try:
         cookies = IBookingAuthData(**json.loads(auth_data_str)).cookies
-    except (json.JSONDecodeError, ValidationError):
+    except json.JSONDecodeError, ValidationError:
         log.error(
             f"Invalid auth data for '{chain_user.chain}' user '{chain_user.username}'"
         )

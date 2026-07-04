@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytz
 
@@ -32,7 +32,7 @@ def get_user_planned_sessions_from_schedule(
                 if not time_matches:
                     continue
                 # check if booking_opens_at is in the past (if so, it is either already booked or will not be booked)
-                if c.booking_opens_at < datetime.now(timezone.utc):
+                if c.booking_opens_at < datetime.now(UTC):
                     continue
                 classes.append(c)
     return classes

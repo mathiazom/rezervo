@@ -1,9 +1,8 @@
 from enum import Enum
-from typing import TypeAlias
 
 from pydantic import BaseModel
 
-SatsLocationIdentifier: TypeAlias = int
+type SatsLocationIdentifier = int
 
 
 class SatsClassImage(BaseModel):

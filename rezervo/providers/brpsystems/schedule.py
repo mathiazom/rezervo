@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
 
 import requests
@@ -137,7 +137,7 @@ async def fetch_brp_schedule(
 ) -> list[BrpClass]:
     classes: list[BrpClass] = []
     if from_date is None:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         from_date = datetime(now.year, now.month, now.day)
     days_left = days
     fetch_schedule_tasks = []
