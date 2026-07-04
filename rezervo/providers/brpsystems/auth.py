@@ -1,5 +1,4 @@
 import re
-from typing import Union
 
 import requests
 
@@ -15,7 +14,7 @@ def auth_url(subdomain: BrpSubdomain) -> str:
 
 async def authenticate(
     subdomain: BrpSubdomain, email: str, password: str
-) -> Union[BrpAuthData, AuthenticationError]:
+) -> BrpAuthData | AuthenticationError:
     async with HttpClient.singleton().post(
         auth_url(subdomain), json={"username": email, "password": password}
     ) as auth_res:

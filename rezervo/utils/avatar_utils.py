@@ -1,6 +1,5 @@
 import math
 from pathlib import Path
-from typing import Optional
 from uuid import UUID
 
 import PIL
@@ -39,7 +38,7 @@ def save_upload_file(
         upload_file.file.close()
 
 
-def build_user_avatars_dir(user_id: UUID) -> Optional[Path]:
+def build_user_avatars_dir(user_id: UUID) -> Path | None:
     content = read_app_config().content
     avatars_dir_str = content.avatars_dir if content is not None else None
     if avatars_dir_str is None:

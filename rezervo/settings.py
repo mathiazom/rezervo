@@ -4,7 +4,7 @@ from dotenv import find_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-@lru_cache()
+@lru_cache
 def get_settings():
     return Settings()
 

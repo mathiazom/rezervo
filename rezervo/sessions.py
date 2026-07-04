@@ -1,5 +1,4 @@
 import asyncio
-from typing import Optional
 from uuid import UUID
 
 from rezervo import models
@@ -23,7 +22,7 @@ from rezervo.utils.logging_utils import log
 
 
 async def pull_chain_sessions(
-    chain_identifier: ChainIdentifier, user_id: Optional[UUID] = None
+    chain_identifier: ChainIdentifier, user_id: UUID | None = None
 ):
     if user_id is not None:
         with SessionLocal() as db:
@@ -54,7 +53,7 @@ async def pull_chain_sessions(
 
 
 async def pull_sessions(
-    chain_identifier: Optional[ChainIdentifier] = None, user_id: Optional[UUID] = None
+    chain_identifier: ChainIdentifier | None = None, user_id: UUID | None = None
 ):
     if chain_identifier is not None:
         await pull_chain_sessions(chain_identifier, user_id)
@@ -69,7 +68,7 @@ def upsert_session(
     user_id: UUID,
     _class: RezervoClass,
     status: SessionState,
-    position_in_wait_list: Optional[int] = None,
+    position_in_wait_list: int | None = None,
 ):
     session = session_model_from_user_session(
         UserSession(

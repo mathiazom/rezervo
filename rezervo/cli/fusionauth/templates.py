@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 
@@ -110,8 +108,8 @@ class HtmlAndPlainText(BaseModel):
 def build_change_password_email_template(
     fusionauth_url: str,
     info_text: HtmlAndPlainText,
-    client_id: Optional[str] = None,
-    redirect_uri: Optional[str] = None,
+    client_id: str | None = None,
+    redirect_uri: str | None = None,
 ) -> HtmlAndPlainText:
     client_id_str = (
         client_id

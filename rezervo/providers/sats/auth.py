@@ -1,4 +1,4 @@
-from typing import Optional, TypeAlias, Union
+from typing import TypeAlias
 
 from aiohttp import ClientSession, FormData
 from pydantic import ValidationError
@@ -35,8 +35,8 @@ def create_authed_sats_session(auth_data: SatsAuthData) -> ClientSession:
 
 
 async def fetch_authed_sats_cookie(
-    username: str, password: Optional[str]
-) -> Union[SatsAuthData, AuthenticationError]:
+    username: str, password: str | None
+) -> SatsAuthData | AuthenticationError:
     async with create_public_sats_client_session() as session:
         auth_res = await session.post(
             AUTH_URL,
@@ -65,7 +65,7 @@ async def fetch_authed_sats_cookie(
 
 async def validate_token(
     auth_data: SatsAuthData,
-) -> Union[None, AuthenticationError]:
+) -> None | AuthenticationError:
     async with create_authed_sats_session(auth_data) as session:
         async with session.get(MY_PAGE_URL) as my_page_res:
             if not my_page_res.ok:

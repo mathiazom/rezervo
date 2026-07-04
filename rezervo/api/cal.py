@@ -60,7 +60,7 @@ def get_calendar(
     ical.add("x-wr-calname", "rezervo")
     ical.add(
         "x-wr-caldesc",
-        f'Planlagte{" og gjennomførte" if include_past else ""} timer for {db_user.name} (rezervo.no)',
+        f"Planlagte{' og gjennomførte' if include_past else ''} timer for {db_user.name} (rezervo.no)",
     )
     for s in sessions_query.all():
         if s.class_data is None:

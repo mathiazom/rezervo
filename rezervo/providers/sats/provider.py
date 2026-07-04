@@ -1,8 +1,8 @@
 import asyncio
 import re
 from abc import ABC
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import Callable, Optional, Union
 
 import pytz
 from aiohttp import FormData
@@ -72,7 +72,7 @@ from rezervo.utils.str_utils import standardize_activity_name
 class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[SatsAuthData, AuthenticationError]:
+    ) -> SatsAuthData | AuthenticationError:
         if chain_user.auth_data is not None:
             if await validate_token(chain_user.auth_data) is None:
                 return chain_user.auth_data
@@ -132,7 +132,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
 
     async def find_class_by_id(
         self, class_id: str
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         def comparator_fn(sats_class: SatsClass):
             return class_id == sats_class.id
 
@@ -145,7 +145,7 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
 
     async def find_class(
         self, _class_config: Class
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         def comparator_fn(sats_class: SatsClass):
             _class = self.rezervo_class_from_sats_class(sats_class)
             return (
@@ -225,14 +225,14 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
 
     async def _find_class_from_booking_task(
         self, booking: SatsBooking, class_config: Class
-    ) -> tuple[SatsBooking, Union[RezervoClass, BookingError, AuthenticationError]]:
+    ) -> tuple[SatsBooking, RezervoClass | BookingError | AuthenticationError]:
         return booking, await self.find_class(class_config)
 
     async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
-        locations: Optional[list[LocationIdentifier]] = None,
-    ) -> Optional[list[UserSession]]:
+        locations: list[LocationIdentifier] | None = None,
+    ) -> list[UserSession] | None:
         auth_data = await self._authenticate(chain_user)
         if isinstance(auth_data, AuthenticationError):
             log.error(

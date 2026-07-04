@@ -35,7 +35,7 @@ FUSIONAUTH_EXTERNAL_URL = fusionauth_config.external_url
 init_fusionauth_cli = AsyncTyper()
 
 
-@lru_cache()
+@lru_cache
 def get_fusionauth_client():
     return FusionAuthClient(
         get_settings().FUSIONAUTH_API_KEY, fusionauth_config.internal_url

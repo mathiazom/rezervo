@@ -1,6 +1,6 @@
 import asyncio
 import datetime
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from rezervo.http_client import HttpClient
 from rezervo.providers.sats.consts import SATS_EXPOSED_CLASSES_DAYS_INTO_FUTURE
@@ -25,7 +25,7 @@ def is_schedule_fetchable_for_date(date: datetime.date) -> bool:
 
 async def fetch_sats_classes_with_offset(
     club_ids: list[str], date: datetime.datetime, offset: int
-) -> Optional[list[SatsClass]]:
+) -> list[SatsClass] | None:
     async with HttpClient.singleton().post(
         SCHEDULE_URL,
         json={
@@ -67,7 +67,7 @@ async def find_sats_class(
     club_ids: list[str],
     date: datetime.datetime,
     comparator_fn: Callable[[SatsClass], bool],
-) -> Optional[SatsClass]:
+) -> SatsClass | None:
     tasks = [
         asyncio.create_task(
             fetch_classes_batch_task(

@@ -8,7 +8,6 @@ Create Date: 2024-04-22 10:26:14.592487
 
 import enum
 import uuid
-from typing import Optional
 
 import sqlalchemy as sa
 from alembic import op
@@ -56,7 +55,7 @@ class User(Base):
         primary_key=True, index=True, default=uuid.uuid4
     )
     name: Mapped[str] = mapped_column(unique=True)
-    jwt_sub: Mapped[Optional[str]] = mapped_column()
+    jwt_sub: Mapped[str | None] = mapped_column()
     cal_token: Mapped[str] = mapped_column()
     preferences: Mapped[dict] = mapped_column()
     admin_config: Mapped[dict] = mapped_column()

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 from rezervo.schemas.config.user import ChainIdentifier
@@ -11,14 +9,14 @@ class User(BaseModel):
 
 class Action(BaseModel):
     action_id: str
-    value: Optional[str] = None
+    value: str | None = None
 
 
 class CancelBookingActionValue(BaseModel):
     chain_identifier: ChainIdentifier
     class_id: str
     user_id: str
-    scheduled_reminder_id: Optional[str] = None
+    scheduled_reminder_id: str | None = None
 
 
 class InteractionContainer(BaseModel):

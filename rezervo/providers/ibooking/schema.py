@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, TypeAlias
+from typing import TypeAlias
 
 from pydantic import BaseModel, ConfigDict, Field
 from pytz import timezone
@@ -29,27 +29,27 @@ class IBookingCategory(CamelModel):
 class IBookingWaitlist(CamelModel):
     active: bool
     count: int
-    user_position: Optional[int] = None
+    user_position: int | None = None
 
 
 class IBookingBaseClass(CamelModel):
     id: int
     activity_id: int
-    available: Optional[int] = None
+    available: int | None = None
     bookable: bool
     capacity: int
     studio: IBookingStudio
-    room: Optional[str] = None
+    room: str | None = None
     from_field: str = Field(..., alias="from")
     to: str
     name: str
     description: str
     category: IBookingCategory
-    image: Optional[str] = None
+    image: str | None = None
     color: str
     instructors: list[IBookingInstructor]
-    cancel_text: Optional[str] = None
-    user_status: Optional[str] = None
+    cancel_text: str | None = None
+    user_status: str | None = None
     booking_opens_at: str
 
 

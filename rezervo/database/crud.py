@@ -1,6 +1,5 @@
 from collections import defaultdict
 from datetime import datetime
-from typing import Optional
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -41,7 +40,7 @@ from rezervo.schemas.schedule import UserSession, session_model_from_user_sessio
 from rezervo.utils.ical_utils import generate_calendar_token
 
 
-def user_from_token(db: Session, app_config: AppConfig, token) -> Optional[models.User]:
+def user_from_token(db: Session, app_config: AppConfig, token) -> models.User | None:
     fusionauth_config = app_config.fusionauth
     jwt_sub = decode_jwt_sub(
         token.credentials,
@@ -54,7 +53,7 @@ def user_from_token(db: Session, app_config: AppConfig, token) -> Optional[model
     return db.query(models.User).filter_by(jwt_sub=jwt_sub).one_or_none()
 
 
-def create_user(db: Session, name: str, jwt_sub: str, slack_id: Optional[str] = None):
+def create_user(db: Session, name: str, jwt_sub: str, slack_id: str | None = None):
     db_user = models.User(
         name=name,
         jwt_sub=jwt_sub,
@@ -76,7 +75,7 @@ def create_user(db: Session, name: str, jwt_sub: str, slack_id: Optional[str] = 
 
 def get_chain_user_creds(
     db: Session, user_id: UUID, chain_identifier: ChainIdentifier
-) -> Optional[ChainUserCredentials]:
+) -> ChainUserCredentials | None:
     db_chain_user = get_db_chain_user(db, chain_identifier, user_id)
     if db_chain_user is None:
         return None
@@ -124,7 +123,7 @@ def upsert_chain_user_auth_data(
     db: Session,
     chain_identifier: ChainIdentifier,
     user_id: UUID,
-    auth_data: Optional[str],
+    auth_data: str | None,
 ):
     db.query(models.ChainUser).filter_by(
         user_id=user_id, chain=chain_identifier
@@ -134,7 +133,7 @@ def upsert_chain_user_auth_data(
 
 def get_db_chain_user(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[models.ChainUser]:
+) -> models.ChainUser | None:
     return (
         db.query(models.ChainUser)
         .filter_by(user_id=user_id, chain=chain_identifier)
@@ -144,7 +143,7 @@ def get_db_chain_user(
 
 def get_chain_user_totp(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[str]:
+) -> str | None:
     return (
         db.query(models.ChainUser.totp)
         .filter_by(user_id=user_id, chain=chain_identifier)
@@ -154,7 +153,7 @@ def get_chain_user_totp(
 
 def get_chain_user_auth_verified_at(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[datetime]:
+) -> datetime | None:
     return (
         db.query(models.ChainUser.auth_verified_at)
         .filter_by(user_id=user_id, chain=chain_identifier)
@@ -182,7 +181,7 @@ def delete_chain_user_totp(
 
 def get_chain_user(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[ChainUser]:
+) -> ChainUser | None:
     db_chain_user = get_db_chain_user(db, chain_identifier, user_id)
     if db_chain_user is None:
         return None
@@ -225,7 +224,7 @@ def get_chain_users(
 
 def get_chain_config(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[ChainConfig]:
+) -> ChainConfig | None:
     user = get_chain_user(db, chain_identifier, user_id)
     if user is None:
         return None
@@ -234,7 +233,7 @@ def get_chain_config(
 
 def get_chain_user_profile(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> Optional[ChainUserProfile]:
+) -> ChainUserProfile | None:
     user = get_chain_user(db, chain_identifier, user_id)
     if user is None:
         return None
@@ -245,8 +244,8 @@ def get_chain_user_profile(
 
 def update_chain_config(
     db: Session, user_id: UUID, config: ChainConfig
-) -> Optional[ChainConfig]:
-    db_chain_user: Optional[models.ChainUser] = (
+) -> ChainConfig | None:
+    db_chain_user: models.ChainUser | None = (
         db.query(models.ChainUser)
         .filter_by(user_id=user_id, chain=config.chain)
         .one_or_none()
@@ -323,11 +322,11 @@ def upsert_user_chain_sessions(
     db.commit()
 
 
-def get_user(db, user_id) -> Optional[models.User]:
+def get_user(db, user_id) -> models.User | None:
     return db.query(models.User).filter_by(id=user_id).one_or_none()
 
 
-def get_user_config_by_id(db, user_id) -> Optional[Config]:
+def get_user_config_by_id(db, user_id) -> Config | None:
     db_user = get_user(db, user_id)
     if db_user is None:
         return None
@@ -371,7 +370,7 @@ def get_user_config(db, user: models.User) -> Config:
     )
 
 
-def get_user_config_by_slack_id(db, slack_id) -> Optional[Config]:
+def get_user_config_by_slack_id(db, slack_id) -> Config | None:
     if slack_id is None:
         return None
     for u in db.query(models.User).all():
@@ -409,7 +408,7 @@ def upsert_push_notification_subscription(
 
 
 def delete_push_notification_subscription(
-    db, subscription: PushNotificationSubscription, user_id: Optional[UUID] = None
+    db, subscription: PushNotificationSubscription, user_id: UUID | None = None
 ) -> bool:
     db_subscription_query = db.query(models.PushNotificationSubscription).filter_by(
         endpoint=subscription.endpoint,

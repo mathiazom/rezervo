@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 from abc import abstractmethod
-from typing import Optional, Union
 
 import pydantic
 import requests
@@ -71,7 +70,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
 
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[BrpAuthData, AuthenticationError]:
+    ) -> BrpAuthData | AuthenticationError:
         if chain_user.password is None:
             return AuthenticationError.INVALID_CREDENTIALS
         return await authenticate(
@@ -80,7 +79,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
 
     async def find_class_by_id(
         self, class_id: str
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         locations = self.locations()
         business_unit = (
             self.provider_location_identifier_from_location_identifier(locations[0])
@@ -109,7 +108,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
 
     async def find_class(
         self, _class_config: Class
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         _class = await self.try_find_brp_class(
             self.brp_subdomain,
             _class_config,
@@ -161,7 +160,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         if bookings_response is None:
             return False
         booking_id = None
-        booking_type: Optional[BookingType] = None
+        booking_type: BookingType | None = None
         for booking in bookings_response:
             if booking.groupActivity.id == brp_class_id:
                 booking_type = booking.type
@@ -179,8 +178,8 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
     async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
-        locations: Optional[list[LocationIdentifier]] = None,
-    ) -> Optional[list[UserSession]]:
+        locations: list[LocationIdentifier] | None = None,
+    ) -> list[UserSession] | None:
         start_time = datetime.datetime.combine(
             datetime.datetime.now(), datetime.datetime.min.time()
         ) - datetime.timedelta(weeks=3)
@@ -298,7 +297,8 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                 self._fetch_detailed_schedule(business_unit, days, from_date)
                 for location in locations
                 if (
-                    business_unit := self.provider_location_identifier_from_location_identifier(
+                    business_unit
+                    := self.provider_location_identifier_from_location_identifier(
                         location
                     )
                 )
@@ -369,7 +369,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
         self,
         subdomain: BrpSubdomain,
         _class_config: Class,
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         business_unit = self.provider_location_identifier_from_location_identifier(
             _class_config.location_id
         )

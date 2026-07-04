@@ -7,7 +7,7 @@ Create Date: 2024-01-02 00:00:17.463042
 """
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 
 import sqlalchemy as sa
 from alembic import op
@@ -105,7 +105,7 @@ class RecurringBooking(Base):
     )
 
 
-def studio_to_location(chain: str, studio: int) -> Optional[str]:
+def studio_to_location(chain: str, studio: int) -> str | None:
     match (chain, studio):
         case ("sit", 306):
             return "gloshaugen"
@@ -124,7 +124,7 @@ def studio_to_location(chain: str, studio: int) -> Optional[str]:
     return None
 
 
-def location_to_studio(chain: str, location: str) -> Optional[int]:
+def location_to_studio(chain: str, location: str) -> int | None:
     match (chain, location):
         case ("sit", "gloshaugen"):
             return 306
@@ -153,7 +153,7 @@ class Class(BaseModel):
     weekday: int
     studio: int
     time: ClassTime
-    display_name: Optional[str] = None
+    display_name: str | None = None
 
 
 def upgrade() -> None:

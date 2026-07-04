@@ -1,6 +1,5 @@
 import datetime
 import json
-from typing import Optional
 from uuid import UUID
 
 from rezervo import models
@@ -21,17 +20,17 @@ class RezervoStudio(CamelModel):
 class RezervoLocation(CamelModel):
     id: str
     studio: str
-    room: Optional[str] = None
+    room: str | None = None
 
 
 class RezervoActivity(CamelModel):
     id: str
     name: str
     category: str
-    description: Optional[str] = None
-    additional_information: Optional[str] = None
+    description: str | None = None
+    additional_information: str | None = None
     color: str
-    image: Optional[str] = None
+    image: str | None = None
 
 
 class BaseRezervoClass(CamelModel):
@@ -50,11 +49,11 @@ class SessionRezervoClass(BaseRezervoClass):
 class RezervoClass(BaseRezervoClass):
     is_bookable: bool
     is_cancelled: bool
-    cancel_text: Optional[str] = None
-    total_slots: Optional[int] = None
-    available_slots: Optional[int] = None
-    waiting_list_count: Optional[int] = None
-    user_status: Optional[str] = None
+    cancel_text: str | None = None
+    total_slots: int | None = None
+    available_slots: int | None = None
+    waiting_list_count: int | None = None
+    user_status: str | None = None
     booking_opens_at: datetime.datetime
 
 
@@ -70,13 +69,13 @@ class RezervoSchedule(CamelModel):
 
 class BookingResult(CamelModel):
     status: SessionState
-    position_in_wait_list: Optional[int] = None
+    position_in_wait_list: int | None = None
 
 
 class BaseUserSession(CamelOrmBase):
     chain: ChainIdentifier
     status: SessionState
-    position_in_wait_list: Optional[int] = None
+    position_in_wait_list: int | None = None
     class_data: SessionRezervoClass
 
 
@@ -90,7 +89,7 @@ class UserNameSessionStatus(CamelModel):
     user_id: UUID
     user_name: str
     status: SessionState
-    position_in_wait_list: Optional[int] = None
+    position_in_wait_list: int | None = None
 
 
 def session_model_from_user_session(user_session: UserSession):

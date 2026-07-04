@@ -1,4 +1,3 @@
-from typing import Optional
 from uuid import UUID
 
 from pydantic import Extra
@@ -49,15 +48,15 @@ class Apprise(CamelOrmBase):
 
 
 class Notifications(CamelOrmBase):
-    host: Optional[str] = None
+    host: str | None = None
     transfersh: Transfersh
-    slack: Optional[Slack] = None
-    web_push: Optional[WebPush] = None
-    apprise: Optional[Apprise] = None
+    slack: Slack | None = None
+    web_push: WebPush | None = None
+    apprise: Apprise | None = None
 
 
 class Content(OrmBase):
-    avatars_dir: Optional[str] = None
+    avatars_dir: str | None = None
 
 
 class FusionAuthMigrationFromAuth0Configuration(CamelOrmBase):
@@ -83,7 +82,7 @@ class FusionAuthOAuthConfiguration(CamelOrmBase, extra=Extra.allow):
     enabledGrants: list[str]
     generateRefreshTokens: bool
     requireRegistration: bool
-    logoutURL: Optional[str] = None
+    logoutURL: str | None = None
 
 
 class FusionAuthSlidingWindowConfiguration(CamelOrmBase, extra=Extra.allow):
@@ -94,9 +93,9 @@ class FusionAuthJwtConfiguration(CamelOrmBase, extra=Extra.allow):
     timeToLiveInSeconds: int
     refreshTokenTimeToLiveInMinutes: int
     refreshTokenExpirationPolicy: str
-    refreshTokenSlidingWindowConfiguration: Optional[
-        FusionAuthSlidingWindowConfiguration
-    ] = None
+    refreshTokenSlidingWindowConfiguration: (
+        FusionAuthSlidingWindowConfiguration | None
+    ) = None
 
 
 class FusionAuthAdmin(CamelOrmBase):
@@ -111,11 +110,11 @@ class FusionAuth(CamelOrmBase):
     internal_url: str
     external_url: str
     application_id: UUID
-    password_changed_redirect_url: Optional[str] = None
+    password_changed_redirect_url: str | None = None
     email: FusionAuthEmailConfiguration
     jwt: FusionAuthJwtConfiguration
     oauth: FusionAuthOAuthConfiguration
-    auth0_migration: Optional[FusionAuthMigrationFromAuth0Configuration] = None
+    auth0_migration: FusionAuthMigrationFromAuth0Configuration | None = None
 
 
 class AppConfig(OrmBase):
@@ -125,8 +124,8 @@ class AppConfig(OrmBase):
     auth: Auth
     booking: Booking
     cron: Cron
-    content: Optional[Content] = None
+    content: Content | None = None
     host: str
-    web_host: Optional[str] = None
+    web_host: str | None = None
     fusionauth: FusionAuth
-    notifications: Optional[Notifications] = None
+    notifications: Notifications | None = None

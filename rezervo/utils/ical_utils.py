@@ -1,6 +1,5 @@
 import secrets
 from datetime import datetime
-from typing import Optional
 
 import pytz
 from icalendar import cal  # type: ignore[import]
@@ -19,7 +18,7 @@ def generate_calendar_token():
 
 def ical_event_from_session(
     session: UserSession, timezone: str, host: str | None
-) -> Optional[cal.Event]:
+) -> cal.Event | None:
     _class = session.class_data
     if _class is None:
         return None

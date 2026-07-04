@@ -2,7 +2,6 @@ import asyncio
 import math
 from abc import abstractmethod
 from datetime import datetime, timedelta
-from typing import Optional, Union
 from uuid import UUID
 
 import pydantic
@@ -64,13 +63,12 @@ from rezervo.utils.str_utils import standardize_activity_name
 
 
 class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
-
     @property
     def totp_enabled(self) -> bool:
         return True
 
     @property
-    def totp_regex(self) -> Optional[str]:
+    def totp_regex(self) -> str | None:
         return "^\\d{6}$"
 
     @property
@@ -80,7 +78,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
 
     async def _authenticate(
         self, chain_user: ChainUser
-    ) -> Union[IBookingAuthData, AuthenticationError]:
+    ) -> IBookingAuthData | AuthenticationError:
         return await refresh_chain_user_auth_data(chain_user)
 
     async def extend_auth_session(self, chain_user: ChainUser) -> None:
@@ -88,7 +86,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
 
     async def find_class_by_id(
         self, class_id: str
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         ibooking_token = await fetch_public_ibooking_token()
         if isinstance(ibooking_token, AuthenticationError):
             log.error("Failed to retrieve public ibooking token")
@@ -108,7 +106,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
 
     async def find_class(
         self, _class_config: Class
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         return await self.find_public_ibooking_class(
             self.ibooking_domain,
             _class_config,
@@ -145,19 +143,21 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
     async def _fetch_past_and_booked_sessions(
         self,
         chain_user: ChainUser,
-        locations: Optional[list[LocationIdentifier]] = None,
-    ) -> Optional[list[UserSession]]:
+        locations: list[LocationIdentifier] | None = None,
+    ) -> list[UserSession] | None:
         auth_res = await self._authenticate(chain_user)
         if isinstance(auth_res, AuthenticationError):
             log.error(
                 f"Authentication failed for '{chain_user.chain}' user '{chain_user.username}'"
             )
             return None
-        async with create_client_session() as session:
-            async with session.get(
+        async with (
+            create_client_session() as session,
+            session.get(
                 MY_SESSIONS_URL, headers={"x-b2c-token": auth_res.access_token.token}
-            ) as res:
-                sessions_json = await res.json()
+            ) as res,
+        ):
+            sessions_json = await res.json()
         datetime_now = datetime.now().astimezone()
         past_and_booked_sessions = []
         for session_json in sessions_json["bookings"]:
@@ -251,9 +251,9 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
         self,
         domain: IBookingDomain,
         token: str,
-        studios: Optional[list[int]] = None,
-        from_iso: Optional[str] = None,
-    ) -> Union[RezervoSchedule, None]:
+        studios: list[int] | None = None,
+        from_iso: str | None = None,
+    ) -> RezervoSchedule | None:
         # TODO: support different domains (not just sit.no)
         if domain != "sit":
             raise NotImplementedError()
@@ -286,7 +286,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
         token,
         days: int,
         from_date: datetime = datetime.combine(datetime.now(), datetime.min.time()),
-        studios: Optional[list[int]] = None,
+        studios: list[int] | None = None,
     ) -> RezervoSchedule:
         schedule_tasks = []
         for _i in range(math.ceil(days / CLASSES_SCHEDULE_DAYS_IN_SINGLE_BATCH)):
@@ -314,7 +314,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
         self,
         domain: IBookingDomain,
         _class_config: Class,
-    ) -> Union[RezervoClass, BookingError, AuthenticationError]:
+    ) -> RezervoClass | BookingError | AuthenticationError:
         ibooking_token = await fetch_public_ibooking_token()
         if isinstance(ibooking_token, AuthenticationError):
             log.error("Failed to retrieve public ibooking token")
@@ -326,7 +326,8 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
             studios=(
                 [studio]
                 if (
-                    studio := self.provider_location_identifier_from_location_identifier(
+                    studio
+                    := self.provider_location_identifier_from_location_identifier(
                         _class_config.location_id
                     )
                 )

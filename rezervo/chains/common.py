@@ -1,4 +1,3 @@
-from typing import Union
 from uuid import UUID
 
 from rezervo import models
@@ -20,20 +19,20 @@ from rezervo.utils.logging_utils import log
 async def find_class_by_id(
     chain_identifier: ChainIdentifier,
     class_id: str,
-) -> Union[RezervoClass, BookingError, AuthenticationError]:
+) -> RezervoClass | BookingError | AuthenticationError:
     return await get_chain(chain_identifier).find_class_by_id(class_id)
 
 
 async def find_class(
     chain_identifier: ChainIdentifier, _class_config: Class
-) -> Union[RezervoClass, BookingError, AuthenticationError]:
+) -> RezervoClass | BookingError | AuthenticationError:
     return await get_chain(chain_identifier).find_class(_class_config)
 
 
 async def authenticate(
     chain_user: ChainUser,
     max_attempts: int,
-) -> Union[AuthData, AuthenticationError]:
+) -> AuthData | AuthenticationError:
     return await get_chain(chain_user.chain).try_authenticate(chain_user, max_attempts)
 
 
@@ -43,7 +42,7 @@ async def book_class(
     _class: RezervoClass,
     config: ConfigValue,
     user_id: UUID,
-) -> Union[BookingResult, BookingError, AuthenticationError]:
+) -> BookingResult | BookingError | AuthenticationError:
     return await get_chain(chain_identifier).try_book_class(
         chain_identifier, auth_data, _class, config, user_id
     )
@@ -55,7 +54,7 @@ async def cancel_booking(
     _class: RezervoClass,
     config: ConfigValue,
     user_id: UUID,
-) -> Union[None, BookingError, AuthenticationError]:
+) -> None | BookingError | AuthenticationError:
     res = await get_chain(chain_identifier).try_cancel_booking(
         auth_data, _class, config, user_id
     )

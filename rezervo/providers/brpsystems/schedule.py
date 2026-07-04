@@ -1,6 +1,5 @@
 import asyncio
 from datetime import datetime, timedelta
-from typing import Optional
 from urllib.parse import urlencode
 
 import requests
@@ -40,7 +39,7 @@ async def fetch_brp_class(
     subdomain: BrpSubdomain,
     business_unit: int,
     class_id: str,
-) -> Optional[BrpClass]:
+) -> BrpClass | None:
     async with HttpClient.singleton().get(
         class_url(subdomain, business_unit, class_id)
     ) as res:
@@ -134,7 +133,7 @@ async def fetch_brp_schedule(
     subdomain: BrpSubdomain,
     business_unit: int,
     days: int,
-    from_date: Optional[datetime] = None,
+    from_date: datetime | None = None,
 ) -> list[BrpClass]:
     classes: list[BrpClass] = []
     if from_date is None:

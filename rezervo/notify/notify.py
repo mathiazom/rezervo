@@ -1,6 +1,5 @@
 import datetime
 from enum import Enum
-from typing import Optional
 from uuid import UUID
 
 from rezervo.database.crud import (
@@ -32,7 +31,7 @@ from rezervo.utils.logging_utils import log
 
 def notify_auth_failure(
     notifications_config: config.Notifications,
-    error: Optional[AuthenticationError] = None,
+    error: AuthenticationError | None = None,
     check_run: bool = False,
 ) -> None:
     notified = False
@@ -59,8 +58,8 @@ def notify_auth_failure(
 
 def notify_booking_failure(
     notifications_config: config.Notifications,
-    _class_config: Optional[Class] = None,
-    error: Optional[BookingError] = None,
+    _class_config: Class | None = None,
+    error: BookingError | None = None,
     check_run: bool = False,
 ) -> None:
     notified = False
@@ -92,7 +91,7 @@ async def notify_booking(
     notifications_config: config.Notifications,
     chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
-    ical_url: Optional[str] = None,
+    ical_url: str | None = None,
 ) -> None:
     notified = False
     push_subscriptions = notifications_config.push_notification_subscriptions
@@ -131,7 +130,7 @@ def schedule_class_reminder(
     notifications_config: config.Notifications,
     chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
-) -> Optional[str]:
+) -> str | None:
     slack_config = notifications_config.slack
     if slack_config is not None and slack_config.user_id is not None:
         if notifications_config.reminder_hours_before is None:
@@ -158,7 +157,7 @@ def schedule_class_reminder(
 
 def parse_allowed_time_window_config(
     window_config: AllowedTimeWindowConfig,
-) -> Optional[AllowedTimeWindow]:
+) -> AllowedTimeWindow | None:
     not_before = datetime.time(
         hour=window_config.not_before.hour, minute=window_config.not_after.minute
     )

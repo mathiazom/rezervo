@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, TypeAlias
+from typing import TypeAlias
 
 from pydantic import BaseModel
 
@@ -23,10 +23,10 @@ class SatsClassDetail(BaseModel):
 class SatsClass(BaseModel):
     id: str
     hasWaitingList: bool
-    image: Optional[SatsClassImage] = None
+    image: SatsClassImage | None = None
     isBooked: bool
     metadata: SatsClassDetail
-    text: Optional[str] = ""
+    text: str | None = ""
     waitingListCount: int
 
 
