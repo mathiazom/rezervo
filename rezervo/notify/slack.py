@@ -25,7 +25,7 @@ from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
 from .types import AllowedTimeWindow
-from .utils import activity_url, upload_ical_to_transfersh
+from .utils import activity_url, compute_reminder_datetime, upload_ical_to_transfersh
 
 
 def notify_slack(
@@ -161,15 +161,9 @@ def schedule_class_reminder_slack(
     hours_before: float,
     time_window: AllowedTimeWindow | None,
 ) -> str | None:
-    reminder_datetime = _class.start_time - datetime.timedelta(hours=hours_before)
-    if time_window is not None:
-        reminder_datetime = window_backward_adjusted_datetime(
-            reminder_datetime, time_window
-        )
-        reminder_datetime = max(
-            datetime.datetime.now() + datetime.timedelta(minutes=1), reminder_datetime
-        )
-        hours_before = (_class.start_time - reminder_datetime).total_seconds() / 3600
+    reminder_datetime, hours_before = compute_reminder_datetime(
+        _class.start_time, hours_before, time_window
+    )
     reminder_timestamp = int(time.mktime(reminder_datetime.timetuple()))
     message = (
         f"Husk *{activity_url(host, chain_identifier, _class)}* "
@@ -177,24 +171,6 @@ def schedule_class_reminder_slack(
         f"om {hours_before:g} time{'r' if hours_before > 1 else ''}!"
     )
     return schedule_dm_slack(slack_token, user_id, reminder_timestamp, message)
-
-
-def window_backward_adjusted_datetime(
-    dt: datetime.datetime, window: AllowedTimeWindow
-) -> datetime.datetime:
-    """
-    Move datetime backwards until within given time window
-    """
-
-    t = dt.time()
-    is_too_early = t < window.not_before
-    is_too_late = t > window.not_after
-    if not is_too_early and not is_too_late:
-        return dt
-    adjusted_dt = dt.replace(hour=window.not_after.hour, minute=window.not_after.minute)
-    if is_too_early:
-        adjusted_dt -= datetime.timedelta(days=1)
-    return adjusted_dt
 
 
 AUTH_FAILURE_REASONS = {

@@ -4,7 +4,6 @@ from starlette import status
 
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.database import crud
-from rezervo.database.crud import get_user_config_by_id
 from rezervo.notify.push import notify_friend_request_web_push
 from rezervo.schemas.community import (
     Community,
@@ -44,11 +43,19 @@ def update_relationship(
     )
 
     if updated_relationship is UserRelationship.REQUEST_SENT:
-        receiver_push_subscriptions = get_user_config_by_id(  # type: ignore
-            db, payload.user_id
-        ).config.notifications.push_notification_subscriptions
-        if receiver_push_subscriptions is not None:
-            for subscription in receiver_push_subscriptions:
-                notify_friend_request_web_push(subscription, db_user.name)
+        receiver_config = crud.get_user_config_by_id(db, payload.user_id)
+        receiver_notifications = (
+            receiver_config.config.notifications
+            if receiver_config is not None
+            else None
+        )
+        if receiver_notifications is not None:
+            receiver_push_subscriptions = (
+                receiver_notifications.push_notification_subscriptions
+            )
+            if receiver_push_subscriptions is not None:
+                for subscription in receiver_push_subscriptions:
+                    if subscription.grants.community:
+                        notify_friend_request_web_push(subscription, db_user.name)
 
     return updated_relationship

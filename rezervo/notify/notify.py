@@ -2,14 +2,22 @@ import datetime
 from enum import Enum
 from uuid import UUID
 
+from sqlalchemy.orm import Session
+
 from rezervo.database.crud import (
+    add_scheduled_push_notification,
+    class_reminder_cancellation_key,
+    delete_scheduled_push_reminders_for_user,
     get_friend_ids_in_class,
+    get_upcoming_booked_sessions,
     get_user,
     get_user_push_notification_subscriptions,
+    user_has_push_notification_subscriptions,
 )
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.push import (
+    build_class_reminder_message,
     notify_auth_failure_web_push,
     notify_booking_failure_web_push,
     notify_booking_web_push,
@@ -23,9 +31,17 @@ from rezervo.notify.slack import (
     schedule_class_reminder_slack,
 )
 from rezervo.notify.types import AllowedTimeWindow
+from rezervo.notify.utils import compute_reminder_datetime
 from rezervo.schemas.config import config
-from rezervo.schemas.config.user import AllowedTimeWindowConfig, ChainIdentifier, Class
-from rezervo.schemas.schedule import RezervoClass
+from rezervo.schemas.config.user import (
+    AllowedTimeWindowConfig,
+    ChainIdentifier,
+    Class,
+)
+from rezervo.schemas.config.user import (
+    Notifications as UserNotifications,
+)
+from rezervo.schemas.schedule import BaseRezervoClass, RezervoClass
 from rezervo.utils.logging_utils import log
 
 
@@ -38,8 +54,9 @@ def notify_auth_failure(
     push_subscriptions = notifications_config.push_notification_subscriptions
     if push_subscriptions is not None:
         for subscription in push_subscriptions:
-            notify_auth_failure_web_push(subscription, error, check_run)
-            notified = True
+            if subscription.grants.booking:
+                notify_auth_failure_web_push(subscription, error, check_run)
+                notified = True
     slack_config = notifications_config.slack
     if slack_config is not None and slack_config.user_id is not None:
         notify_auth_failure_slack(
@@ -66,10 +83,11 @@ def notify_booking_failure(
     push_subscriptions = notifications_config.push_notification_subscriptions
     if push_subscriptions is not None:
         for subscription in push_subscriptions:
-            notify_booking_failure_web_push(
-                subscription, _class_config, error, check_run
-            )
-            notified = True
+            if subscription.grants.booking:
+                notify_booking_failure_web_push(
+                    subscription, _class_config, error, check_run
+                )
+                notified = True
     slack_config = notifications_config.slack
     if slack_config is not None and slack_config.user_id is not None:
         notify_booking_failure_slack(
@@ -91,21 +109,21 @@ async def notify_booking(
     notifications_config: config.Notifications,
     chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
+    user_id: UUID,
     ical_url: str | None = None,
 ) -> None:
     notified = False
     push_subscriptions = notifications_config.push_notification_subscriptions
     if push_subscriptions is not None:
         for subscription in push_subscriptions:
-            notify_booking_web_push(subscription, booked_class)
-            notified = True
+            if subscription.grants.booking:
+                notify_booking_web_push(subscription, booked_class)
+                notified = True
+    scheduled_reminder_id = schedule_class_reminder(
+        notifications_config, user_id, chain_identifier, booked_class
+    )
     slack_config = notifications_config.slack
     if slack_config is not None and slack_config.user_id is not None:
-        scheduled_reminder_id = None
-        if notifications_config.reminder_hours_before is not None:
-            scheduled_reminder_id = schedule_class_reminder(
-                notifications_config, chain_identifier, booked_class
-            )
         if notifications_config.transfersh is not None:
             transfersh_url = notifications_config.transfersh.url
         else:
@@ -128,20 +146,31 @@ async def notify_booking(
 
 def schedule_class_reminder(
     notifications_config: config.Notifications,
+    user_id: UUID,
     chain_identifier: ChainIdentifier,
     booked_class: RezervoClass,
 ) -> str | None:
-    slack_config = notifications_config.slack
-    if slack_config is not None and slack_config.user_id is not None:
-        if notifications_config.reminder_hours_before is None:
-            return None
-        time_window = (
-            parse_allowed_time_window_config(
-                notifications_config.reminder_allowed_time_window
+    if notifications_config.reminder_hours_before is None:
+        return None
+    time_window = parse_allowed_time_window_config(
+        notifications_config.reminder_allowed_time_window
+    )
+    with SessionLocal() as db:
+        if user_has_push_notification_subscriptions(db, user_id):
+            schedule_class_reminder_web_push(
+                db,
+                user_id,
+                chain_identifier,
+                booked_class,
+                notifications_config.reminder_hours_before,
+                time_window,
             )
-            if notifications_config.reminder_allowed_time_window is not None
-            else None
-        )
+    slack_config = notifications_config.slack
+    if (
+        notifications_config.reminder_slack
+        and slack_config is not None
+        and slack_config.user_id is not None
+    ):
         return schedule_class_reminder_slack(
             slack_config.bot_token,
             slack_config.user_id,
@@ -151,20 +180,67 @@ def schedule_class_reminder(
             notifications_config.reminder_hours_before,
             time_window,
         )
-    log.warning("No notification targets, class reminder will not be sent")
     return None
 
 
+def schedule_class_reminder_web_push(
+    db: Session,
+    user_id: UUID,
+    chain_identifier: ChainIdentifier,
+    booked_class: BaseRezervoClass,
+    hours_before: float,
+    time_window: AllowedTimeWindow | None,
+) -> None:
+    reminder_datetime, hours_before = compute_reminder_datetime(
+        booked_class.start_time, hours_before, time_window
+    )
+    add_scheduled_push_notification(
+        db,
+        user_id,
+        build_class_reminder_message(booked_class, hours_before),
+        reminder_datetime.astimezone().replace(tzinfo=None),
+        class_reminder_cancellation_key(chain_identifier, booked_class.id),
+    )
+
+
+def reconcile_scheduled_push_reminders(
+    db: Session,
+    user_id: UUID,
+    notifications_config: UserNotifications | None,
+) -> None:
+    delete_scheduled_push_reminders_for_user(db, user_id)
+    if (
+        notifications_config is None
+        or notifications_config.reminder_hours_before is None
+        or not user_has_push_notification_subscriptions(db, user_id)
+    ):
+        return
+    time_window = parse_allowed_time_window_config(
+        notifications_config.reminder_allowed_time_window
+    )
+    for session in get_upcoming_booked_sessions(db, user_id):
+        schedule_class_reminder_web_push(
+            db,
+            user_id,
+            session.chain,
+            session.class_data,
+            notifications_config.reminder_hours_before,
+            time_window,
+        )
+
+
 def parse_allowed_time_window_config(
-    window_config: AllowedTimeWindowConfig,
+    window_config: AllowedTimeWindowConfig | None,
 ) -> AllowedTimeWindow | None:
+    if window_config is None:
+        return None
     not_before = datetime.time(
-        hour=window_config.not_before.hour, minute=window_config.not_after.minute
+        hour=window_config.not_before.hour, minute=window_config.not_before.minute
     )
     not_after = datetime.time(
         hour=window_config.not_after.hour, minute=window_config.not_after.minute
     )
-    if not_before >= not_after:
+    if not_before == not_after:
         return None
     window = AllowedTimeWindow()
     window.not_after = not_after
@@ -192,6 +268,8 @@ async def notify_class_friends(
             push_subscriptions = get_user_push_notification_subscriptions(db, friend_id)
         if push_subscriptions is not None:
             for subscription in push_subscriptions:
+                if not subscription.grants.community:
+                    continue
                 match notification_type:
                     case ClassFriendNotificationType.BOOKING:
                         notify_friend_of_booking_web_push(

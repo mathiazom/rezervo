@@ -21,6 +21,7 @@ from rezervo.schemas.config.admin import AdminConfig
 from rezervo.schemas.config.app import AppConfig
 from rezervo.schemas.config.config import (
     Config,
+    PushNotificationGrants,
     PushNotificationSubscription,
     PushNotificationSubscriptionKeys,
     config_from_stored,
@@ -36,7 +37,10 @@ from rezervo.schemas.config.user import (
     UserPreferences,
     config_from_chain_user,
 )
-from rezervo.schemas.schedule import UserSession, session_model_from_user_session
+from rezervo.schemas.schedule import (
+    UserSession,
+    session_model_from_user_session,
+)
 from rezervo.utils.ical_utils import generate_calendar_token
 
 
@@ -340,11 +344,19 @@ def get_user_push_notification_subscriptions(
         PushNotificationSubscription(
             endpoint=db_subscription.endpoint,
             keys=PushNotificationSubscriptionKeys(**db_subscription.keys),
+            grants=PushNotificationGrants(**db_subscription.grants),
         )
         for db_subscription in db.query(models.PushNotificationSubscription).filter_by(
             user_id=user_id
         )
     ]
+
+
+def user_has_push_notification_subscriptions(db, user_id: UUID) -> bool:
+    return (
+        db.query(models.PushNotificationSubscription).filter_by(user_id=user_id).first()
+        is not None
+    )
 
 
 def update_last_used_push_notification_subscription(
@@ -398,10 +410,12 @@ def upsert_push_notification_subscription(
             user_id=user_id,
             endpoint=subscription.endpoint,
             keys=subscription.keys.model_dump(),
+            grants=subscription.grants.model_dump(),
         )
         db.add(db_subscription)
     else:
-        db_subscription.keys = subscription.keys
+        db_subscription.keys = subscription.keys.model_dump()
+        db_subscription.grants = subscription.grants.model_dump()
     db.commit()
     db.refresh(db_subscription)
     return db_subscription
@@ -424,20 +438,6 @@ def delete_push_notification_subscription(
     return True
 
 
-def verify_push_notification_subscription(
-    db, user_id: UUID, subscription: PushNotificationSubscription
-) -> bool:
-    return (
-        db.query(models.PushNotificationSubscription)
-        .filter_by(
-            user_id=user_id,
-            endpoint=subscription.endpoint,
-            keys=subscription.keys.model_dump(),
-        )
-        .one_or_none()
-    ) is not None
-
-
 def purge_slack_receipts(db) -> int:
     row_count = (
         db.query(models.SlackClassNotificationReceipt)
@@ -446,6 +446,85 @@ def purge_slack_receipts(db) -> int:
     )
     db.commit()
     return row_count
+
+
+def class_reminder_cancellation_key(
+    chain_identifier: ChainIdentifier, class_id: str
+) -> str:
+    return f"{chain_identifier}:{class_id}"
+
+
+def add_scheduled_push_notification(
+    db: Session,
+    user_id: UUID,
+    message: str,
+    send_at: datetime,
+    cancellation_key: str | None = None,
+) -> models.ScheduledPushNotification:
+    scheduled = models.ScheduledPushNotification(
+        user_id=user_id,
+        message=message,
+        send_at=send_at,
+        cancellation_key=cancellation_key,
+    )
+    db.add(scheduled)
+    db.commit()
+    db.refresh(scheduled)
+    return scheduled
+
+
+def get_due_scheduled_push_notifications(
+    db: Session, now: datetime
+) -> list[models.ScheduledPushNotification]:
+    return (
+        db.query(models.ScheduledPushNotification)
+        .filter(models.ScheduledPushNotification.send_at <= now)
+        .all()
+    )
+
+
+def delete_scheduled_push_notifications_for_class(
+    db: Session, user_id: UUID, chain_identifier: ChainIdentifier, class_id: str
+) -> int:
+    row_count = (
+        db.query(models.ScheduledPushNotification)
+        .filter_by(
+            user_id=user_id,
+            cancellation_key=class_reminder_cancellation_key(
+                chain_identifier, class_id
+            ),
+        )
+        .delete()
+    )
+    db.commit()
+    return row_count
+
+
+def delete_scheduled_push_reminders_for_user(db: Session, user_id: UUID) -> int:
+    row_count = (
+        db.query(models.ScheduledPushNotification)
+        .filter(
+            models.ScheduledPushNotification.user_id == user_id,
+            models.ScheduledPushNotification.cancellation_key.isnot(None),
+        )
+        .delete()
+    )
+    db.commit()
+    return row_count
+
+
+def get_upcoming_booked_sessions(db: Session, user_id: UUID) -> list[UserSession]:
+    now = datetime.now().astimezone()
+    db_sessions = (
+        db.query(models.Session)
+        .filter(
+            models.Session.user_id == user_id,
+            models.Session.status.in_([SessionState.BOOKED, SessionState.WAITLIST]),
+        )
+        .all()
+    )
+    sessions = [UserSession.model_validate(s) for s in db_sessions]
+    return [s for s in sessions if s.class_data.start_time > now]
 
 
 def get_user_relationship_index(db: Session, user_id: UUID):

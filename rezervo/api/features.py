@@ -13,7 +13,7 @@ router = APIRouter()
 
 
 class Features(CamelModel):
-    class_reminder_notifications: bool
+    slack_connected: bool
 
 
 @router.get("/features", response_model=Features)
@@ -27,7 +27,7 @@ def get_features(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
     admin_config = AdminConfig(**db_user.admin_config)
     return Features(
-        class_reminder_notifications=(
+        slack_connected=(
             admin_config.notifications is not None
             and admin_config.notifications.slack is not None
             and admin_config.notifications.slack.user_id is not None

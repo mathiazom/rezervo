@@ -21,6 +21,7 @@ from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.apprise import aprs
 from rezervo.notify.notify import notify_auth_failure, notify_booking_failure
+from rezervo.notify.scheduled import send_due_scheduled_push_notifications
 from rezervo.schemas.config.user import (
     ChainIdentifier,
 )
@@ -272,6 +273,14 @@ def purge_slack_receipts_cli():
             )
         else:
             log.debug("No expired Slack notification receipts")
+
+
+@cli.command(name="process_scheduled_push")
+def process_scheduled_push_cli():
+    """
+    Dispatch scheduled web push notifications that are due (e.g. class reminders)
+    """
+    send_due_scheduled_push_notifications()
 
 
 @cli.command(name="extend_auth_sessions")

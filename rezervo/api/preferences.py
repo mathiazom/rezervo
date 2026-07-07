@@ -4,6 +4,7 @@ from starlette import status
 
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.database import crud
+from rezervo.notify.notify import reconcile_scheduled_push_reminders
 from rezervo.schemas.config.app import AppConfig
 from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.config.user import UserPreferences
@@ -36,4 +37,5 @@ def upsert_user_preferences(
     db_user.preferences = preferences.model_dump()
     db.commit()
     db.refresh(db_user)
+    reconcile_scheduled_push_reminders(db, db_user.id, preferences.notifications)
     return db_user.preferences

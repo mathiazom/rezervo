@@ -2,6 +2,7 @@ import datetime
 import json
 import re
 
+import pytz
 from apprise import NotifyType
 from pywebpush import WebPushException, webpush  # type: ignore[import-untyped]
 from requests import Response
@@ -14,7 +15,7 @@ from rezervo.notify.apprise import aprs
 from rezervo.schemas.config.app import CONFIG_FILE
 from rezervo.schemas.config.config import PushNotificationSubscription, read_app_config
 from rezervo.schemas.config.user import Class
-from rezervo.schemas.schedule import RezervoClass
+from rezervo.schemas.schedule import BaseRezervoClass, RezervoClass
 from rezervo.utils.apprise_utils import aprs_ctx
 from rezervo.utils.logging_utils import log
 
@@ -174,6 +175,17 @@ def notify_auth_failure_web_push(
         f"Auth {'check ' if check_run else ''}failure notification posted successfully via web push"
     )
     return
+
+
+def build_class_reminder_message(
+    booked_class: BaseRezervoClass, hours_before: float
+) -> str:
+    start_time = booked_class.start_time.astimezone(pytz.timezone("Europe/Oslo"))
+    return (
+        f"Husk {booked_class.activity.name} "
+        f"({start_time.strftime('%Y-%m-%d %H:%M')}, {booked_class.location.studio}) "
+        f"om {hours_before:g} time{'r' if hours_before > 1 else ''}!"
+    )
 
 
 def notify_friend_request_web_push(

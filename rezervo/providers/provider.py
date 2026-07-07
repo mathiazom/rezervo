@@ -209,7 +209,10 @@ class Provider[AuthData, LocationProviderIdentifier](ABC):
             )  # TODO: clean this
             # ical_url = f"{ICAL_URL}/?id={_class.id}&token={token}"    # TODO: consider re-introducing ical
             await notify_booking(
-                config.notifications, chain_identifier, time_zone_adjusted_class
+                config.notifications,
+                chain_identifier,
+                time_zone_adjusted_class,
+                user_id,
             )
             await notify_class_friends_of_booking(user_id, time_zone_adjusted_class)
         return booking_result
