@@ -5,7 +5,11 @@ from starlette import status
 from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.database import crud
 from rezervo.schemas.config.app import AppConfig
-from rezervo.schemas.config.config import PushNotificationSubscription, read_app_config
+from rezervo.schemas.config.config import (
+    PushNotificationGrants,
+    PushNotificationSubscription,
+    read_app_config,
+)
 
 router = APIRouter()
 
@@ -56,14 +60,17 @@ def unsubscribe_from_push_notifications(
     return None
 
 
-@router.post("/notifications/push/verify", response_model=bool)
+@router.post("/notifications/push/verify", response_model=PushNotificationGrants | None)
 def verify_push_notifications_subscription(
     subscription: PushNotificationSubscription,
     token=Depends(token_auth_scheme),
     db: Session = Depends(get_db),
     app_config: AppConfig = Depends(read_app_config),
-):
+) -> PushNotificationGrants | None:
     db_user = crud.user_from_token(db, app_config, token)
     if db_user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    return crud.verify_push_notification_subscription(db, db_user.id, subscription)
+    for existing in crud.get_user_push_notification_subscriptions(db, db_user.id):
+        if existing.endpoint == subscription.endpoint:
+            return existing.grants
+    return None

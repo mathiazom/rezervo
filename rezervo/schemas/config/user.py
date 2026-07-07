@@ -22,6 +22,7 @@ class AllowedTimeWindowConfig(CamelOrmBase):
 
 
 class Notifications(CamelOrmBase):
+    reminder_slack: bool = False
     reminder_hours_before: float | None = None
     reminder_allowed_time_window: AllowedTimeWindowConfig | None = None
 

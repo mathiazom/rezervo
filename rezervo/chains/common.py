@@ -2,6 +2,7 @@ from uuid import UUID
 
 from rezervo import models
 from rezervo.chains.active import get_chain
+from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
 from rezervo.notify.slack import delete_scheduled_dm_slack, notify_cancellation_slack
@@ -59,6 +60,10 @@ async def cancel_booking(
         auth_data, _class, config, user_id
     )
     if res is None:
+        with SessionLocal() as db:
+            crud.delete_scheduled_push_notifications_for_class(
+                db, user_id, chain_identifier, _class.id
+            )
         if config.notifications is not None and config.notifications.slack is not None:
             update_slack_notifications_with_cancellation(
                 chain_identifier, _class, config.notifications.slack
