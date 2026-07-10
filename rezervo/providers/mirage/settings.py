@@ -4,8 +4,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class MirageSettings(BaseSettings):
-    base_url: str = "https://rezervo-mirage.up.railway.app"
-    enabled: bool = False
+    base_url: str = "https://mirage.rezervo.no"
+    enabled: bool = True
     model_config = SettingsConfigDict(env_prefix="REZERVO_MIRAGE_", extra="ignore")
 
 
