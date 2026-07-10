@@ -1,0 +1,806 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "rezervo-mirage provider API",
+    "version": "1.0.0",
+    "description": "A controllable fake gym provider that rezervo can book against."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "This deployment"
+    }
+  ],
+  "paths": {
+    "/api/chains": {
+      "get": {
+        "summary": "List all chains",
+        "tags": [
+          "Chains"
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChainProfile"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chains/{chainIdentifier}": {
+      "get": {
+        "summary": "Get a chain with its branches and locations",
+        "tags": [
+          "Chains"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chainIdentifier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chains/{chainIdentifier}/auth/login": {
+      "post": {
+        "summary": "Exchange username and password for an access token",
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chainIdentifier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chains/{chainIdentifier}/schedule": {
+      "get": {
+        "summary": "Get the class schedule for a window of days",
+        "tags": [
+          "Schedule"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chainIdentifier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "examples": [
+                "2026-07-10"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "examples": [
+                7
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "locations",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleResponse"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chains/{chainIdentifier}/sessions": {
+      "get": {
+        "summary": "List the authenticated member's sessions",
+        "tags": [
+          "Sessions"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chainIdentifier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Session"
+                  }
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chains/{chainIdentifier}/bookings": {
+      "post": {
+        "summary": "Book a class for the authenticated member",
+        "tags": [
+          "Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chainIdentifier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingResult"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chains/{chainIdentifier}/bookings/{classId}": {
+      "delete": {
+        "summary": "Cancel the authenticated member's booking for a class",
+        "tags": [
+          "Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chainIdentifier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "classId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chains/{chainIdentifier}/classes/{classId}": {
+      "get": {
+        "summary": "Get a single class by id",
+        "tags": [
+          "Classes"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "chainIdentifier",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "classId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RezervoMirageClass"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "CreateBookingRequest": {
+        "type": "object",
+        "properties": {
+          "classId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "classId"
+        ]
+      },
+      "ChainProfile": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "ApiError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "ChainResponse": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/ChainProfile"
+          },
+          "branches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BranchProfile"
+            }
+          }
+        },
+        "required": [
+          "profile",
+          "branches"
+        ],
+        "additionalProperties": false
+      },
+      "BranchProfile": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LocationProfile"
+            }
+          }
+        },
+        "required": [
+          "identifier",
+          "name",
+          "locations"
+        ],
+        "additionalProperties": false
+      },
+      "LocationProfile": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "identifier",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessToken"
+        ],
+        "additionalProperties": false
+      },
+      "ScheduleResponse": {
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleDay"
+            }
+          }
+        },
+        "required": [
+          "days"
+        ],
+        "additionalProperties": false
+      },
+      "ScheduleDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "examples": [
+              "2026-07-10"
+            ]
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RezervoMirageClass"
+            }
+          }
+        },
+        "required": [
+          "date",
+          "classes"
+        ],
+        "additionalProperties": false
+      },
+      "RezervoMirageClass": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "startTime": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-10T08:00:00.000Z"
+            ]
+          },
+          "endTime": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-10T08:00:00.000Z"
+            ]
+          },
+          "location": {
+            "$ref": "#/components/schemas/ClassLocation"
+          },
+          "activity": {
+            "$ref": "#/components/schemas/Activity"
+          },
+          "instructors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Instructor"
+            }
+          },
+          "isCancelled": {
+            "type": "boolean"
+          },
+          "cancelText": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "totalSlots": {
+            "type": "integer"
+          },
+          "availableSlots": {
+            "type": "integer"
+          },
+          "waitingListCount": {
+            "type": "integer"
+          },
+          "bookingOpensAt": {
+            "type": "string",
+            "format": "date-time",
+            "examples": [
+              "2026-07-10T08:00:00.000Z"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "startTime",
+          "endTime",
+          "location",
+          "activity",
+          "instructors",
+          "isCancelled",
+          "cancelText",
+          "totalSlots",
+          "availableSlots",
+          "waitingListCount",
+          "bookingOpensAt"
+        ],
+        "additionalProperties": false
+      },
+      "ClassLocation": {
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string"
+          },
+          "studio": {
+            "type": "string"
+          },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "identifier",
+          "studio",
+          "room"
+        ],
+        "additionalProperties": false
+      },
+      "Activity": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "additionalInformation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "image": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "additionalInformation",
+          "image"
+        ],
+        "additionalProperties": false
+      },
+      "Instructor": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/SessionState"
+          },
+          "positionInWaitList": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "class": {
+            "$ref": "#/components/schemas/RezervoMirageClass"
+          }
+        },
+        "required": [
+          "status",
+          "positionInWaitList",
+          "class"
+        ],
+        "additionalProperties": false
+      },
+      "SessionState": {
+        "type": "string",
+        "enum": [
+          "CONFIRMED",
+          "BOOKED",
+          "WAITLIST",
+          "NOSHOW",
+          "UNKNOWN"
+        ]
+      },
+      "BookingResult": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "BOOKED",
+              "WAITLIST"
+            ]
+          },
+          "positionInWaitList": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "positionInWaitList"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Access token returned by the login endpoint."
+      }
+    }
+  }
+}
