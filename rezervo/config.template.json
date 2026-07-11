@@ -20,6 +20,10 @@
   "content": {
     "avatars_dir": "/app/content/avatars"
   },
+  "mirage": {
+    "enabled": false,
+    "base_url": "https://mirage.rezervo.no"
+  },
   "host": "https://api.example.org",
   "web_host": "https://example.org",
   "fusionauth": {

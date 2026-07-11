@@ -57,6 +57,11 @@ class Content(OrmBase):
     avatars_dir: str | None = None
 
 
+class Mirage(OrmBase):
+    enabled: bool = False
+    base_url: str = "https://mirage.rezervo.no"
+
+
 class FusionAuthMigrationFromAuth0Configuration(CamelOrmBase):
     jwt_domain: str
     management_api_client_id: str
@@ -123,6 +128,7 @@ class AppConfig(OrmBase):
     booking: Booking
     cron: Cron
     content: Content | None = None
+    mirage: Mirage = Mirage()
     host: str
     web_host: str | None = None
     fusionauth: FusionAuth

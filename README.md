@@ -83,5 +83,16 @@ poe fix
 #### 🔌 Support new chain
 Add your own chain by adding it to `ACTIVE_CHAINS` in [`rezervo/chains/active.py`](rezervo/chains/active.py).
 
+#### 🏜️ Testing with rezervo-mirage
+<div class="image-link-container">
+   <a href="https://github.com/AdrianAndersen/rezervo-mirage">
+      <img src="assets/badges/providers/rezervo-mirage.svg" alt="rezervo-mirage" height="35">
+   </a>
+</div>
+
+[`rezervo-mirage`](https://github.com/AdrianAndersen/rezervo-mirage) is a mock provider — fake classes and users, connected with a real API. You can use it to schedule fake classes and experiment while developing.
+
+Mirage is disabled by default. Enable it via `mirage.enabled` in your local `rezervo/config.json`.
+
 ### 🚀 Deployment
 A template for a production deployment is given in [`docker-compose.template.yml`](docker/docker-compose.template.yml), which uses the most recent [`rezervo` Docker image](https://github.com/users/mathiazom/packages/container/package/rezervo).
