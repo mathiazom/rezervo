@@ -16,10 +16,10 @@ from rezervo.providers.mirage.schema_generated import (
 from rezervo.providers.mirage.schema_generated import (
     Session as MirageSession,
 )
-from rezervo.providers.mirage.settings import get_mirage_settings
 from rezervo.providers.provider import Provider
 from rezervo.providers.schedule import find_class_in_schedule_by_config
 from rezervo.providers.schema import LocationIdentifier
+from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.config.user import (
     ChainUser,
     ChainUserCredentials,
@@ -53,7 +53,7 @@ class MirageProvider(Provider[MirageAuthData, MirageLocationIdentifier], ABC):
         raise NotImplementedError()
 
     def _chain_url(self, *segments: str) -> str:
-        base = get_mirage_settings().base_url.rstrip("/")
+        base = read_app_config().mirage.base_url.rstrip("/")
         return "/".join(
             [base, "api", "chains", self.mirage_chain_identifier, *segments]
         )

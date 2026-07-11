@@ -3,12 +3,15 @@ from rezervo.chains.dotgym import DotGymChain
 from rezervo.chains.sats import SatsChain
 from rezervo.chains.sporty import SportyChain
 from rezervo.chains.ttt import TttChain
-from rezervo.providers.mirage.settings import get_mirage_settings
+from rezervo.schemas.config.config import read_app_config
 from rezervo.schemas.config.user import ChainIdentifier
 
 ACTIVE_CHAINS: list[Chain] = [SportyChain(), TttChain(), SatsChain()]
 
-if get_mirage_settings().enabled:
+# TODO: pull mirage chains, branches and locations dynamically from the mirage
+#       API (GET /api/chains and GET /api/chains/{chainIdentifier}) instead of
+#       relying on the statically defined DotGymChain.
+if read_app_config().mirage.enabled:
     ACTIVE_CHAINS.append(DotGymChain())
 
 ACTIVE_CHAIN_IDENTIFIERS = [c.identifier for c in ACTIVE_CHAINS]
