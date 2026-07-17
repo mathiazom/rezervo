@@ -1,6 +1,42 @@
 from pydantic import BaseModel
 
 
+def css_stylesheet():
+    return """
+:root {
+  --color-primary: #4caf50;
+  --color-primary-hover: #357a38;
+  --color-primary-text: #ffffff;
+  --color-link: #4caf50;
+  --color-link-hover: #357a38;
+  --color-info-icon: #4caf50;
+}
+"""
+
+
+def localized_messages():
+    return {
+        "no": """
+oauth2-authorize-page-title=Logg inn
+login=Logg inn
+password=Passord
+loginId=Brukernavn
+email=E-postadresse
+remember-device=Husk meg på denne enheten
+submit=Send
+forgot-your-password=Glemt passord?
+{tooltip}remember-device=Kryss av for dette for å forbli pålogget i den konfigurerte varigheten, ikke velg dette på en offentlig datamaskin eller når denne enheten deles med flere brukere
+password-forgot-page-title=Glemt passord
+forgot-password-title=Glemt passord
+forgot-password=Skriv inn brukernavnet ditt i skjemaet nedenfor for å tilbakestille passordet ditt.
+forgot-password-message-sent=Vi har sendt en melding til %s som inneholder en lenke for å tilbakestille passordet ditt. Når du mottar meldingen, følger du instruksjonene for å endre passordet ditt.
+back-to-login=Tilbake til innlogging
+return-to-login=Tilbake til innlogging
+logging-out=Logger deg ut\u2026
+"""
+    }
+
+
 def build_setup_password_complete_template(redirect_url: str | None):
     redirect_tag = (
         f'<meta http-equiv="refresh" content="0; url={redirect_url}" />'

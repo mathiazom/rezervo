@@ -23,6 +23,8 @@ from rezervo.cli.fusionauth.templates import (
     build_change_password_email_template,
     build_forgot_password_submit_template,
     build_setup_password_complete_template,
+    css_stylesheet,
+    localized_messages,
 )
 from rezervo.schemas.config.config import read_app_config
 from rezervo.settings import get_settings
@@ -117,6 +119,8 @@ def init_theme():
         FUSIONAUTH_THEME_ID,
         {
             "theme": {
+                "stylesheet": css_stylesheet(),
+                "localizedMessages": localized_messages(),
                 "templates": {
                     "passwordComplete": build_setup_password_complete_template(
                         fusionauth_config.password_changed_redirect_url
@@ -124,7 +128,7 @@ def init_theme():
                     "passwordForgot": build_forgot_password_submit_template(
                         fusionauth_config.password_changed_redirect_url
                     ),
-                }
+                },
             }
         },
     )
