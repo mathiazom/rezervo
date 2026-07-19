@@ -62,6 +62,7 @@ class PushNotificationSubscription(Base):
     )
     endpoint: Mapped[str] = mapped_column(primary_key=True)
     keys: Mapped[dict] = mapped_column()
+    grants: Mapped[dict] = mapped_column()
     last_used: Mapped[datetime | None] = mapped_column()
 
     def __repr__(self):
@@ -176,6 +177,27 @@ class SlackClassNotificationReceipt(Base):
             f"class_id='{self.class_id}' channel_id='{self.channel_id}' message_id='{self.message_id}'' "
             f"scheduled_reminder_id='{self.scheduled_reminder_id}' "
             f"expires_at='{self.expires_at.isoformat() if self.expires_at is not None else None}')>"
+        )
+
+
+class ScheduledPushNotification(Base):
+    __tablename__ = "scheduled_push_notifications"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True, index=True, default=uuid.uuid4
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="cascade"), index=True
+    )
+    message: Mapped[str] = mapped_column()
+    send_at: Mapped[datetime] = mapped_column(index=True)
+    cancellation_key: Mapped[str | None] = mapped_column(index=True)
+
+    def __repr__(self):
+        return (
+            f"<ScheduledPushNotification (id='{self.id}' user_id='{self.user_id}' "
+            f"send_at='{self.send_at.isoformat() if self.send_at is not None else None}' "
+            f"cancellation_key='{self.cancellation_key}')>"
         )
 
 

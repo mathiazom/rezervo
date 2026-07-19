@@ -34,9 +34,18 @@ class PushNotificationSubscriptionKeys(OrmBase):
     auth: str
 
 
+class PushNotificationGrants(OrmBase):
+    booking: bool = False
+    community: bool = False
+    reminder: bool = False
+
+
 class PushNotificationSubscription(OrmBase):
     endpoint: str
     keys: PushNotificationSubscriptionKeys
+    grants: PushNotificationGrants = pydantic.Field(
+        default_factory=PushNotificationGrants
+    )
 
 
 class Notifications(user.Notifications, admin.Notifications, app.Notifications):
