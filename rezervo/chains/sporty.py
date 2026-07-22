@@ -46,6 +46,35 @@ class SportyChain(Chain, BrpProvider):
             ],
         ),
         Branch(
+            identifier="molde",
+            name="Molde",
+            locations=[
+                Location(
+                    identifier="moldehallen",
+                    name="Moldehallen",
+                    provider_identifier=23371,
+                    check_in_terminals=[
+                        CheckInTerminal(
+                            id="406", label="Dreiesperre", has_printer=True
+                        ),
+                        CheckInTerminal(
+                            id="405", label="Innerdør 4etg.", has_printer=False
+                        ),
+                    ],
+                ),
+                Location(
+                    identifier="reknes",
+                    name="Reknes",
+                    provider_identifier=24407,
+                ),
+                Location(
+                    identifier="sjofronten",
+                    name="Sjøfronten",
+                    provider_identifier=23379,
+                ),
+            ],
+        ),
+        Branch(
             identifier="bergen",
             name="Bergen",
             locations=[
