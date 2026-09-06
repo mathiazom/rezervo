@@ -82,6 +82,10 @@ module-root = ""
 [tool.poe.tasks]
 fix = ["fmt", "lintfix"]
 
+[tool.poe.tasks.bump-deps]
+cmd = "python scripts/bump_deps.py"
+help = "Upgrade dependencies to latest within their pyproject version ceiling, skipping releases <2 days old"
+
 [tool.poe.tasks.mirage-codegen]
 cmd = """
 datamodel-codegen

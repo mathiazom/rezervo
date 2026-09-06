@@ -87,7 +87,7 @@ def ibooking_class_from_sit_session_class(
         capacity=sit_session_class.capacity,
         studio=sit_session_class.studio,
         room=sit_session_class.room,
-        from_field=sit_session_class.from_field,  # type: ignore
+        from_field=sit_session_class.from_field,
         to=sit_session_class.to,
         name=sit_session_class.name,
         description=sit_session_class.description,

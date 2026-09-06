@@ -213,8 +213,8 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
     ) -> RezervoClass:
         return RezervoClass(
             id=str(ibooking_class.id),
-            start_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.from_field),  # type: ignore
-            end_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.to),  # type: ignore
+            start_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.from_field),
+            end_time=tz_aware_iso_from_ibooking_date_str(ibooking_class.to),
             location=RezervoLocation(
                 id=self.location_from_provider_location_identifier(  # type: ignore
                     ibooking_class.studio.id
@@ -240,7 +240,7 @@ class IBookingProvider(Provider[IBookingAuthData, IBookingLocationIdentifier]):
                 RezervoInstructor(name=s.name) for s in ibooking_class.instructors
             ],
             user_status=ibooking_class.user_status,
-            booking_opens_at=tz_aware_iso_from_ibooking_date_str(  # type: ignore
+            booking_opens_at=tz_aware_iso_from_ibooking_date_str(
                 ibooking_class.booking_opens_at
             ),
         )
