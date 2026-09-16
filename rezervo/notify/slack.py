@@ -1,5 +1,4 @@
 import datetime
-import time
 from typing import Any
 
 from apprise import NotifyType
@@ -167,10 +166,12 @@ def schedule_class_reminder_slack(
             reminder_datetime, time_window
         )
         reminder_datetime = max(
-            datetime.datetime.now() + datetime.timedelta(minutes=1), reminder_datetime
+            datetime.datetime.now(tz=reminder_datetime.tzinfo)
+            + datetime.timedelta(minutes=1),
+            reminder_datetime,
         )
         hours_before = (_class.start_time - reminder_datetime).total_seconds() / 3600
-    reminder_timestamp = int(time.mktime(reminder_datetime.timetuple()))
+    reminder_timestamp = int(reminder_datetime.timestamp())
     message = (
         f"Husk *{activity_url(host, chain_identifier, _class)}* "
         f"({_class.start_time.strftime('%Y-%m-%d %H:%M')}, *{_class.location.studio}*) "
