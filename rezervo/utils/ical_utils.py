@@ -1,5 +1,6 @@
 import secrets
 from datetime import datetime
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from icalendar import cal  # type: ignore[import]
@@ -82,5 +83,5 @@ def activity_url(
     return (
         f"{host}/{chain_identifier}"
         f"?{URL_QUERY_PARAM_ISO_WEEK}={compact_iso_week_str(_class.start_time)}"
-        f"&{URL_QUERY_PARAM_CLASS_ID}={_class.id}"
+        f"&{URL_QUERY_PARAM_CLASS_ID}={quote(f'"{_class.id}"')}"
     )

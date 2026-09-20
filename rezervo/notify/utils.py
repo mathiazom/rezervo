@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 from rezervo.consts import URL_QUERY_PARAM_CLASS_ID, URL_QUERY_PARAM_ISO_WEEK
 from rezervo.http_client import HttpClient
@@ -30,7 +30,7 @@ def activity_url(
         return (
             f"<{host}/{chain_identifier}"
             f"?{URL_QUERY_PARAM_ISO_WEEK}={compact_iso_week_str(_class.start_time)}"
-            f"&{URL_QUERY_PARAM_CLASS_ID}={_class.id}"
+            f"&{URL_QUERY_PARAM_CLASS_ID}={quote(f'"{_class.id}"')}"
             f"|*{_class.activity.name}*>"
         )
 
