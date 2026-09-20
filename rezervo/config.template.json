@@ -69,11 +69,6 @@
       "refreshTokenSlidingWindowConfiguration": {
         "maximumTimeToLiveInMinutes": 525600
       }
-    },
-    "auth0_migration": {
-      "jwt_domain": "<DOMAIN>.auth0.com",
-      "management_api_client_id": "<CLIENT-ID>",
-      "management_api_client_secret": "<CLIENT-SECRET>"
     }
   },
   "notifications": {

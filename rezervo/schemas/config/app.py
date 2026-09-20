@@ -62,12 +62,6 @@ class Mirage(OrmBase):
     base_url: str = "https://mirage.rezervo.no"
 
 
-class FusionAuthMigrationFromAuth0Configuration(CamelOrmBase):
-    jwt_domain: str
-    management_api_client_id: str
-    management_api_client_secret: str
-
-
 class FusionAuthEmailConfiguration(CamelOrmBase, extra="allow"):
     defaultFromName: str = "rezervo"
     defaultFromEmail: str
@@ -117,7 +111,6 @@ class FusionAuth(CamelOrmBase):
     email: FusionAuthEmailConfiguration
     jwt: FusionAuthJwtConfiguration
     oauth: FusionAuthOAuthConfiguration
-    auth0_migration: FusionAuthMigrationFromAuth0Configuration | None = None
 
 
 class AppConfig(OrmBase):
