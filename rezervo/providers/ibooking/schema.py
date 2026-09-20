@@ -1,8 +1,8 @@
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
-from pytz import timezone
 
+from rezervo.consts import OSLO_TIMEZONE
 from rezervo.models import SessionState
 from rezervo.schemas.camel import CamelModel
 
@@ -122,4 +122,4 @@ def session_state_from_ibooking(status: str) -> SessionState:
 
 
 def tz_aware_iso_from_ibooking_date_str(date: str) -> str:
-    return timezone("Europe/Oslo").localize(datetime.fromisoformat(date)).isoformat()
+    return datetime.fromisoformat(date).replace(tzinfo=OSLO_TIMEZONE).isoformat()

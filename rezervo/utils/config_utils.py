@@ -1,5 +1,4 @@
-import pytz
-
+from rezervo.consts import OSLO_TIMEZONE
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import BaseRezervoClass
 
@@ -15,7 +14,7 @@ def class_config_recurrent_id(class_config: Class):
 
 def rezervo_class_recurrent_id(_class: BaseRezervoClass):
     localized_start_time = _class.start_time.astimezone(
-        pytz.timezone("Europe/Oslo")
+        OSLO_TIMEZONE
     )  # TODO: clean this
     return recurrent_class_id(
         _class.activity.id,

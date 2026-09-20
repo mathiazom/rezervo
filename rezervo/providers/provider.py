@@ -5,11 +5,11 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from uuid import UUID
 
-import pytz
 from apprise import NotifyType
 
 from rezervo.consts import (
     BOOKING_INITIAL_BURST_ATTEMPTS,
+    OSLO_TIMEZONE,
     PLANNED_SESSIONS_NEXT_WHOLE_WEEKS,
 )
 from rezervo.errors import AuthenticationError, BookingError
@@ -202,10 +202,10 @@ class Provider[AuthData, LocationProviderIdentifier](ABC):
         if config.notifications:
             time_zone_adjusted_class = _class
             time_zone_adjusted_class.start_time = _class.start_time.astimezone(
-                pytz.timezone("Europe/Oslo")
+                OSLO_TIMEZONE
             )  # TODO: clean this
             time_zone_adjusted_class.end_time = _class.end_time.astimezone(
-                pytz.timezone("Europe/Oslo")
+                OSLO_TIMEZONE
             )  # TODO: clean this
             # ical_url = f"{ICAL_URL}/?id={_class.id}&token={token}"    # TODO: consider re-introducing ical
             await notify_booking(

@@ -4,10 +4,9 @@ from abc import ABC
 from collections.abc import Callable
 from datetime import datetime, timedelta
 
-import pytz
 from aiohttp import FormData
 
-from rezervo.consts import WEEKDAYS
+from rezervo.consts import OSLO_TIMEZONE, WEEKDAYS
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError, BookingError
@@ -203,9 +202,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
                 ).myUpcomingTraining
             for day_bookings in sats_day_bookings:
                 for booking in day_bookings.upcomingTrainings.trainings:
-                    start_time = pytz.timezone("Europe/Oslo").localize(
-                        datetime.fromisoformat(f"{booking.date}T{booking.startTime}")
-                    )
+                    start_time = datetime.fromisoformat(
+                        f"{booking.date}T{booking.startTime}"
+                    ).replace(tzinfo=OSLO_TIMEZONE)
                     if (
                         club_name_from_center_name(booking.centerName)
                         == _class.location.studio
@@ -251,9 +250,9 @@ class SatsProvider(Provider[SatsAuthData, SatsLocationIdentifier], ABC):
         find_class_tasks = []
         for day_booking in sats_day_bookings:
             for booking in day_booking.upcomingTrainings.trainings:
-                start_time = pytz.timezone("Europe/Oslo").localize(
-                    datetime.fromisoformat(f"{booking.date}T{booking.startTime}")
-                )
+                start_time = datetime.fromisoformat(
+                    f"{booking.date}T{booking.startTime}"
+                ).replace(tzinfo=OSLO_TIMEZONE)
                 find_class_tasks.append(
                     self._find_class_from_booking_task(
                         booking,

@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
-import pytz
 import requests
 
 from rezervo.errors import BookingError
@@ -28,7 +27,7 @@ def booking_url(
         f"https://{subdomain}.brpsystems.com"
         f"/brponline/api/ver3/customers/{auth_data.username}/bookings/groupactivities"
         + (
-            f"?startTimePoint={start_time_point.astimezone(pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
+            f"?startTimePoint={start_time_point.astimezone(UTC).strftime('%Y-%m-%dT%H:%M:%S')}.000Z"
             if start_time_point is not None
             else ""
         )

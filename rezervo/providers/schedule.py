@@ -1,6 +1,4 @@
-import pytz
-
-from rezervo.consts import WEEKDAYS
+from rezervo.consts import OSLO_TIMEZONE, WEEKDAYS
 from rezervo.errors import BookingError
 from rezervo.schemas.config.user import Class
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
@@ -24,7 +22,7 @@ def find_class_in_schedule_by_config(
             if c.activity.id != _class_config.activity_id:
                 continue
             localized_start_time = c.start_time.astimezone(
-                pytz.timezone("Europe/Oslo")
+                OSLO_TIMEZONE
             )  # TODO: clean this
             time_matches = (
                 localized_start_time.hour == _class_config.start_time.hour

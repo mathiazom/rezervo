@@ -7,7 +7,6 @@ from datetime import datetime
 from uuid import UUID
 
 import humanize
-import pytz
 from apprise import NotifyType
 from playwright.async_api import (
     Cookie,
@@ -22,6 +21,7 @@ from pydantic.fields import Field
 from pydantic.main import BaseModel
 
 from rezervo import models
+from rezervo.consts import OSLO_TIMEZONE
 from rezervo.database import crud
 from rezervo.database.database import SessionLocal
 from rezervo.errors import AuthenticationError
@@ -117,7 +117,7 @@ async def validate_ibooking_token(ibooking_token: str):
     expires_string = token_info["authTokenExpires"]
     expires_at = int(
         datetime.strptime(expires_string, "%Y-%m-%d %H:%M:%S")
-        .replace(tzinfo=pytz.timezone("Europe/Oslo"))
+        .replace(tzinfo=OSLO_TIMEZONE)
         .timestamp()
     )
     return True, expires_at

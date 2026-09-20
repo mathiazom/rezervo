@@ -1180,15 +1180,6 @@ wheels = [
 ]
 
 [[package]]
-name = "pytz"
-version = "2026.3.post1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fb/48/fb042503b6ca6cd271261dc559fd6432f7d8c713153e9ec5c591af4dfc1c/pytz-2026.3.post1.tar.gz", hash = "sha256:2211d3fcf9a797d3405cac96ac7f61d80e6a644f72a3309607282fe8a2010c5d", size = 319745, upload-time = "2026-07-25T15:12:07.385Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/7b/39c34ca613b0b198cb866466651b26b045e2009864c5183c979a3b83f383/pytz-2026.3.post1-py2.py3-none-any.whl", hash = "sha256:dd95840dd199baea12d9cc096a1d452caa6596a1c1e4b5f3dbd1541855d5e815", size = 508283, upload-time = "2026-07-25T15:12:05.782Z" },
-]
-
-[[package]]
 name = "pywebpush"
 version = "2.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1285,7 +1276,6 @@ dependencies = [
     { name = "pyjwt" },
     { name = "python-crontab" },
     { name = "python-multipart" },
-    { name = "pytz" },
     { name = "pywebpush" },
     { name = "requests" },
     { name = "rich" },
@@ -1305,7 +1295,6 @@ dev = [
     { name = "ty" },
     { name = "types-psutil" },
     { name = "types-python-crontab" },
-    { name = "types-pytz" },
     { name = "types-requests" },
     { name = "types-tabulate" },
 ]
@@ -1334,7 +1323,6 @@ requires-dist = [
     { name = "pyjwt", specifier = ">=2.13.0,<3" },
     { name = "python-crontab", specifier = ">=3.3.0,<4" },
     { name = "python-multipart", specifier = ">=0.0.32,<0.0.33" },
-    { name = "pytz", specifier = ">=2026.2,<2027" },
     { name = "pywebpush", specifier = ">=2.3.0,<3" },
     { name = "requests", specifier = ">=2.34.2,<3" },
     { name = "rich", specifier = ">=15.0.0,<16" },
@@ -1354,7 +1342,6 @@ dev = [
     { name = "ty", specifier = ">=0.0.56,<0.1" },
     { name = "types-psutil", specifier = ">=7.2.2.20260518,<8" },
     { name = "types-python-crontab", specifier = ">=3.3.0.20260518,<4" },
-    { name = "types-pytz", specifier = ">=2026.2.0.20260518,<2027" },
     { name = "types-requests", specifier = ">=2.33.0.20260518,<3" },
     { name = "types-tabulate", specifier = ">=0.10.0.20260508,<0.11" },
 ]
@@ -1561,15 +1548,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6a/e9/cdbc1d97207921da0f8d997157a76abdb637e8f03c9c0ef38703fbd9bc8c/types_python_crontab-3.4.0.20260901.tar.gz", hash = "sha256:f9faa406964b742145002133ac43bdcd7ae00037b27c7d9b7d3bbed6f936720a", size = 12510, upload-time = "2026-09-01T06:54:55.796Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/f1/1f7bba20f88e9a02c271a4dabbe9a5db482bffe2ca71aa46c651fb2955f8/types_python_crontab-3.4.0.20260901-py3-none-any.whl", hash = "sha256:d502a63cf0f10e40a56da815ee672e06d55d63f0dd93fdcc1d188eeb692fc7f9", size = 12087, upload-time = "2026-09-01T06:54:54.864Z" },
-]
-
-[[package]]
-name = "types-pytz"
-version = "2026.3.1.20260727"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/b1/cf/eae96172a036b942e0ad0ec49512108b4ef4b97cd6c2aed5677540a597e7/types_pytz-2026.3.1.20260727.tar.gz", hash = "sha256:4364075b6867dd15b210bb8c1d29727d609917129b45600defe1d4b3eda5ecb9", size = 10914, upload-time = "2026-07-27T05:36:32.389Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/9c/24/a654176875944981c75516857cd8750600eeb9ff7fc07a2b82573619a57c/types_pytz-2026.3.1.20260727-py3-none-any.whl", hash = "sha256:42ac44e83645bfceb46597342c8fb8ec028a1407e2feae9c5c539986eab6b57a", size = 10132, upload-time = "2026-07-27T05:36:31.52Z" },
 ]
 
 [[package]]

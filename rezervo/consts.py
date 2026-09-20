@@ -1,4 +1,8 @@
+from zoneinfo import ZoneInfo
+
 WEEKDAYS = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"]
+
+OSLO_TIMEZONE = ZoneInfo("Europe/Oslo")
 
 # The number of whole weeks to fetch in addition to the rest of the current week when looking at planned sessions
 PLANNED_SESSIONS_NEXT_WHOLE_WEEKS = 4

@@ -1,8 +1,6 @@
 from datetime import UTC, datetime
 
-import pytz
-
-from rezervo.consts import WEEKDAYS
+from rezervo.consts import OSLO_TIMEZONE, WEEKDAYS
 from rezervo.schemas.config.user import ChainConfig
 from rezervo.schemas.schedule import RezervoClass, RezervoSchedule
 
@@ -23,7 +21,7 @@ def get_user_planned_sessions_from_schedule(
                 if c.activity.id != str(cc.activity_id):
                     continue
                 localized_start_time = c.start_time.astimezone(
-                    pytz.timezone("Europe/Oslo")
+                    OSLO_TIMEZONE
                 )  # TODO: clean this
                 time_matches = (
                     localized_start_time.hour == cc.start_time.hour

@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
-import pytz
 from pydantic import BaseModel, ConfigDict
 
 from rezervo.models import SessionState
@@ -245,4 +244,4 @@ def session_state_from_brp(
 
 
 def tz_aware_iso_from_brp_date_str(date: str) -> str:
-    return pytz.UTC.localize(datetime.fromisoformat(date.replace("Z", ""))).isoformat()
+    return datetime.fromisoformat(date.replace("Z", "")).replace(tzinfo=UTC).isoformat()

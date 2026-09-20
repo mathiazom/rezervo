@@ -1,7 +1,7 @@
 import secrets
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
-import pytz
 from icalendar import cal  # type: ignore[import]
 
 from rezervo.consts import URL_QUERY_PARAM_CLASS_ID, URL_QUERY_PARAM_ISO_WEEK
@@ -48,7 +48,7 @@ def ical_event_from_session(
         ),
     )
     # TODO: start and end times use a naughty timezone hack to make ical valid, check if any nicer solutions exists
-    tz = pytz.timezone(timezone)
+    tz = ZoneInfo(timezone)
     event.add("dtstart", _class.start_time.astimezone(tz).replace(tzinfo=None))
     event.add("dtend", _class.end_time.astimezone(tz).replace(tzinfo=None))
     event.add("dtstamp", datetime.now())

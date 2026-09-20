@@ -3,10 +3,10 @@ import enum
 from typing import Annotated, Literal
 from uuid import UUID
 
-import pytz
 from pydantic import RootModel
 from pydantic.fields import Field
 
+from rezervo.consts import OSLO_TIMEZONE
 from rezervo.schemas.base import OrmBase
 from rezervo.schemas.camel import CamelModel, CamelOrmBase
 
@@ -59,9 +59,7 @@ class Class(CamelModel):
     def calculate_next_occurrence(
         self, include_today: bool = True
     ) -> datetime.datetime:
-        now = datetime.datetime.now().astimezone(
-            pytz.timezone("Europe/Oslo")
-        )  # TODO: clean this
+        now = datetime.datetime.now().astimezone(OSLO_TIMEZONE)  # TODO: clean this
         days_ahead = self.weekday - now.weekday()
         if days_ahead < 0 or (
             days_ahead == 0
