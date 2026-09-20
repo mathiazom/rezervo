@@ -63,7 +63,7 @@ async def fetch_authed_sats_cookie(
 
 async def validate_token(
     auth_data: SatsAuthData,
-) -> None | AuthenticationError:
+) -> AuthenticationError | None:
     async with (
         create_authed_sats_session(auth_data) as session,
         session.get(MY_PAGE_URL) as my_page_res,

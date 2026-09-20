@@ -54,7 +54,7 @@ async def cancel_booking(
     _class: RezervoClass,
     config: ConfigValue,
     user_id: UUID,
-) -> None | BookingError | AuthenticationError:
+) -> BookingError | AuthenticationError | None:
     res = await get_chain(chain_identifier).try_cancel_booking(
         auth_data, _class, config, user_id
     )

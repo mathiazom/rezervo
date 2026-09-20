@@ -228,7 +228,7 @@ class Provider[AuthData, LocationProviderIdentifier](ABC):
         _class: RezervoClass,
         config: ConfigValue,
         user_id: UUID,
-    ) -> None | BookingError | AuthenticationError:
+    ) -> BookingError | AuthenticationError | None:
         if config.booking.max_attempts < 1:
             log.error("Max booking cancellation attempts must be a positive number")
             return BookingError.INVALID_CONFIG
