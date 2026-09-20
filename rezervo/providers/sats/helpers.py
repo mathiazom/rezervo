@@ -22,4 +22,4 @@ def club_name_from_center_name(center_name: str) -> str:
 
 
 def create_activity_id(activity_name: str, club_name: str) -> str:
-    return xxhash.xxh64(f"{activity_name}@{club_name}".strip()).hexdigest()
+    return xxhash.xxh64(f"{activity_name}@{club_name}".strip().encode()).hexdigest()
