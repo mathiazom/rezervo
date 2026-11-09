@@ -30,8 +30,8 @@ def parse_requirement(req: str) -> tuple[str, list[tuple[str, VersionTuple]]]:
     # requirement strings in this repo are always "name>=x,<y" or "name>=x,<y # comment"
     spec = spec.split("#", 1)[0].strip()
     name = name.strip()
-    clauses: list[tuple[str, VersionTuple]] = [(">=", parse_version(spec.split(",")[0]))]  # type: ignore[list-item]
-    for part in spec.split(",")[1:]:
+    clauses: list[tuple[str, VersionTuple]] = []
+    for part in f">={spec}".split(","):
         part = part.strip()
         m = re.match(r"(>=|<=|==|!=|>|<)(.+)", part)
         if not m:
@@ -94,9 +94,9 @@ def load_dependencies() -> list[str]:
 def load_locked_versions() -> dict[str, VersionTuple]:
     lock = tomllib.loads((ROOT / "uv.lock").read_text())
     return {
-        pkg["name"]: parse_version(pkg["version"])
+        pkg["name"]: v
         for pkg in lock["package"]
-        if parse_version(pkg["version"]) is not None
+        if (v := parse_version(pkg["version"])) is not None
     }
 
 
