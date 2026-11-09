@@ -279,7 +279,7 @@ class BrpProvider(Provider[BrpAuthData, BrpLocationIdentifier]):
                     date=date.isoformat(),
                     classes=sorted(
                         day_classes,
-                        key=lambda c: c.start_time,  # type: ignore
+                        key=lambda c: c.start_time,
                     ),
                 )
                 for date, day_classes in days_map.items()
