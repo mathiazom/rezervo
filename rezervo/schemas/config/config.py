@@ -40,15 +40,15 @@ class PushNotificationSubscription(OrmBase):
 
 
 class Notifications(user.Notifications, admin.Notifications, app.Notifications):
-    slack: Slack | None = None  # ty: ignore[invalid-mutable-override]
+    slack: Slack | None = None  # ty: ignore[incompatible-mutable-override]
     push_notification_subscriptions: list[PushNotificationSubscription] | None = None
 
 
 class ConfigValue(user.UserPreferences, admin.AdminConfig, app.AppConfig):
-    auth: Auth  # ty: ignore[invalid-mutable-override]
-    booking: Booking  # ty: ignore[invalid-mutable-override]
-    cron: Cron  # ty: ignore[invalid-mutable-override]
-    notifications: Notifications | None = None  # ty: ignore[invalid-mutable-override]
+    auth: Auth  # ty: ignore[incompatible-mutable-override]
+    booking: Booking  # ty: ignore[incompatible-mutable-override]
+    cron: Cron  # ty: ignore[incompatible-mutable-override]
+    notifications: Notifications | None = None  # ty: ignore[incompatible-mutable-override]
 
 
 class Config(BaseModel):
