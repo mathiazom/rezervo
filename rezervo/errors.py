@@ -16,9 +16,7 @@ class BookingError(Enum):
 
 class AuthenticationError(Enum):
     ERROR = auto()
-    TOKEN_EXTRACTION_FAILED = auto()
     TOKEN_VALIDATION_FAILED = auto()
     TOKEN_INVALID = auto()
     AUTH_TEMPORARILY_BLOCKED = auto()
     INVALID_CREDENTIALS = auto()
-    MISSING_TOTP_SESSION = auto()

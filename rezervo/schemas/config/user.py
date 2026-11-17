@@ -1,10 +1,6 @@
 import datetime
-import enum
-from typing import Annotated, Literal
+from typing import Literal
 from uuid import UUID
-
-from pydantic import RootModel
-from pydantic.fields import Field
 
 from rezervo.consts import OSLO_TIMEZONE
 from rezervo.schemas.base import OrmBase
@@ -37,11 +33,6 @@ class UserIdAndNameWithIsSelf(CamelModel):
 
 
 ChainIdentifier = str
-
-
-class ProviderIdentifier(enum.Enum):
-    BRP = "brpsystems"
-    IBOOKING = "ibooking"
 
 
 class ClassTime(CamelModel):
@@ -100,15 +91,7 @@ class ChainUserCredentials(ChainUserUsername, CamelModel):
     password: str | None = None
 
 
-class ChainUserTOTP(CamelModel):
-    totp: str | None = None
-
-
-class ChainUserTOTPPayload(CamelModel):
-    totp: str
-
-
-class ChainUser(ChainConfig, ChainUserCredentials, ChainUserTOTP, CamelModel):
+class ChainUser(ChainConfig, ChainUserCredentials, CamelModel):
     user_id: UUID
     auth_data: str | None = None
     auth_verified_at: datetime.datetime | None = None
@@ -121,16 +104,3 @@ def config_from_chain_user(user: ChainUser):
 class UpdatedChainUserCredsResponse(CamelModel):
     status: Literal["updated"] = "updated"
     profile: ChainUserProfile
-
-
-class InitiatedTOTPFlowResponse(CamelModel):
-    status: Literal["initiated_totp_flow"] = "initiated_totp_flow"
-    totp_regex: str | None = None
-
-
-PutChainUserCredsResponse = RootModel[
-    Annotated[
-        UpdatedChainUserCredsResponse | InitiatedTOTPFlowResponse,
-        Field(discriminator="status"),
-    ]
-]

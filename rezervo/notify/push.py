@@ -21,7 +21,6 @@ from rezervo.utils.logging_utils import log
 AUTH_FAILURE_REASONS = {
     AuthenticationError.INVALID_CREDENTIALS: "Ugyldig brukernavn eller passord 🔐",
     AuthenticationError.AUTH_TEMPORARILY_BLOCKED: "Midlertidig utestengt ⛔",
-    AuthenticationError.TOKEN_EXTRACTION_FAILED: "Klarte ikke å hente autentiseringsnøkkel 🕵️",
     AuthenticationError.TOKEN_VALIDATION_FAILED: "Klarte ikke å verifisere autentiseringsnøkkel ‽",
 }
 

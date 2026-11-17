@@ -141,44 +141,6 @@ def get_db_chain_user(
     )
 
 
-def get_chain_user_totp(
-    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> str | None:
-    return (
-        db.query(models.ChainUser.totp)
-        .filter_by(user_id=user_id, chain=chain_identifier)
-        .scalar()
-    )
-
-
-def get_chain_user_auth_verified_at(
-    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-) -> datetime | None:
-    return (
-        db.query(models.ChainUser.auth_verified_at)
-        .filter_by(user_id=user_id, chain=chain_identifier)
-        .scalar()
-    )
-
-
-def update_chain_user_auth_verified_at(
-    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-):
-    db.query(models.ChainUser).filter_by(
-        user_id=user_id, chain=chain_identifier
-    ).update({models.ChainUser.auth_verified_at: datetime.now()})
-    db.commit()
-
-
-def delete_chain_user_totp(
-    db: Session, chain_identifier: ChainIdentifier, user_id: UUID
-):
-    db.query(models.ChainUser).filter_by(
-        user_id=user_id, chain=chain_identifier
-    ).update({models.ChainUser.totp: None})
-    db.commit()
-
-
 def get_chain_user(
     db: Session, chain_identifier: ChainIdentifier, user_id: UUID
 ) -> ChainUser | None:

@@ -1,5 +1,4 @@
 import asyncio
-import re
 import time
 from abc import ABC, abstractmethod
 from datetime import datetime
@@ -48,14 +47,6 @@ from rezervo.utils.time_utils import (
 
 
 class Provider[AuthData, LocationProviderIdentifier](ABC):
-    @property
-    def totp_enabled(self) -> bool:
-        return False
-
-    @property
-    def totp_regex(self) -> str | None:
-        return None
-
     @property
     @abstractmethod
     def branches(self) -> list[Branch[LocationProviderIdentifier]]:
@@ -345,19 +336,4 @@ class Provider[AuthData, LocationProviderIdentifier](ABC):
 
     @abstractmethod
     async def verify_authentication(self, credentials: ChainUserCredentials) -> bool:
-        raise NotImplementedError()
-
-    async def verify_totp(self, totp: str) -> bool:
-        if not self.totp_enabled:
-            raise NotImplementedError("TOTP not enabled for this provider")
-        if self.totp_regex is None:
-            # bypass TOTP verification if no pattern is defined
-            return True
-        return re.compile(self.totp_regex).match(totp) is not None
-
-    async def initiate_totp_flow(
-        self, chain_identifier: ChainIdentifier, user_id: UUID
-    ) -> None:
-        if not self.totp_enabled:
-            raise NotImplementedError("TOTP not enabled for this provider")
         raise NotImplementedError()

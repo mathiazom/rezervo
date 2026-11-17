@@ -16,8 +16,8 @@ COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /uvx /bin/
 
 WORKDIR /app
 
-# install into the system environment so console scripts (rezervo, alembic,
-# playwright) are available on PATH for the entrypoint and cron jobs
+# install into the system environment so console scripts (rezervo, alembic)
+# are available on PATH for the entrypoint and cron jobs
 # https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
 ENV UV_PROJECT_ENVIRONMENT=/usr/local
 
@@ -35,9 +35,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY rezervo rezervo
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev
-
-# install Playwright browser and required deps
-RUN playwright install --with-deps firefox
 
 COPY docker/entrypoint.sh .
 RUN chmod +x ./entrypoint.sh

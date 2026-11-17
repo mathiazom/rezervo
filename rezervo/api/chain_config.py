@@ -1,5 +1,3 @@
-import asyncio
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from starlette import status
@@ -10,10 +8,6 @@ from rezervo.api.common import get_db, token_auth_scheme
 from rezervo.chains.active import get_chain
 from rezervo.cron import refresh_recurring_booking_cron_jobs
 from rezervo.database import crud
-from rezervo.providers.ibooking.auth import (
-    WAIT_FOR_TOTP_VERIFICATION_MAX_SECONDS,
-    WAIT_FOR_TOTP_VERIFICATION_MILLISECONDS,
-)
 from rezervo.schemas.community import UserRelationship
 from rezervo.schemas.config.app import AppConfig
 from rezervo.schemas.config.config import read_app_config
@@ -23,9 +17,6 @@ from rezervo.schemas.config.user import (
     ChainIdentifier,
     ChainUserCredentials,
     ChainUserProfile,
-    ChainUserTOTPPayload,
-    InitiatedTOTPFlowResponse,
-    PutChainUserCredsResponse,
     UpdatedChainUserCredsResponse,
     UserIdAndNameWithIsSelf,
 )
@@ -54,7 +45,7 @@ def get_chain_user_profile(
     return user_profile
 
 
-@router.put("/{chain_identifier}/user", response_model=PutChainUserCredsResponse)
+@router.put("/{chain_identifier}/user", response_model=UpdatedChainUserCredsResponse)
 async def put_chain_user_creds(
     chain_identifier: ChainIdentifier,
     chain_user_creds: ChainUserCredentials,
@@ -74,13 +65,6 @@ async def put_chain_user_creds(
     )
     if updated_config is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    if chain.totp_enabled:
-        background_tasks.add_task(
-            chain.initiate_totp_flow, chain.identifier, db_user.id
-        )
-        return InitiatedTOTPFlowResponse(
-            totp_regex=chain.totp_regex,
-        )
     background_tasks.add_task(
         refresh_recurring_booking_cron_jobs, db_user.id, [chain_identifier]
     )
@@ -109,52 +93,6 @@ async def delete_chain_user(
     )
     db.delete(chain_user)
     db.commit()
-
-
-@router.put("/{chain_identifier}/user/totp")
-async def put_chain_user_totp(
-    chain_identifier: ChainIdentifier,
-    payload: ChainUserTOTPPayload,
-    background_tasks: BackgroundTasks,
-    token=Depends(token_auth_scheme),
-    db: Session = Depends(get_db),
-    app_config: AppConfig = Depends(read_app_config),
-):
-    db_user = crud.user_from_token(db, app_config, token)
-    if db_user is None:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED)
-    chain = get_chain(chain_identifier)
-    if not chain.totp_enabled:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
-    db_chain_user = crud.get_db_chain_user(db, chain_identifier, db_user.id)
-    if db_chain_user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
-    totp = payload.totp
-    if not await chain.verify_totp(totp):
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY)
-    verification_timestamp = crud.get_chain_user_auth_verified_at(
-        db, db_chain_user.chain, db_chain_user.user_id
-    )
-    db_chain_user.totp = totp
-    db.commit()
-    # wait for TOTP to be marked as verified (timestamp is updated)
-    wait_start = asyncio.get_event_loop().time()
-    while (
-        asyncio.get_event_loop().time()
-        < wait_start + WAIT_FOR_TOTP_VERIFICATION_MAX_SECONDS
-    ):
-        current_timestamp = crud.get_chain_user_auth_verified_at(
-            db, db_chain_user.chain, db_chain_user.user_id
-        )
-        if current_timestamp is not None and (
-            verification_timestamp is None or verification_timestamp < current_timestamp
-        ):
-            background_tasks.add_task(
-                refresh_recurring_booking_cron_jobs, db_user.id, [chain_identifier]
-            )
-            return
-        await asyncio.sleep(WAIT_FOR_TOTP_VERIFICATION_MILLISECONDS / 1000)
-    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST)
 
 
 @router.get("/{chain_identifier}/config", response_model=BaseChainConfig)

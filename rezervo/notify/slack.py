@@ -201,7 +201,6 @@ def window_backward_adjusted_datetime(
 AUTH_FAILURE_REASONS = {
     AuthenticationError.INVALID_CREDENTIALS: "Ugyldig brukernavn eller passord :key:",
     AuthenticationError.AUTH_TEMPORARILY_BLOCKED: "Midlertidig utestengt :no_entry:",
-    AuthenticationError.TOKEN_EXTRACTION_FAILED: "Klarte ikke å hente autentiseringsnøkkel :sleuth_or_spy:",
     AuthenticationError.TOKEN_VALIDATION_FAILED: "Klarte ikke å verifisere autentiseringsnøkkel :interrobang:",
 }
 
